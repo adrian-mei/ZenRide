@@ -1,0 +1,17 @@
+name: ZenRide
+options:
+  bundleIdPrefix: com.adrian
+  minimumXcodeGenVersion: 2.30.0
+targets:
+  ZenRide:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.4"
+    sources: [Sources, Resources]
+    info:
+      path: Info.plist
+      properties:
+        UILaunchStoryboardName: LaunchScreen
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSLocationWhenInUseUsageDescription: "The Owl Police needs your location to gently warn you about upcoming speed cameras."

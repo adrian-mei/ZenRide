@@ -1,0 +1,223 @@
+import SwiftUI
+
+struct RouteSelectionSheet: View {
+    let destinationName: String
+    var onGo: () -> Void
+    var onCancel: () -> Void
+    
+    @EnvironmentObject var routingService: RoutingService
+    @State private var countdown = 10
+    @State private var timer: Timer? = nil
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(destinationName.isEmpty ? "Destination" : destinationName)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Button(action: onCancel) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Transportation Mode Picker Placeholder
+                HStack(spacing: 0) {
+                    ModeButton(icon: "car.fill", isSelected: false)
+                    ModeButton(icon: "figure.outdoor.cycle", isSelected: true)
+                    ModeButton(icon: "figure.walk", isSelected: false)
+                    ModeButton(icon: "bus.fill", isSelected: false)
+                    ModeButton(icon: "bicycle", isSelected: false)
+                }
+                .background(.regularMaterial)
+                .cornerRadius(10)
+                .padding(.top, 8)
+            }
+            .padding(.top, 24)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
+            
+            // Route Options List
+            VStack(spacing: 12) {
+                ForEach(Array(routingService.availableRoutes.enumerated()), id: \.element.id) { index, route in
+                    RouteListRow(
+                        route: route,
+                        isSelected: routingService.selectedRouteIndex == index,
+                        onSelect: { 
+                            routingService.selectRoute(at: index)
+                            resetTimer()
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+            
+            // Actions
+            HStack(spacing: 16) {
+                Button(action: {
+                    // Simulating a custom route/avoidance sheet
+                    print("Avoidance tapped")
+                }) {
+                    Text("Avoid")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(.regularMaterial)
+                        .clipShape(Capsule())
+                }
+                
+                Button(action: {
+                    timer?.invalidate()
+                    onGo()
+                }) {
+                    Text("GO (\(countdown)s)")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.green)
+                        .clipShape(Capsule())
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+        .presentationDragIndicator(.visible)
+        .onAppear {
+            startTimer()
+        }
+        .onDisappear {
+            timer?.invalidate()
+        }
+    }
+    
+    private func startTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if countdown > 1 {
+                countdown -= 1
+            } else {
+                timer?.invalidate()
+                onGo()
+            }
+        }
+    }
+    
+    private func resetTimer() {
+        countdown = 10
+        startTimer()
+    }
+}
+
+struct RouteListRow: View {
+    let route: TomTomRoute
+    let isSelected: Bool
+    var onSelect: () -> Void
+    
+    var formattedTime: String {
+        let minutes = route.summary.travelTimeInSeconds / 60
+        return "\(minutes) min"
+    }
+    
+    var formattedDistance: String {
+        let miles = Double(route.summary.lengthInMeters) / 1609.34
+        return String(format: "%.1f mi", miles)
+    }
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        if route.isZeroCameras {
+                            Text("Zero Cameras")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.green)
+                        } else if route.isLessTraffic {
+                            Text("Less Traffic")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("Fastest Route")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(isSelected ? .blue : .primary)
+                        }
+                    }
+                    
+                    Text("via Default Route") // We can mock street name or omit
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(formattedTime)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(isSelected ? .green : .primary)
+                    
+                    Text(formattedDistance)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+            .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
+            .background(.regularMaterial)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+            )
+        }
+    }
+}
+
+// Helper to round specific corners
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape( RoundedCorner(radius: radius, corners: corners) )
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
+    }
+}
+
+struct ModeButton: View {
+    let icon: String
+    let isSelected: Bool
+    
+    var body: some View {
+        Button(action: {}) {
+            Image(systemName: icon)
+                .font(.body.weight(isSelected ? .bold : .regular))
+                .foregroundColor(isSelected ? .white : .primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(isSelected ? Color.blue : Color.clear)
+                .cornerRadius(8)
+                .padding(2)
+        }
+    }
+}

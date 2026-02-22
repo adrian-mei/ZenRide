@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SF Speed Cameras — Live Map</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon {
+      font-size: 24px;
+    }
+
+    header h1 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.3px;
+    }
+
+    header p {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    .badge {
+      background: #ef4444;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+      display: inline-block;
+      margin-right: 5px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    /* ── Layout ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 300px;
+      background: #1a1d27;
+      border-right: 1px solid #2d3148;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #2d3148;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header input {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 13px;
+      padding: 8px 12px 8px 32px;
+      outline: none;
+      transition: border-color 0.2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 9px center;
+      background-size: 14px;
+    }
+
+    .sidebar-header input:focus { border-color: #3b82f6; }
+    .sidebar-header input::placeholder { color: #475569; }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      color: #94a3b8;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: #1e3a5f;
+      border-color: #3b82f6;
+      color: #60a5fa;
+    }
+
+    .camera-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .camera-list::-webkit-scrollbar { width: 4px; }
+    .camera-list::-webkit-scrollbar-track { background: transparent; }
+    .camera-list::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 2px; }
+
+    .camera-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid #1e2235;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .camera-item:hover { background: #1e2235; }
+    .camera-item.selected { background: #1e3a5f; border-left: 3px solid #3b82f6; }
+
+    .cam-num {
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .cam-info { flex: 1; min-width: 0; }
+
+    .cam-street {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cam-cross {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cam-tags {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .tag-neighborhood {
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+    }
+
+    .tag-direction {
+      background: #2d1b4e;
+      color: #a78bfa;
+      border: 1px solid #4c1d95;
+    }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      padding: 10px 16px;
+      border-top: 1px solid #2d3148;
+      display: flex;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .stat { text-align: center; }
+    .stat-val { font-size: 18px; font-weight: 700; color: #3b82f6; }
+    .stat-label { font-size: 10px; color: #475569; margin-top: 1px; }
+
+    /* ── Map ── */
+    #map {
+      flex: 1;
+      z-index: 1;
+    }
+
+    /* ── Custom marker ── */
+    .camera-marker {
+      background: #ef4444;
+      border: 2.5px solid white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .camera-marker:hover { transform: scale(1.2); }
+    .camera-marker.selected-marker {
+      background: #3b82f6;
+      transform: scale(1.3);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.3), 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    /* ── Popup ── */
+    .leaflet-popup-content-wrapper {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      color: #e2e8f0;
+    }
+
+    .leaflet-popup-tip { background: #1a1d27; }
+    .leaflet-popup-content { margin: 14px 16px; min-width: 210px; }
+
+    .popup-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+
+    .popup-row {
+      font-size: 12px;
+      color: #94a3b8;
+      margin: 3px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .popup-row span:first-child { flex-shrink: 0; }
+
+    .popup-divider {
+      border: none;
+      border-top: 1px solid #2d3148;
+      margin: 8px 0;
+    }
+
+    .popup-badge {
+      display: inline-block;
+      background: #ef4444;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+
+    /* ── No results ── */
+    .no-results {
+      padding: 30px 16px;
+      text-align: center;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    /* ── Fines modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 14px;
+      width: 540px;
+      max-width: 95vw;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+    }
+
+    .modal::-webkit-scrollbar { width: 4px; }
+    .modal::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 2px; }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid #2d3148;
+      position: sticky;
+      top: 0;
+      background: #1a1d27;
+      z-index: 1;
+    }
+
+    .modal-header h2 { font-size: 16px; font-weight: 700; color: #f1f5f9; }
+    .modal-header p { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    .modal-close {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      color: #94a3b8;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .modal-body { padding: 18px 20px; }
+
+    .modal-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #475569;
+      margin: 18px 0 10px;
+    }
+    .modal-section-title:first-child { margin-top: 0; }
+
+    /* Fine table */
+    .fine-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .fine-table th {
+      text-align: left; padding: 6px 10px;
+      background: #0f1117; color: #64748b;
+      font-weight: 600; font-size: 11px;
+      border-bottom: 1px solid #2d3148;
+    }
+    .fine-table td { padding: 8px 10px; border-bottom: 1px solid #1e2235; color: #e2e8f0; vertical-align: top; }
+    .fine-table tr:last-child td { border-bottom: none; }
+    .fine-table .amt { font-weight: 700; }
+    .fine-table .standard { color: #ef4444; }
+    .fine-table .low-income { color: #f59e0b; }
+    .fine-table .benefits { color: #22c55e; }
+
+    /* Discount cards */
+    .discount-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .discount-card {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .discount-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .discount-card .reduction { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .discount-card p { font-size: 11px; color: #64748b; line-height: 1.5; }
+    .discount-card ul { margin: 6px 0 0 14px; font-size: 11px; color: #94a3b8; line-height: 1.6; }
+
+    .card-low { border-color: #78350f; }
+    .card-low h4 { color: #fbbf24; }
+    .card-low .reduction { color: #f59e0b; }
+    .card-benefits { border-color: #14532d; }
+    .card-benefits h4 { color: #4ade80; }
+    .card-benefits .reduction { color: #22c55e; }
+
+    /* Income table */
+    .income-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .income-table td { padding: 5px 10px; border-bottom: 1px solid #1e2235; color: #94a3b8; }
+    .income-table td:first-child { color: #e2e8f0; font-weight: 600; }
+    .income-table tr:last-child td { border-bottom: none; }
+
+    /* Community service */
+    .cs-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .cs-stat { background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 10px; text-align: center; }
+    .cs-stat .val { font-size: 18px; font-weight: 800; color: #3b82f6; }
+    .cs-stat .lbl { font-size: 10px; color: #475569; margin-top: 2px; }
+
+    .info-row { font-size: 12px; color: #94a3b8; padding: 4px 0; display: flex; gap: 8px; }
+    .info-row span:first-child { color: #64748b; flex-shrink: 0; }
+
+    .contact-box {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+      line-height: 1.7;
+    }
+    .contact-box strong { color: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="header-icon">📷</span>
+    <div>
+      <h1>SF Speed Safety Cameras</h1>
+      <p><span class="live-dot"></span>Live Map · SFMTA · Active since Mar 20, 2025</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button id="finesBtn" style="background:#1e293b;border:1px solid #2d3148;color:#94a3b8;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">💰 Fines & Discounts</button>
+    <span id="segLoadBadge" style="font-size:10px;color:#475569;display:none;">⏳ Drawing segments…</span>
+    <span class="badge">34 CAMERAS</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <input type="text" id="search" placeholder="Search street or neighborhood…" />
+      <div class="filter-row" id="filters">
+        <button class="filter-btn active" data-district="all">All Districts</button>
+      </div>
+    </div>
+
+    <div class="camera-list" id="cameraList"></div>
+
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-val" id="statVisible">34</div>
+        <div class="stat-label">Showing</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">11</div>
+        <div class="stat-label">Districts</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">$50–500</div>
+        <div class="stat-label">Fine Range</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+</div>
+
+<!-- Fines Modal -->
+<div class="modal-overlay" id="finesModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2>💰 Fines, Discounts & Community Service</h2>
+        <p>Source: SFMTA · AB 645 · sfmta.com/SpeedCameras</p>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-section-title">Fine Schedule</div>
+      <table class="fine-table">
+        <thead>
+          <tr>
+            <th>Speed Over Limit</th>
+            <th class="standard">Standard</th>
+            <th class="low-income">Low-Income (−50%)</th>
+            <th class="benefits">Public Benefits (−80%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>11–15 MPH over</td>
+            <td class="amt standard">$50</td>
+            <td class="amt low-income">$25</td>
+            <td class="amt benefits">$10</td>
+          </tr>
+          <tr>
+            <td>16–25 MPH over</td>
+            <td class="amt standard">$100</td>
+            <td class="amt low-income">$50</td>
+            <td class="amt benefits">$20</td>
+          </tr>
+          <tr>
+            <td>26+ MPH over</td>
+            <td class="amt standard">$200</td>
+            <td class="amt low-income">$100</td>
+            <td class="amt benefits">$40</td>
+          </tr>
+          <tr>
+            <td>100+ MPH (any)</td>
+            <td class="amt standard">$500</td>
+            <td class="amt low-income">$250</td>
+            <td class="amt benefits">$100</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:11px;color:#475569;margin-top:6px;">No points added to your license. Not reported to insurance.</p>
+
+      <div class="modal-section-title">Discount Programs</div>
+      <div class="discount-cards">
+        <div class="discount-card card-low">
+          <h4>Low-Income Discount</h4>
+          <div class="reduction">−50%</div>
+          <p>Pay half the standard fine. Household income must be under:</p>
+          <ul>
+            <li>1 person: $39,125</li>
+            <li>2 people: $52,875</li>
+            <li>3 people: $66,625</li>
+            <li>4 people: $80,375</li>
+            <li>5 people: $94,125</li>
+            <li>6+ people: +$13,750 each</li>
+          </ul>
+        </div>
+        <div class="discount-card card-benefits">
+          <h4>Public Benefits Discount</h4>
+          <div class="reduction">−80%</div>
+          <p>Pay one-fifth the fine. Qualifying programs:</p>
+          <ul>
+            <li>Medi-Cal</li>
+            <li>EBT Card</li>
+            <li>WIC Program</li>
+            <li>SFMTA Lifeline Card</li>
+            <li>Coordinated Entry (homeless)</li>
+          </ul>
+        </div>
+      </div>
+      <p style="font-size:11px;color:#475569;margin-top:8px;">You may qualify for both but must choose only one. Apply online or in-person at SFMTA Customer Service Center, 11 S. Van Ness Ave.</p>
+
+      <div class="modal-section-title">Community Service Alternative</div>
+      <div class="cs-stats">
+        <div class="cs-stat"><div class="val">$20</div><div class="lbl">Per Hour Credit</div></div>
+        <div class="cs-stat"><div class="val">$1,000</div><div class="lbl">Max Per Year</div></div>
+        <div class="cs-stat"><div class="val">$29</div><div class="lbl">Enrollment Fee</div></div>
+      </div>
+      <div class="info-row"><span>•</span><span>Up to 2 plans per year</span></div>
+      <div class="info-row"><span>•</span><span>Half of hours must be with SFMTA or SF Public Works</span></div>
+      <div class="info-row"><span>•</span><span>Cannot combine community service with a discounted fine</span></div>
+      <div class="info-row"><span>•</span><span>Apply online, in-person, or by mail (check only — no cash)</span></div>
+
+      <div class="modal-section-title">Contact</div>
+      <div class="contact-box">
+        <strong>Phone:</strong> 311 &nbsp;|&nbsp; Outside SF: 415-701-2311 &nbsp;|&nbsp; TTY: 415-701-2323<br>
+        <strong>Email:</strong> SpeedCameras@sfmta.com<br>
+        <strong>SFMTA Customer Service:</strong> 11 S. Van Ness Ave, SF CA 94103<br>
+        <strong>Human Services Agency:</strong> 170 Otis St, SF CA 94103<br>
+        <strong>Language assistance:</strong> Free via 311
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // ── Data (inlined from sf_speed_cameras.json) ──────────────────────────────
+  const DATA = {"metadata":{"city":"San Francisco","state":"CA","program":"Speed Safety Camera Program","operator":"SFMTA","total_cameras":34,"sfmta_official_locations":33,"program_start":"2025-03-20","citations_start":"2025-08-05","source":"https://www.sfmta.com/projects/speed-safety-cameras","last_updated":"2025-08","notes":"IDs match official SFMTA numbering. Camera 30 split into EB/WB units per field observation at 854 Ocean Ave."},"cameras":[{"id":1,"street":"Fulton Street","from_cross_street":"42nd Avenue","to_cross_street":"43rd Avenue","direction":null,"speed_limit_mph":25,"neighborhood":"Outer Richmond","district":1,"status":"Issuing Violations","lat":37.7722,"lng":-122.5015},{"id":2,"street":"Lincoln Way","from_cross_street":"27th Avenue","to_cross_street":"28th Avenue","direction":null,"speed_limit_mph":30,"neighborhood":"Inner Sunset","district":7,"status":"Issuing Violations","lat":37.7666,"lng":-122.4855},{"id":3,"street":"Geary Boulevard","from_cross_street":"7th Avenue","to_cross_street":"8th Avenue","direction":null,"speed_limit_mph":25,"neighborhood":"Inner Richmond","district":1,"status":"Issuing Violations","lat":37.7806,"lng":-122.4641},{"id":4,"street":"Fulton Street","from_cross_street":"2nd Avenue","to_cross_street":"Arguello Boulevard","direction":null,"speed_limit_mph":25,"neighborhood":"Inner Richmond","district":1,"status":"Issuing Violations","lat":37.7722,"lng":-122.4572},{"id":5,"street":"Geary Boulevard","from_cross_street":"Webster Street","to_cross_street":"Buchanan Street","direction":null,"speed_limit_mph":30,"neighborhood":"Western Addition","district":5,"status":"Issuing Violations","lat":37.7844,"lng":-122.4337},{"id":6,"street":"Turk Street","from_cross_street":"Van Ness Avenue","to_cross_street":"Polk Street","direction":null,"speed_limit_mph":20,"neighborhood":"Tenderloin","district":6,"status":"Issuing Violations","lat":37.7833,"lng":-122.4202},{"id":7,"street":"Bay Street","from_cross_street":"Octavia Street","to_cross_street":"Gough Street","direction":null,"speed_limit_mph":25,"neighborhood":"Marina","district":2,"status":"Issuing Violations","lat":37.801,"lng":-122.4252},{"id":8,"street":"Franklin Street","from_cross_street":"Union Street","to_cross_street":"Green Street","direction":null,"speed_limit_mph":25,"neighborhood":"Pacific Heights","district":2,"status":"Issuing Violations","lat":37.7994,"lng":-122.4244},{"id":9,"street":"Columbus Avenue","from_cross_street":"Lombard Street","to_cross_street":"Greenwich Street","direction":null,"speed_limit_mph":20,"neighborhood":"North Beach","district":3,"status":"Issuing Violations","lat":37.8026,"lng":-122.4134},{"id":10,"street":"Broadway","from_cross_street":"Powell Street","to_cross_street":"Stockton Street","direction":null,"speed_limit_mph":20,"neighborhood":"North Beach","district":3,"status":"Issuing Violations","lat":37.7979,"lng":-122.4074},{"id":11,"street":"The Embarcadero","from_cross_street":"Green Street","to_cross_street":"Battery Street","direction":null,"speed_limit_mph":30,"neighborhood":"Embarcadero","district":3,"status":"Issuing Violations","lat":37.8009,"lng":-122.3973},{"id":12,"street":"Mission Street","from_cross_street":"8th Street","to_cross_street":"9th Street","direction":null,"speed_limit_mph":20,"neighborhood":"SoMa","district":6,"status":"Issuing Violations","lat":37.7798,"lng":-122.4165},{"id":13,"street":"10th Street","from_cross_street":"Harrison Street","to_cross_street":"Folsom Street","direction":null,"speed_limit_mph":25,"neighborhood":"SoMa","district":6,"status":"Issuing Violations","lat":37.776,"lng":-122.4135},{"id":14,"street":"9th Street","from_cross_street":"Bryant Street","to_cross_street":"Harrison Street","direction":null,"speed_limit_mph":25,"neighborhood":"SoMa","district":6,"status":"Issuing Violations","lat":37.7748,"lng":-122.4118},{"id":15,"street":"7th Street","from_cross_street":"Harrison Street","to_cross_street":"Folsom Street","direction":null,"speed_limit_mph":25,"neighborhood":"SoMa","district":6,"status":"Issuing Violations","lat":37.7766,"lng":-122.4097},{"id":16,"street":"Harrison Street","from_cross_street":"4th Street","to_cross_street":"5th Street","direction":null,"speed_limit_mph":25,"neighborhood":"SoMa","district":6,"status":"Issuing Violations","lat":37.779,"lng":-122.3983},{"id":17,"street":"Bryant Street","from_cross_street":"2nd Street","to_cross_street":"3rd Street","direction":null,"speed_limit_mph":25,"neighborhood":"SoMa","district":6,"status":"Issuing Violations","lat":37.7842,"lng":-122.396},{"id":18,"street":"King Street","from_cross_street":"4th Street","to_cross_street":"5th Street","direction":"EB","speed_limit_mph":30,"neighborhood":"Mission Bay","district":6,"status":"Issuing Violations","lat":37.7778,"lng":-122.3964},{"id":19,"street":"Market Street","from_cross_street":"Danvers Street","to_cross_street":"Douglass Street","direction":null,"speed_limit_mph":30,"neighborhood":"Castro","district":8,"status":"Issuing Violations","lat":37.762,"lng":-122.4378},{"id":20,"street":"Guerrero Street","from_cross_street":"19th Street","to_cross_street":"20th Street","direction":null,"speed_limit_mph":25,"neighborhood":"Mission","district":9,"status":"Issuing Violations","lat":37.7594,"lng":-122.4248},{"id":21,"street":"16th Street","from_cross_street":"Bryant Street","to_cross_street":"Potrero Avenue","direction":null,"speed_limit_mph":25,"neighborhood":"Mission","district":9,"status":"Issuing Violations","lat":37.7653,"lng":-122.4097},{"id":22,"street":"San Jose Avenue","from_cross_street":"29th Street","to_cross_street":"30th Street","direction":null,"speed_limit_mph":25,"neighborhood":"Noe Valley","district":8,"status":"Issuing Violations","lat":37.7452,"lng":-122.4276},{"id":23,"street":"Cesar Chavez Street","from_cross_street":"Folsom Street","to_cross_street":"Harrison Street","direction":null,"speed_limit_mph":25,"neighborhood":"Mission","district":9,"status":"Issuing Violations","lat":37.749,"lng":-122.4131},{"id":24,"street":"Cesar Chavez Street","from_cross_street":"Indiana Street","to_cross_street":"Tennessee Street","direction":null,"speed_limit_mph":25,"neighborhood":"Potrero Hill","district":10,"status":"Issuing Violations","lat":37.749,"lng":-122.3994},{"id":25,"street":"3rd Street","from_cross_street":"Key Avenue","to_cross_street":"Jamestown Avenue","direction":"NB","speed_limit_mph":25,"neighborhood":"Bayview","district":10,"status":"Issuing Violations","lat":37.7165,"lng":-122.39},{"id":26,"street":"Bayshore Boulevard","from_cross_street":"US-101 off-ramp","to_cross_street":"Tunnel Avenue","direction":"SB","speed_limit_mph":30,"neighborhood":"Bayview","district":10,"status":"Issuing Violations","lat":37.7119,"lng":-122.4},{"id":27,"street":"Geneva Avenue","from_cross_street":"Prague Street","to_cross_street":"Brookdale Avenue","direction":null,"speed_limit_mph":30,"neighborhood":"Excelsior","district":11,"status":"Issuing Violations","lat":37.7127,"lng":-122.4468},{"id":28,"street":"Mission Street","from_cross_street":"Ottawa Avenue","to_cross_street":"Allison Street","direction":null,"speed_limit_mph":20,"neighborhood":"Excelsior","district":11,"status":"Issuing Violations","lat":37.7248,"lng":-122.4432},{"id":29,"street":"Alemany Boulevard","from_cross_street":"Farragut Avenue","to_cross_street":"Naglee Avenue","direction":null,"speed_limit_mph":30,"neighborhood":"Bayview","district":10,"status":"Issuing Violations","lat":37.7177,"lng":-122.4214},{"id":"30-EB","sfmta_id":30,"street":"Ocean Avenue","from_cross_street":"Frida Kahlo Way","to_cross_street":"Howth Street","address":"854 Ocean Ave","direction":"EB","speed_limit_mph":25,"neighborhood":"Ingleside","district":7,"status":"Issuing Violations","lat":37.7229,"lng":-122.4508},{"id":"30-WB","sfmta_id":30,"street":"Ocean Avenue","from_cross_street":"Howth Street","to_cross_street":"Frida Kahlo Way","address":"854 Ocean Ave","direction":"WB","speed_limit_mph":25,"neighborhood":"Ingleside","district":7,"status":"Issuing Violations","lat":37.7227,"lng":-122.4506},{"id":31,"street":"San Jose Avenue","from_cross_street":"Santa Ynez Avenue","to_cross_street":"Ocean Avenue","direction":null,"speed_limit_mph":25,"neighborhood":"Ingleside","district":7,"status":"Issuing Violations","lat":37.7275,"lng":-122.4472},{"id":32,"street":"Monterey Boulevard","from_cross_street":"Edna Street","to_cross_street":"Congo Street","direction":null,"speed_limit_mph":25,"neighborhood":"Glen Park","district":8,"status":"Issuing Violations","lat":37.734,"lng":-122.4445},{"id":33,"street":"Sloat Boulevard","from_cross_street":"41st Avenue","to_cross_street":"Skyline Boulevard","direction":null,"speed_limit_mph":30,"neighborhood":"Outer Sunset","district":7,"status":"Issuing Violations","lat":37.7334,"lng":-122.5016}]};
+
+  const cameras = DATA.cameras;
+
+  // ── Map init ─────────────────────────────────────────────────────────────────
+  const map = L.map('map', {
+    center: [37.7610, -122.4350],
+    zoom: 12,
+    zoomControl: true
+  });
+
+  // Dark tile layer (CartoDB Dark Matter)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  // ── State ─────────────────────────────────────────────────────────────────────
+  let selectedId = null;
+  let markerMap = {};       // id → { marker }
+  let segmentMap = {};      // id → polyline
+  let activeFilter = 'all';
+  let searchQuery = '';
+
+  // ── Segment layer (drawn below markers) ──────────────────────────────────────
+  const segmentLayer = L.layerGroup().addTo(map);
+
+  // ── Geocode intersection via Nominatim ────────────────────────────────────────
+  const geocodeCache = {};
+  async function geocodeIntersection(street, crossStreet) {
+    const key = `${street}|${crossStreet}`;
+    if (geocodeCache[key]) return geocodeCache[key];
+    const q = encodeURIComponent(`${crossStreet} & ${street}, San Francisco, CA, USA`);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=us`,
+        { headers: { 'User-Agent': 'SFSpeedCameraMap/1.0' } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        const pt = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        geocodeCache[key] = pt;
+        return pt;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // ── Draw segment polyline for a single camera ─────────────────────────────────
+  async function drawSegment(c) {
+    const start = await geocodeIntersection(c.street, c.from_cross_street);
+    await new Promise(r => setTimeout(r, 350)); // respect Nominatim rate limit
+    const end   = await geocodeIntersection(c.street, c.to_cross_street);
+
+    if (!start || !end) return; // fallback: just show the point marker
+
+    const color = c.direction ? '#f59e0b' : '#ef4444'; // amber for one-way, red for both
+    const line = L.polyline(
+      [[start.lat, start.lng], [end.lat, end.lng]],
+      { color, weight: 5, opacity: 0.75, lineCap: 'round', lineJoin: 'round' }
+    );
+    line.bindPopup(popupHtml(c), { maxWidth: 260 });
+    line.on('click', () => selectCamera(c.id, false));
+    segmentLayer.addLayer(line);
+    segmentMap[c.id] = line;
+  }
+
+  // ── Queue: load segments one-by-one to stay within rate limit ─────────────────
+  async function loadSegments() {
+    for (const c of cameras) {
+      await drawSegment(c);
+      await new Promise(r => setTimeout(r, 150));
+    }
+  }
+
+  // ── Camera icon factory ───────────────────────────────────────────────────────
+  function makeIcon(camera, selected = false) {
+    return L.divIcon({
+      className: '',
+      html: `<div class="camera-marker${selected ? ' selected-marker' : ''}">📷</div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+      popupAnchor: [0, -18]
+    });
+  }
+
+  // ── Popup content ─────────────────────────────────────────────────────────────
+  function popupHtml(c) {
+    const dir = c.direction ? `<span class="popup-row"><span>↗️</span><span>${c.direction} only</span></span>` : '';
+    const addr = c.address ? `<div class="popup-row"><span>🏠</span><span>${c.address}</span></div>` : '';
+    return `
+      <div class="popup-title">📷 ${c.street}</div>
+      <div class="popup-row"><span>📍</span><span>${c.from_cross_street} → ${c.to_cross_street}</span></div>
+      ${addr}
+      <div class="popup-row"><span>🏘️</span><span>${c.neighborhood} · District ${c.district}</span></div>
+      ${dir}
+      <hr class="popup-divider"/>
+      <div class="popup-row"><span>🚗</span><span>Speed limit: ${c.speed_limit_mph} MPH</span></div>
+      <div class="popup-row"><span>⚠️</span><span>Citations issued 11+ MPH over limit</span></div>
+      <div class="popup-row"><span>💰</span><span>Fines: $50–$500 (reduced for low-income)</span></div>
+      <span class="popup-badge">CAMERA #${c.id}</span>
+    `;
+  }
+
+  // ── Build markers ─────────────────────────────────────────────────────────────
+  cameras.forEach(c => {
+    const marker = L.marker([c.lat, c.lng], { icon: makeIcon(c) })
+      .addTo(map)
+      .bindPopup(popupHtml(c), { maxWidth: 260 });
+
+    marker.on('click', () => selectCamera(c.id, false));
+    markerMap[c.id] = { marker };
+  });
+
+  // ── District filter buttons ───────────────────────────────────────────────────
+  const districts = [...new Set(cameras.map(c => c.district))].sort((a, b) => a - b);
+  const filterRow = document.getElementById('filters');
+  districts.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.dataset.district = d;
+    btn.textContent = `D${d}`;
+    filterRow.appendChild(btn);
+  });
+
+  filterRow.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.district;
+    renderList();
+    updateMarkers();
+  });
+
+  // ── Search ────────────────────────────────────────────────────────────────────
+  document.getElementById('search').addEventListener('input', e => {
+    searchQuery = e.target.value.toLowerCase();
+    renderList();
+    updateMarkers();
+  });
+
+  // ── Filter logic ──────────────────────────────────────────────────────────────
+  function filtered() {
+    return cameras.filter(c => {
+      const matchDistrict = activeFilter === 'all' || String(c.district) === activeFilter;
+      const q = searchQuery;
+      const matchSearch = !q || [c.street, c.neighborhood, c.from_cross_street, c.to_cross_street]
+        .some(s => s && s.toLowerCase().includes(q));
+      return matchDistrict && matchSearch;
+    });
+  }
+
+  // ── Render sidebar list ───────────────────────────────────────────────────────
+  function renderList() {
+    const list = document.getElementById('cameraList');
+    const items = filtered();
+    document.getElementById('statVisible').textContent = items.length;
+
+    if (items.length === 0) {
+      list.innerHTML = '<div class="no-results">No cameras match your search.</div>';
+      return;
+    }
+
+    list.innerHTML = items.map(c => `
+      <div class="camera-item${selectedId === c.id ? ' selected' : ''}" data-id="${c.id}">
+        <div class="cam-num">${c.id}</div>
+        <div class="cam-info">
+          <div class="cam-street">${c.street}</div>
+          <div class="cam-cross">${c.from_cross_street} → ${c.to_cross_street}</div>
+          <div class="cam-tags">
+            <span class="tag tag-neighborhood">${c.neighborhood}</span>
+            ${c.direction ? `<span class="tag tag-direction">${c.direction}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.camera-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const raw = el.dataset.id;
+        // Preserve string IDs like "30-EB"; numeric ones can stay numeric
+        const id = isNaN(raw) ? raw : Number(raw);
+        selectCamera(id, true);
+      });
+    });
+  }
+
+  // ── Update marker + segment visibility ───────────────────────────────────────
+  function updateMarkers() {
+    const visible = new Set(filtered().map(c => c.id));
+    cameras.forEach(c => {
+      const { marker } = markerMap[c.id];
+      const line = segmentMap[c.id];
+      if (visible.has(c.id)) {
+        if (!map.hasLayer(marker)) map.addLayer(marker);
+        if (line && !segmentLayer.hasLayer(line)) segmentLayer.addLayer(line);
+      } else {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+        if (line && segmentLayer.hasLayer(line)) segmentLayer.removeLayer(line);
+      }
+    });
+  }
+
+  // ── Select camera ─────────────────────────────────────────────────────────────
+  function selectCamera(id, panMap) {
+    // Deselect previous
+    if (selectedId !== null) {
+      const prev = cameras.find(c => c.id === selectedId);
+      if (markerMap[selectedId]) markerMap[selectedId].marker.setIcon(makeIcon(prev, false));
+      if (segmentMap[selectedId]) segmentMap[selectedId].setStyle({ weight: 5, opacity: 0.75 });
+    }
+
+    selectedId = id;
+    const camera = cameras.find(c => c.id === id);
+    const { marker } = markerMap[id];
+
+    // Highlight marker
+    marker.setIcon(makeIcon(camera, true));
+    marker.openPopup();
+
+    // Highlight polyline
+    if (segmentMap[id]) {
+      segmentMap[id].setStyle({ color: '#3b82f6', weight: 7, opacity: 1 });
+      segmentMap[id].bringToFront();
+    }
+
+    if (panMap) {
+      map.setView([camera.lat, camera.lng], Math.max(map.getZoom(), 15), { animate: true });
+    }
+
+    // Update sidebar highlight
+    renderList();
+
+    // Scroll selected item into view
+    setTimeout(() => {
+      const el = document.querySelector(`.camera-item[data-id="${id}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+
+  // ── Map click closes selection ────────────────────────────────────────────────
+  map.on('popupclose', () => {
+    if (selectedId !== null) {
+      const prev = cameras.find(c => c.id === selectedId);
+      if (markerMap[selectedId]) markerMap[selectedId].marker.setIcon(makeIcon(prev, false));
+      if (segmentMap[selectedId]) {
+        const color = prev && prev.direction ? '#f59e0b' : '#ef4444';
+        segmentMap[selectedId].setStyle({ color, weight: 5, opacity: 0.75 });
+      }
+      selectedId = null;
+      renderList();
+    }
+  });
+
+  // ── Kick off segment loading ──────────────────────────────────────────────────
+  const segBadge = document.getElementById('segLoadBadge');
+  segBadge.style.display = 'inline';
+  loadSegments().then(() => { segBadge.style.display = 'none'; });
+
+  // ── Fines modal ───────────────────────────────────────────────────────────────
+  const modal = document.getElementById('finesModal');
+  document.getElementById('finesBtn').addEventListener('click', () => modal.classList.add('open'));
+  document.getElementById('modalClose').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+  // ── Initial render ────────────────────────────────────────────────────────────
+  renderList();
+</script>
+</body>
+</html>

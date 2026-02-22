@@ -1,0 +1,200 @@
+import Foundation
+import CoreLocation
+
+enum RoutingError: Error {
+    case invalidURL
+    case noData
+    case parsingError
+    case apiError(String)
+}
+
+struct TomTomRouteResponse: Decodable {
+    let routes: [TomTomRoute]
+}
+
+struct TomTomSummary: Decodable {
+    let lengthInMeters: Int
+    let travelTimeInSeconds: Int
+}
+
+struct TomTomGuidance: Decodable {
+    let instructions: [TomTomInstruction]?
+}
+
+struct TomTomInstruction: Decodable {
+    let routeOffsetInMeters: Int
+    let travelTimeInSeconds: Int
+    let pointIndex: Int
+    let instructionType: String?
+    let street: String?
+    let message: String?
+}
+
+struct TomTomRoute: Decodable, Identifiable {
+    let id = UUID()
+    let summary: TomTomSummary
+    let tags: [String]?
+    let legs: [TomTomLeg]
+    let guidance: TomTomGuidance?
+    
+    var isZeroCameras: Bool {
+        tags?.contains("zero_cameras") == true
+    }
+    
+    var isLessTraffic: Bool {
+        tags?.contains("less_traffic") == true
+    }
+}
+
+struct TomTomLeg: Decodable {
+    let points: [TomTomPoint]
+}
+
+struct TomTomPoint: Decodable {
+    let latitude: Double
+    let longitude: Double
+}
+
+class RoutingService: ObservableObject {
+    @Published var availableRoutes: [TomTomRoute] = []
+    @Published var selectedRouteIndex: Int = 0
+    
+    @Published var activeRoute: [CLLocationCoordinate2D] = []
+    @Published var activeAlternativeRoutes: [[CLLocationCoordinate2D]] = []
+    
+    @Published var routeDistanceMeters: Int = 0
+    @Published var routeTimeSeconds: Int = 0
+    @Published var instructions: [TomTomInstruction] = []
+    @Published var currentInstructionIndex: Int = 0
+    
+    // Replace with a real TomTom API Key
+    private let apiKey = "YOUR_TOMTOM_API_KEY"
+    var useMockData = true
+    
+    func selectRoute(at index: Int) {
+        guard index >= 0 && index < availableRoutes.count else { return }
+        selectedRouteIndex = index
+        let route = availableRoutes[index]
+        
+        var totalCalculatedDistance = 0.0
+        var coordinateDistances: [Double] = [0.0] // Cumulative distance at each point index
+        
+        if let firstLeg = route.legs.first {
+            let coordinates = firstLeg.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            activeRoute = coordinates
+            
+            // Calculate accurate cumulative geometric distances
+            for i in 1..<coordinates.count {
+                let dist = coordinates[i-1].distance(to: coordinates[i])
+                totalCalculatedDistance += dist
+                coordinateDistances.append(totalCalculatedDistance)
+            }
+        }
+        
+        // When using mock data, overwrite the fixed mocked distances with actual calculated geometric distances
+        if useMockData {
+            routeDistanceMeters = Int(totalCalculatedDistance)
+            // Keep travel time roughly proportional (assume avg 15 m/s)
+            routeTimeSeconds = Int(totalCalculatedDistance / 15.0)
+            
+            // Update the offset of each instruction to match its true map distance
+            if let oldInstructions = route.guidance?.instructions {
+                instructions = oldInstructions.map { inst in
+                    let trueOffset = inst.pointIndex < coordinateDistances.count ? Int(coordinateDistances[inst.pointIndex]) : Int(totalCalculatedDistance)
+                    return TomTomInstruction(
+                        routeOffsetInMeters: trueOffset,
+                        travelTimeInSeconds: Int(Double(trueOffset) / 15.0),
+                        pointIndex: inst.pointIndex,
+                        instructionType: inst.instructionType,
+                        street: inst.street,
+                        message: inst.message
+                    )
+                }
+            } else {
+                instructions = []
+            }
+        } else {
+            routeDistanceMeters = route.summary.lengthInMeters
+            routeTimeSeconds = route.summary.travelTimeInSeconds
+            instructions = route.guidance?.instructions ?? []
+        }
+        currentInstructionIndex = 0
+    }
+    
+    func calculateSafeRoute(from origin: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, avoiding cameras: [SpeedCamera]) async {
+        if useMockData {
+            do {
+                let data = MockRoutingData.tomTomResponseJSON.data(using: .utf8)!
+                let result = try JSONDecoder().decode(TomTomRouteResponse.self, from: data)
+                
+                DispatchQueue.main.async {
+                    self.availableRoutes = result.routes
+                    
+                    self.activeAlternativeRoutes = result.routes.compactMap { route in
+                        route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+                    }
+                    
+                    // Select the zero_cameras route by default if available, else first
+                    let defaultIndex = result.routes.firstIndex(where: { $0.isZeroCameras }) ?? 0
+                    self.selectRoute(at: defaultIndex)
+                    
+                    print("Successfully loaded mock routes: \(result.routes.count)")
+                }
+            } catch {
+                print("Failed to decode mock route: \(error)")
+            }
+            return
+        }
+        
+        // ... API fallback remains similar, but for now we focus on mock for the UI ...
+        guard !apiKey.isEmpty && apiKey != "YOUR_TOMTOM_API_KEY" else {
+            print("Missing TomTom API Key. Cannot calculate route.")
+            return
+        }
+        
+        let avoidAreasParam = cameras.map { $0.boundingBoxForRouting }.joined(separator: "!")
+        
+        var urlString = "https://api.tomtom.com/routing/1/calculateRoute/\(origin.latitude),\(origin.longitude):\(destination.latitude),\(destination.longitude)/json"
+        
+        // Use URLComponents to safely add query items
+        guard var components = URLComponents(string: urlString) else { return }
+        components.queryItems = [
+            URLQueryItem(name: "key", value: apiKey),
+            URLQueryItem(name: "routeType", value: "fastest"),
+            URLQueryItem(name: "traffic", value: "true")
+        ]
+        
+        if !avoidAreasParam.isEmpty {
+            components.queryItems?.append(URLQueryItem(name: "avoidAreas", value: avoidAreasParam))
+        }
+        
+        guard let url = components.url else {
+            print("Invalid URL")
+            return
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                let errorString = String(data: data, encoding: .utf8) ?? "Unknown Error"
+                print("TomTom API Error: \(errorString)")
+                return
+            }
+            
+            let result = try JSONDecoder().decode(TomTomRouteResponse.self, from: data)
+            
+            DispatchQueue.main.async {
+                self.availableRoutes = result.routes
+                self.activeAlternativeRoutes = result.routes.compactMap { route in
+                    route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+                }
+                self.selectRoute(at: 0)
+                print("Successfully calculated safe routes avoiding \(cameras.count) cameras.")
+            }
+            
+        } catch {
+            print("Routing Service Error: \(error.localizedDescription)")
+        }
+    }
+}

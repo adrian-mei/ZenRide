@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "source": "https://www.sfmta.com/getting-around/drive-park/speeding-ticket/lowering-speeding-ticket-amount-or-community-service",
+    "operator": "SFMTA",
+    "program": "Speed Safety Camera — Fines & Reductions",
+    "last_updated": "2025-08",
+    "notes": "Fines set by California AB 645. You may qualify for low-income OR public benefits reduction, not both. Community service cannot be combined with a reduced fine amount."
+  },
+  "fines": [
+    {
+      "tier": 1,
+      "offense": "11–15 MPH over posted speed limit",
+      "standard_amount": 50,
+      "low_income_amount": 25,
+      "public_benefits_amount": 10,
+      "low_income_reduction_pct": 50,
+      "public_benefits_reduction_pct": 80
+    },
+    {
+      "tier": 2,
+      "offense": "16–25 MPH over posted speed limit",
+      "standard_amount": 100,
+      "low_income_amount": 50,
+      "public_benefits_amount": 20,
+      "low_income_reduction_pct": 50,
+      "public_benefits_reduction_pct": 80
+    },
+    {
+      "tier": 3,
+      "offense": "26+ MPH over posted speed limit",
+      "standard_amount": 200,
+      "low_income_amount": 100,
+      "public_benefits_amount": 40,
+      "low_income_reduction_pct": 50,
+      "public_benefits_reduction_pct": 80
+    },
+    {
+      "tier": 4,
+      "offense": "100 MPH or more (any amount over)",
+      "standard_amount": 500,
+      "low_income_amount": 250,
+      "public_benefits_amount": 100,
+      "low_income_reduction_pct": 50,
+      "public_benefits_reduction_pct": 80
+    }
+  ],
+  "discounts": {
+    "low_income": {
+      "reduction": "50%",
+      "description": "Pay half the standard fine amount",
+      "requirements": {
+        "income_limits_by_household_size": {
+          "1": 39125,
+          "2": 52875,
+          "3": 66625,
+          "4": 80375,
+          "5": 94125,
+          "6": 107875,
+          "7": 121625,
+          "8": 135375,
+          "per_additional_person": 13750
+        }
+      },
+      "how_to_apply": {
+        "in_person": {
+          "step_1": "Download Low-Income Discount Form",
+          "step_2": "Choose Option 3 in Step 2 of the form",
+          "step_3": "Bring form + proof of income to Human Services Agency at 170 Otis St, SF CA 94103",
+          "step_4": "HSA will stamp the form if you qualify",
+          "step_5": "Bring ticket + stamped form to SFMTA Customer Service Center at 11 S. Van Ness Ave, SF CA 94103"
+        }
+      }
+    },
+    "public_benefits": {
+      "reduction": "80%",
+      "description": "Pay one-fifth of the standard fine amount",
+      "qualifying_programs": [
+        "Medi-Cal",
+        "California Electronic Benefit Transfer (EBT) card",
+        "Women, Infants & Children (WIC) Supplemental Nutrition Program",
+        "SFMTA Lifeline card (Temporary Lifeline card NOT accepted)",
+        "People experiencing homelessness who visited a Coordinated Entry Point in past 6 months"
+      ],
+      "how_to_apply": {
+        "online": {
+          "url": "https://www.sfmta.com",
+          "steps": [
+            "Visit the public benefits / community service online form",
+            "Click 'Speeding Ticket Low Income Reduction'",
+            "Fill in form including proof of benefits",
+            "SFMTA reviews within 3 business days"
+          ]
+        },
+        "in_person_with_proof": {
+          "step_1": "Download Low-Income Discount Form",
+          "step_2": "Choose Option 1 in Step 2",
+          "step_3": "Bring ticket + form + benefits card to SFMTA Customer Service Center at 11 S. Van Ness Ave, SF CA 94103"
+        },
+        "in_person_without_proof": {
+          "step_1": "Download Low-Income Discount Form",
+          "step_2": "Choose Option 2 in Step 2",
+          "step_3": "Take form to Human Services Agency (170 Otis St) for verification and stamp",
+          "step_4": "Bring ticket + stamped form to SFMTA Customer Service Center at 11 S. Van Ness Ave, SF CA 94103"
+        }
+      }
+    }
+  },
+  "community_service": {
+    "description": "Perform community service instead of paying the fine",
+    "rate_per_hour_usd": 20,
+    "max_value_per_year_usd": 1000,
+    "max_plans_per_year": 2,
+    "enrollment_fee_usd": 29,
+    "enrollment_fee_notes": "Check only — no cash accepted for mail-in applications",
+    "requirement": "Half of hours must be with SFMTA or SF Public Works",
+    "cannot_combine_with_discount": true,
+    "how_to_apply": {
+      "online": {
+        "steps": [
+          "Visit the public benefits / community service online form",
+          "Click 'Speeding Ticket Community Service Plan'",
+          "Fill in the form",
+          "SFMTA reviews within 3 business days"
+        ]
+      },
+      "in_person": {
+        "address": "11 S. Van Ness Ave, San Francisco, CA 94103",
+        "steps": [
+          "Download Community Service Application Form",
+          "Follow instructions inside the form",
+          "Bring application + speeding ticket to SFMTA Customer Service Center"
+        ]
+      },
+      "by_mail": {
+        "address": "SFMTA Customer Service Center, c/o ASE Community Service, 11 South Van Ness Ave, San Francisco, CA 94103",
+        "steps": [
+          "Download Community Service Application Form",
+          "Follow instructions and keep a copy for your records",
+          "Include a check for $29 enrollment fee",
+          "Mail check + application to the address above"
+        ]
+      }
+    }
+  },
+  "contact": {
+    "phone": "311",
+    "phone_outside_sf": "415-701-2311",
+    "tty": "415-701-2323",
+    "customer_service_center": "11 S. Van Ness Ave, San Francisco, CA 94103",
+    "human_services_agency": "170 Otis St, San Francisco, CA 94103",
+    "email": "SpeedCameras@sfmta.com",
+    "languages": "Free language assistance available via 311"
+  }
+}
