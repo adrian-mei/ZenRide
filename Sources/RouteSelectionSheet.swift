@@ -140,10 +140,15 @@ struct RouteListRow: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         if route.isZeroCameras {
-                            Text("Zero Cameras")
+                            Label("Zero Cameras", systemImage: "checkmark.shield.fill")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.green)
+                        } else if !route.isLessTraffic {
+                            Label("Has Speed Cameras", systemImage: "camera.badge.ellipsis")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.orange)
                         } else if route.isLessTraffic {
                             Text("Less Traffic")
                                 .font(.subheadline)

@@ -45,7 +45,10 @@ struct NavigationBottomPanel: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(arrivalTime)
                         .font(.system(size: 40, weight: .black)) // Massive bold ETA
-                        .foregroundColor(Color(red: 0.1, green: 0.8, blue: 0.3)) // Apple Maps ETA green
+                        .foregroundColor(
+                            routingService.routeTimeSeconds > 1800 ? .orange : // Mock traffic delay colors
+                            Color(red: 0.1, green: 0.8, blue: 0.3) // Apple Maps ETA green
+                        )
                     
                     HStack(spacing: 8) {
                         Text(formattedTime)
