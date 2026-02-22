@@ -237,6 +237,7 @@ struct RideView: View {
                         endRide()
                     })
                     .transition(.move(edge: .bottom))
+                    .edgesIgnoringSafeArea(.bottom)
                 }
             }
         }

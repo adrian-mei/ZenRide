@@ -39,26 +39,29 @@ struct NavigationBottomPanel: View {
             Capsule()
                 .fill(Color.secondary.opacity(0.5))
                 .frame(width: 36, height: 5)
-                .padding(.top, 8)
+                .padding(.top, 12)
             
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(arrivalTime)
-                        .font(.system(size: 40, weight: .black)) // Massive bold ETA
-                        .foregroundColor(
-                            routingService.routeTimeSeconds > 1800 ? .orange : // Mock traffic delay colors
-                            Color(red: 0.1, green: 0.8, blue: 0.3) // Apple Maps ETA green
-                        )
+                    // Apple Maps standard layout: ETA on top, time and distance underneath
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(arrivalTime)
+                            .font(.system(size: 38, weight: .heavy, design: .rounded)) // Classic heavy rounded font
+                            .foregroundColor(Color(red: 0.1, green: 0.8, blue: 0.3)) // Apple Maps ETA green
+                        Text("ETA")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                    }
                     
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Text(formattedTime)
-                            .font(.system(size: 24, weight: .bold)) // Larger remaining time
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                         Text("•")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.secondary)
                         Text(formattedDistance)
-                            .font(.system(size: 24, weight: .bold)) // Larger remaining distance
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                     }
                 }
@@ -67,21 +70,21 @@ struct NavigationBottomPanel: View {
                 
                 Button(action: onEnd) {
                     Text("End")
-                        .font(.title2) // Larger button text
-                        .fontWeight(.heavy)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 20) // Fatter button for easier tapping
-                        .background(Color.red)
-                        .clipShape(Capsule())
+                        .frame(width: 80, height: 56) // Fixed width for standard rounded rectangle
+                        .background(Color.red, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 32))
-        .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
-        .padding(.horizontal, 10)
-        .padding(.bottom, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .fill(Color(UIColor.secondarySystemBackground).opacity(0.95))
+                .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
+        )
+        // Draw edge-to-edge on bottom without external padding
+        .ignoresSafeArea(edges: .bottom)
     }
 }
