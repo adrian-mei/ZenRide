@@ -196,18 +196,24 @@ struct RideView: View {
                 
                 if routeState == .navigating {
                     NavigationBottomPanel(onEnd: {
-                        withAnimation {
-                            routeState = .search
-                            routingService.activeRoute = []
-                            routingService.availableRoutes = []
-                            routingService.activeAlternativeRoutes = []
-                            owlPolice.stopSimulation()
-                            onStop() // Show WindDown summary
-                        }
+                        endRide()
                     })
                     .transition(.move(edge: .bottom))
                 }
             }
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 100, coordinateSpace: .local)
+                .onEnded { value in
+                    if routeState == .navigating && value.translation.height > 100 {
+                        endRide()
+                    }
+                }
+        )
+        .onTapGesture(count: 2) {
+            owlPolice.isMuted.toggle()
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(owlPolice.isMuted ? .error : .success)
         }
         .sheet(isPresented: Binding(
             get: { routeState == .search },
@@ -247,6 +253,11 @@ struct RideView: View {
                 UIApplication.shared.isIdleTimerDisabled = false
             }
         }
+        .onChange(of: owlPolice.currentLocation) { location in
+            if routeState == .navigating, let loc = location {
+                routingService.checkReroute(currentLocation: loc)
+            }
+        }
         .onChange(of: owlPolice.isSimulating) { isSimulating in
             if !isSimulating && routeState == .navigating {
                 if !routingService.activeRoute.isEmpty && owlPolice.currentSimulationIndex >= routingService.activeRoute.count - 1 {
@@ -265,8 +276,18 @@ struct RideView: View {
             }
         }
     }
+    
+    private func endRide() {
+        withAnimation {
+            routeState = .search
+            routingService.activeRoute = []
+            routingService.availableRoutes = []
+            routingService.activeAlternativeRoutes = []
+            owlPolice.stopSimulation()
+            onStop()
+        }
+    }
 }
-
 
 struct AlertOverlayView: View {
     let camera: SpeedCamera?

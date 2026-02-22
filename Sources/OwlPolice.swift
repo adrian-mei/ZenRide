@@ -14,6 +14,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let synthesizer = AVSpeechSynthesizer()
     
     @Published var currentSpeedMPH: Double = 0
+    @Published var isMuted: Bool = false
     @Published var nearestCamera: SpeedCamera?
     @Published var distanceToNearestFT: Double = 0
     @Published var currentZone: ZoneStatus = .safe
@@ -240,7 +241,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
         utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = 0.55 // Faster, urgent pace
         utterance.pitchMultiplier = 1.2
-        synthesizer.speak(utterance)
+        if !isMuted { synthesizer.speak(utterance) }
     }
 
     private func triggerApproachWarning(for camera: SpeedCamera) {
@@ -274,6 +275,6 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
         utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = 0.45 // Calm, slower pace
         utterance.pitchMultiplier = 1.1 // Slightly higher, friendly
-        synthesizer.speak(utterance)
+        if !isMuted { synthesizer.speak(utterance) }
     }
 }

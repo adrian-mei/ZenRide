@@ -9,7 +9,8 @@ struct GuidanceView: View {
             if !routingService.instructions.isEmpty, routingService.currentInstructionIndex < routingService.instructions.count {
                 let instruction = routingService.instructions[routingService.currentInstructionIndex]
                 
-                HStack(spacing: 16) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 16) {
                     VStack(spacing: 6) {
                         Image(systemName: iconForInstruction(instruction.instructionType))
                             .font(.system(size: 48, weight: .heavy)) // Larger arrow for driving
@@ -41,7 +42,29 @@ struct GuidanceView: View {
                     }
                     Spacer()
                 }
-                .padding(20)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, (instruction.instructionType?.contains("TURN") == true || instruction.instructionType?.contains("KEEP") == true) ? 4 : 20)
+                
+                // --- NEW: Lane Guidance Visualizer ---
+                if instruction.instructionType?.contains("TURN") == true || instruction.instructionType?.contains("KEEP") == true {
+                    HStack(spacing: 16) {
+                        let isRight = instruction.instructionType?.contains("RIGHT") == true
+                        ForEach(0..<4, id: \.self) { index in
+                            let isTargetLane = isRight ? (index >= 2) : (index <= 1)
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 28, weight: .heavy))
+                                .foregroundColor(isTargetLane ? .white : .white.opacity(0.2))
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(isTargetLane ? Color.black.opacity(0.25) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity)
+                }
+                
+                } // End of inner VStack
                 .background(Color(red: 0.1, green: 0.55, blue: 0.25), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 8)
                 .padding(.horizontal, 16)

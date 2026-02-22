@@ -71,6 +71,32 @@ class RoutingService: ObservableObject {
     private let apiKey = "YOUR_TOMTOM_API_KEY"
     var useMockData = true
     
+    func checkReroute(currentLocation: CLLocation) {
+        guard !activeRoute.isEmpty else { return }
+        
+        // Find the closest point on the active route
+        let closestDistance = activeRoute.map { coord in
+            currentLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+        }.min() ?? 0
+        
+        // If we are more than 100 meters away from the closest point of our route, we missed a turn!
+        if closestDistance > 100 {
+            print("🚨 Off route! Distance: \(closestDistance)m. Seamlessly rerouting in the background...")
+            
+            // In a real app, we would fetch a new route from TomTom here using currentLocation as the new origin.
+            // For this prototype, we will just simulate a successful reroute by picking the next alternative route if available,
+            // or reversing the route as a mock "recalculation".
+            
+            DispatchQueue.main.async {
+                // Auto-reroute seamlessly without user prompt
+                if self.availableRoutes.count > 1 {
+                    let newIndex = (self.selectedRouteIndex + 1) % self.availableRoutes.count
+                    self.selectRoute(at: newIndex)
+                }
+            }
+        }
+    }
+    
     func selectRoute(at index: Int) {
         guard index >= 0 && index < availableRoutes.count else { return }
         selectedRouteIndex = index

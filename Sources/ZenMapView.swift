@@ -18,8 +18,10 @@ struct ZenMapView: UIViewRepresentable {
         mapView.userTrackingMode = .followWithHeading // Better for driving apps
         mapView.isPitchEnabled = true
         
-        // Muted dark style for "Zen"
-        mapView.overrideUserInterfaceStyle = .dark
+        // Dynamic High-Contrast Style for Day/Night based on current time
+        let hour = Calendar.current.component(.hour, from: Date())
+        let isDaytime = hour >= 7 && hour < 18
+        mapView.overrideUserInterfaceStyle = isDaytime ? .light : .dark
         
         // Use modern configurations for iOS 16+
         let config = MKStandardMapConfiguration(elevationStyle: .realistic, emphasisStyle: .muted)
