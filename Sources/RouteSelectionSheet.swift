@@ -47,15 +47,31 @@ struct RouteSelectionSheet: View {
             
             // Route Options List
             VStack(spacing: 12) {
-                ForEach(Array(routingService.availableRoutes.enumerated()), id: \.element.id) { index, route in
-                    RouteListRow(
-                        route: route,
-                        isSelected: routingService.selectedRouteIndex == index,
-                        onSelect: {
-                            routingService.selectRoute(at: index)
-                            resetTimer()
-                        }
-                    )
+                if routingService.isCalculatingRoute {
+                    HStack { Spacer(); ProgressView("Calculating routes..."); Spacer() }
+                        .padding(.vertical, 24)
+                } else if routingService.availableRoutes.isEmpty {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                        Text("Unable to calculate route")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding()
+                } else {
+                    ForEach(Array(routingService.availableRoutes.enumerated()), id: \.element.id) { index, route in
+                        RouteListRow(
+                            route: route,
+                            isSelected: routingService.selectedRouteIndex == index,
+                            onSelect: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                routingService.selectRoute(at: index)
+                                resetTimer()
+                            }
+                        )
+                    }
                 }
             }
             .padding(.horizontal, 24)
@@ -95,7 +111,14 @@ struct RouteSelectionSheet: View {
         }
         .presentationDragIndicator(.visible)
         .onAppear {
-            startTimer()
+            if !routingService.availableRoutes.isEmpty {
+                startTimer()
+            }
+        }
+        .onChange(of: routingService.availableRoutes.count) { count in
+            if count > 0 && timer == nil {
+                startTimer()
+            }
         }
         .onDisappear {
             timer?.invalidate()

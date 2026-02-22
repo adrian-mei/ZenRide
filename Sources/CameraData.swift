@@ -58,17 +58,17 @@ class CameraStore: ObservableObject {
     
     private func loadCameras() {
         guard let url = Bundle.main.url(forResource: "sf_speed_cameras", withExtension: "json") else {
-            print("Could not find sf_speed_cameras.json")
+            Log.error("CameraStore", "sf_speed_cameras.json not found in bundle")
             return
         }
-        
+
         do {
             let data = try Data(contentsOf: url)
             let file = try JSONDecoder().decode(CameraDataFile.self, from: data)
             self.cameras = file.cameras
-            print("Loaded \(self.cameras.count) cameras.")
+            Log.info("CameraStore", "Loaded \(self.cameras.count) cameras")
         } catch {
-            print("Error loading cameras: \(error)")
+            Log.error("CameraStore", "Failed to load cameras: \(error)")
         }
     }
 }

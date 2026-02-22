@@ -79,7 +79,8 @@ class RoutingService: ObservableObject {
     @Published var routeTimeSeconds: Int = 0
     @Published var instructions: [TomTomInstruction] = []
     @Published var currentInstructionIndex: Int = 0
-    
+    @Published var isCalculatingRoute = false
+
     private let apiKey = Secrets.tomTomAPIKey
     var useMockData = false
     
@@ -235,6 +236,9 @@ class RoutingService: ObservableObject {
     }
 
     func calculateSafeRoute(from origin: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, avoiding cameras: [SpeedCamera]) async {
+        await MainActor.run { isCalculatingRoute = true }
+        defer { Task { await MainActor.run { self.isCalculatingRoute = false } } }
+
         if useMockData {
             do {
                 let data = MockRoutingData.tomTomResponseJSON.data(using: .utf8)!

@@ -218,15 +218,6 @@ struct RideView: View {
                             
                             VStack(spacing: 0) {
                                 if routeState == .navigating {
-                                    Button(action: {}) {
-                                        Image(systemName: "magnifyingglass")
-                                            .font(.title3)
-                                            .frame(width: 48, height: 48)
-                                    }
-                                    .accessibilityLabel("Search along route")
-                                    
-                                    Divider().padding(.horizontal, 8)
-                                    
                                     Button(action: {
                                         owlPolice.isMuted.toggle()
                                     }) {
@@ -235,16 +226,7 @@ struct RideView: View {
                                             .frame(width: 48, height: 48)
                                     }
                                     .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
-                                    
-                                    Divider().padding(.horizontal, 8)
-                                } else {
-                                    Button(action: {}) {
-                                        Image(systemName: "map.fill")
-                                            .font(.title3)
-                                            .frame(width: 48, height: 48)
-                                    }
-                                    .accessibilityLabel("Map Settings")
-                                    
+
                                     Divider().padding(.horizontal, 8)
                                 }
                                 
@@ -262,16 +244,6 @@ struct RideView: View {
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                             
-                            if routeState == .navigating {
-                                Button(action: {}) {
-                                    Image(systemName: "exclamationmark.bubble.fill")
-                                        .font(.title3)
-                                        .frame(width: 48, height: 48)
-                                }
-                                .foregroundColor(.primary)
-                                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-                            }
                         }
                         .padding(.trailing, 16)
                         .padding(.top, routeState == .search ? 16 : 0)

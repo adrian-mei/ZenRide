@@ -18,7 +18,7 @@ struct NavigationBottomPanel: View {
     
     var arrivalTime: String {
         let formatter = DateFormatter()
-        formatter.timeStyle = .short
+        formatter.dateFormat = "h:mm a"
         let arriveDate = Date().addingTimeInterval(TimeInterval(remainingTimeSeconds))
         return formatter.string(from: arriveDate)
     }
@@ -68,7 +68,10 @@ struct NavigationBottomPanel: View {
                 
                 Spacer()
                 
-                Button(action: onEnd) {
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    onEnd()
+                }) {
                     Text("End")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(.white)

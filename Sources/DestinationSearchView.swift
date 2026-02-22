@@ -4,22 +4,27 @@ import MapKit
 class DestinationSearcher: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [MKMapItem] = []
-    
+
+    private var activeSearch: MKLocalSearch?
+
     func search(for query: String, near location: CLLocationCoordinate2D? = nil) {
+        activeSearch?.cancel()
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
+            searchResults = []
+            return
+        }
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = query
-        // Optionally restrict region to user's location or default SF
         let center = location ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         let region = MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1))
         request.region = region
-        
-        let search = MKLocalSearch(request: request)
-        search.start { response, error in
+
+        activeSearch = MKLocalSearch(request: request)
+        activeSearch?.start { response, error in
             guard let response = response, error == nil else {
-                print("Search error: \(error?.localizedDescription ?? "Unknown")")
+                Log.error("Search", "MKLocalSearch failed: \(error?.localizedDescription ?? "unknown")")
                 return
             }
-            
             DispatchQueue.main.async {
                 self.searchResults = response.mapItems
             }
@@ -37,7 +42,10 @@ struct DestinationSearchView: View {
     @Binding var routeState: RouteState
     @Binding var destinationName: String
     @FocusState private var isSearchFocused: Bool
-    
+
+    @State private var isSearching = false
+    @State private var searchTask: Task<Void, Never>?
+
     // Mocking an empty favorites list to demonstrate the empty state
     @State private var favorites: [(title: String, subtitle: String)] = []
     
@@ -50,10 +58,22 @@ struct DestinationSearchView: View {
                 
                 TextField("Search Maps", text: $searcher.searchQuery)
                     .focused($isSearchFocused)
-                    .onSubmit {
-                        searcher.search(for: searcher.searchQuery, near: owlPolice.currentLocation?.coordinate)
-                    }
                     .submitLabel(.search)
+                    .onChange(of: searcher.searchQuery) { query in
+                        searchTask?.cancel()
+                        if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                            searcher.searchResults = []
+                            isSearching = false
+                            return
+                        }
+                        isSearching = true
+                        searchTask = Task {
+                            try? await Task.sleep(nanoseconds: 300_000_000)
+                            guard !Task.isCancelled else { return }
+                            searcher.search(for: query, near: owlPolice.currentLocation?.coordinate)
+                            await MainActor.run { isSearching = false }
+                        }
+                    }
                 .font(.body)
                 .foregroundColor(.primary)
                 
@@ -82,11 +102,26 @@ struct DestinationSearchView: View {
                 // Quick Categories (Apple Maps Style)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 20) {
-                        CategoryButton(icon: "house.fill", title: "Home", color: .blue)
-                        CategoryButton(icon: "briefcase.fill", title: "Work", color: .brown)
-                        CategoryButton(icon: "fork.knife", title: "Restaurants", color: .orange)
-                        CategoryButton(icon: "fuelpump.fill", title: "Gas Stations", color: .indigo)
-                        CategoryButton(icon: "cup.and.saucer.fill", title: "Coffee", color: .orange)
+                        CategoryButton(icon: "house.fill", title: "Home", color: .blue) {
+                            searcher.searchQuery = "Home"
+                            searcher.search(for: "home", near: owlPolice.currentLocation?.coordinate)
+                        }
+                        CategoryButton(icon: "briefcase.fill", title: "Work", color: .brown) {
+                            searcher.searchQuery = "Work"
+                            searcher.search(for: "work", near: owlPolice.currentLocation?.coordinate)
+                        }
+                        CategoryButton(icon: "fork.knife", title: "Restaurants", color: .orange) {
+                            searcher.searchQuery = "Restaurants"
+                            searcher.search(for: "restaurants near me", near: owlPolice.currentLocation?.coordinate)
+                        }
+                        CategoryButton(icon: "fuelpump.fill", title: "Gas Stations", color: .indigo) {
+                            searcher.searchQuery = "Gas Stations"
+                            searcher.search(for: "gas station", near: owlPolice.currentLocation?.coordinate)
+                        }
+                        CategoryButton(icon: "cup.and.saucer.fill", title: "Coffee", color: .orange) {
+                            searcher.searchQuery = "Coffee"
+                            searcher.search(for: "coffee shop", near: owlPolice.currentLocation?.coordinate)
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 8)
@@ -194,20 +229,36 @@ struct DestinationSearchView: View {
                 .padding(.bottom, 24)
             }
             
-            if !searcher.searchResults.isEmpty {
+            if isSearching {
+                HStack { Spacer(); ProgressView(); Spacer() }
+                    .padding(.vertical, 20)
+            } else if !searcher.searchQuery.isEmpty && searcher.searchResults.isEmpty {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    Text("No results for \"\(searcher.searchQuery)\"")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding()
+                .background(.regularMaterial)
+                .cornerRadius(12)
+                .padding(.horizontal)
+            } else if !searcher.searchResults.isEmpty {
                 List(searcher.searchResults, id: \.self) { item in
                     Button(action: {
                         startRouting(to: item)
                     }) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.name ?? "Unknown")
-                                .font(.headline) // Bolder list item
+                                .font(.headline)
                                 .foregroundColor(.primary)
                             Text(item.placemark.title ?? "")
-                                .font(.subheadline) // Larger subtitle
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 8) // Taller tappable area
+                        .padding(.vertical, 8)
                     }
                     .listRowBackground(Color.clear)
                 }
@@ -225,20 +276,20 @@ struct DestinationSearchView: View {
     
     private func startRouting(to item: MKMapItem) {
         guard let destCoordinate = item.placemark.location?.coordinate else { return }
-        
-        // We need user's current location from OwlPolice
-        // If not available, we could use a default SF location
+
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
         let origin = owlPolice.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
-        
+
         destinationName = item.name ?? "Unknown Destination"
-        
+
         Task {
             await routingService.calculateSafeRoute(from: origin, to: destCoordinate, avoiding: cameraStore.cameras)
         }
-        
+
         searcher.searchResults = []
         searcher.searchQuery = ""
-        
+
         withAnimation {
             routeState = .reviewing
         }
@@ -249,12 +300,10 @@ struct CategoryButton: View {
     let icon: String
     let title: String
     let color: Color
-    
+    var action: () -> Void = {}
+
     var body: some View {
-        Button(action: {
-            // Placeholder action
-            print("Category tapped: \(title)")
-        }) {
+        Button(action: action) {
             VStack(spacing: 8) {
                 ZStack {
                     Circle()
@@ -280,9 +329,7 @@ struct FavoriteRow: View {
     let color: Color
     
     var body: some View {
-        Button(action: {
-            print("Favorite tapped: \(title)")
-        }) {
+        Button(action: {}) {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
