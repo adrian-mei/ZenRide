@@ -12,6 +12,7 @@ struct ZenMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
         mapView.delegate = context.coordinator
+        context.coordinator.mapView = mapView
         
         mapView.showsUserLocation = true
         mapView.showsTraffic = true
@@ -165,9 +166,16 @@ struct ZenMapView: UIViewRepresentable {
     class Coordinator: NSObject, MKMapViewDelegate {
         var parent: ZenMapView
         var lastOverlayCacheKey: String = ""
+        weak var mapView: MKMapView?
         
         init(_ parent: ZenMapView) {
             self.parent = parent
+            super.init()
+            NotificationCenter.default.addObserver(self, selector: #selector(recenter), name: NSNotification.Name("RecenterMap"), object: nil)
+        }
+        
+        @objc func recenter() {
+            mapView?.userTrackingMode = .followWithHeading
         }
         
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {

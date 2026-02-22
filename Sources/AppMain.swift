@@ -69,6 +69,18 @@ struct RideView: View {
     @State private var routeState: RouteState = .search
     @State private var destinationName: String = ""
     
+    var currentSpeedColor: Color {
+        let speed = owlPolice.currentSpeedMPH
+        let limit = Double(owlPolice.nearestCamera?.speed_limit_mph ?? 45) // Or a general limit if available
+        if speed > limit + 10 {
+            return .red
+        } else if speed > limit {
+            return .orange
+        } else {
+            return .white
+        }
+    }
+    
     var body: some View {
         ZStack(alignment: .top) {
             ZenMapView(routeState: $routeState)
@@ -95,53 +107,77 @@ struct RideView: View {
                 if routeState == .search || routeState == .navigating {
                     HStack(alignment: .top) {
                         // Left Side: Speed Indicator
-                        VStack(alignment: .center, spacing: 4) {
-                            VStack(spacing: 0) {
-                            Text("SPEED")
-                                .font(.system(size: 8, weight: .bold, design: .default))
-                                .foregroundColor(.black)
-                            Text("LIMIT")
-                                .font(.system(size: 8, weight: .bold, design: .default))
-                                .foregroundColor(.black)
-                                .padding(.bottom, 2)
-                            Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)") // Show the actual speed limit, not current speed, inside the sign!
-                                .font(.system(size: 26, weight: .bold, design: .default))
-                                .foregroundColor(.black)
-                        }
-                        .frame(width: 54, height: 64)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .strokeBorder(Color.black, lineWidth: 2)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .strokeBorder(Color.black, lineWidth: 1)
-                                .padding(2)
-                        )
-                        
-                            // NEW: Early Speed Drop Anticipation Badge
-                            if owlPolice.currentZone == .safe, 
-                               let nearest = owlPolice.nearestCamera, 
-                               owlPolice.distanceToNearestFT > 500 && owlPolice.distanceToNearestFT < 3000,
-                               owlPolice.currentSpeedMPH > Double(nearest.speed_limit_mph) {
-                                
-                                HStack(spacing: 2) {
-                                    Image(systemName: "arrow.down")
-                                        .font(.system(size: 10, weight: .bold))
-                                    Text("\(nearest.speed_limit_mph)")
-                                        .font(.system(size: 12, weight: .black))
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 4)
-                                .background(Color.orange, in: Capsule())
-                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                                .transition(.opacity.combined(with: .scale))
-                                .animation(.easeInOut, value: owlPolice.distanceToNearestFT)
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .center, spacing: 4) {
+                                VStack(spacing: 0) {
+                                Text("SPEED")
+                                    .font(.system(size: 8, weight: .bold, design: .default))
+                                    .foregroundColor(.black)
+                                Text("LIMIT")
+                                    .font(.system(size: 8, weight: .bold, design: .default))
+                                    .foregroundColor(.black)
+                                    .padding(.bottom, 2)
+                                Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)") // Show the actual speed limit, not current speed, inside the sign!
+                                    .font(.system(size: 26, weight: .bold, design: .default))
+                                    .foregroundColor(.black)
                             }
-                        } // End of outer VStack container
-                        .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            .frame(width: 54, height: 64)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .strokeBorder(Color.black, lineWidth: 2)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .strokeBorder(Color.black, lineWidth: 1)
+                                    .padding(2)
+                            )
+                            
+                                // NEW: Early Speed Drop Anticipation Badge
+                                if owlPolice.currentZone == .safe, 
+                                   let nearest = owlPolice.nearestCamera, 
+                                   owlPolice.distanceToNearestFT > 500 && owlPolice.distanceToNearestFT < 3000,
+                                   owlPolice.currentSpeedMPH > Double(nearest.speed_limit_mph) {
+                                    
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "arrow.down")
+                                            .font(.system(size: 10, weight: .bold))
+                                        Text("\(nearest.speed_limit_mph)")
+                                            .font(.system(size: 12, weight: .black))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 4)
+                                    .background(Color.orange, in: Capsule())
+                                    .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                                    .transition(.opacity.combined(with: .scale))
+                                    .animation(.easeInOut, value: owlPolice.distanceToNearestFT)
+                                }
+                            } // End of outer VStack container
+                            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            
+                            // Motorcycle-friendly Current Speed Readout
+                            if routeState == .navigating {
+                                VStack(spacing: -2) {
+                                    Text("\(Int(owlPolice.currentSpeedMPH))")
+                                        .font(.system(size: 40, weight: .heavy, design: .rounded))
+                                        .foregroundColor(currentSpeedColor)
+                                        .contentTransition(.numericText())
+                                    Text("MPH")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundColor(currentSpeedColor.opacity(0.8))
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(currentSpeedColor.opacity(0.3), lineWidth: 2)
+                                )
+                                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: owlPolice.currentSpeedMPH)
+                            }
+                        }
                         .padding(.leading, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
                         
@@ -184,8 +220,10 @@ struct RideView: View {
                                     }
                                     Divider().padding(.horizontal, 8)
                                     
-                                    Button(action: {}) {
-                                        Image(systemName: "speaker.wave.2.fill")
+                                    Button(action: {
+                                        owlPolice.isMuted.toggle()
+                                    }) {
+                                        Image(systemName: owlPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                                             .font(.title3)
                                             .frame(width: 48, height: 48)
                                     }
@@ -199,7 +237,9 @@ struct RideView: View {
                                     Divider().padding(.horizontal, 8)
                                 }
                                 
-                                Button(action: {}) {
+                                Button(action: {
+                                    NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
+                                }) {
                                     Image(systemName: "location.fill")
                                         .font(.title3)
                                         .frame(width: 48, height: 48)
@@ -241,14 +281,6 @@ struct RideView: View {
                 }
             }
         }
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 100, coordinateSpace: .local)
-                .onEnded { value in
-                    if routeState == .navigating && value.translation.height > 100 {
-                        endRide()
-                    }
-                }
-        )
         .onTapGesture(count: 2) {
             owlPolice.isMuted.toggle()
             let generator = UINotificationFeedbackGenerator()

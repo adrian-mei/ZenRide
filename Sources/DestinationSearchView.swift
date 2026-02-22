@@ -36,6 +36,7 @@ struct DestinationSearchView: View {
     
     @Binding var routeState: RouteState
     @Binding var destinationName: String
+    @FocusState private var isSearchFocused: Bool
     
     var body: some View {
         VStack(spacing: 16) {
@@ -44,9 +45,12 @@ struct DestinationSearchView: View {
                     .foregroundColor(.secondary)
                     .font(.body)
                 
-                TextField("Search Maps", text: $searcher.searchQuery, onCommit: {
-                    searcher.search(for: searcher.searchQuery, near: owlPolice.currentLocation?.coordinate)
-                })
+                TextField("Search Maps", text: $searcher.searchQuery)
+                    .focused($isSearchFocused)
+                    .onSubmit {
+                        searcher.search(for: searcher.searchQuery, near: owlPolice.currentLocation?.coordinate)
+                    }
+                    .submitLabel(.search)
                 .font(.body)
                 .foregroundColor(.primary)
                 
@@ -54,6 +58,7 @@ struct DestinationSearchView: View {
                     Button(action: {
                         searcher.searchQuery = ""
                         searcher.searchResults = []
+                        isSearchFocused = false
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)

@@ -51,6 +51,13 @@ struct GarageView: View {
                         .foregroundColor(.white.opacity(0.85))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
+                        
+                    if !journal.entries.isEmpty {
+                        Text("Your last ride was \(lastMood.lowercased()).")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding(.top, 4)
+                    }
                 }
                 
                 VStack(spacing: 20) {

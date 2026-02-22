@@ -52,7 +52,8 @@ struct RouteSelectionSheet: View {
                         isSelected: routingService.selectedRouteIndex == index,
                         onSelect: { 
                             routingService.selectRoute(at: index)
-                            resetTimer()
+                            timer?.invalidate()
+                            countdown = 0
                         }
                     )
                 }
@@ -79,7 +80,7 @@ struct RouteSelectionSheet: View {
                     timer?.invalidate()
                     onGo()
                 }) {
-                    Text("GO (\(countdown)s)")
+                    Text(countdown > 0 ? "GO (\(countdown)s)" : "GO")
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -223,6 +224,8 @@ struct ModeButton: View {
                 .background(isSelected ? Color.blue : Color.clear)
                 .cornerRadius(8)
                 .padding(2)
+                .opacity(isSelected ? 1.0 : 0.3) // Visually indicate they are inactive/coming soon
         }
+        .disabled(!isSelected) // Actually disable them
     }
 }

@@ -58,12 +58,24 @@ struct WindDownView: View {
             
             Spacer()
             
-            Text("Skipping in \(dismissCountdown)s...")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding(.bottom, 20)
+            if dismissCountdown > 0 {
+                Text("Skipping in \(dismissCountdown)s...")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 20)
+            } else {
+                Text("Tap a mood to save your ride")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 20)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            timer?.invalidate()
+            dismissCountdown = 0
+        }
         .onAppear {
             startTimer()
         }

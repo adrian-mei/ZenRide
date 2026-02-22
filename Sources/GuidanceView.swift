@@ -46,24 +46,6 @@ struct GuidanceView: View {
                 .padding(.top, 20)
                 .padding(.bottom, (instruction.instructionType?.contains("TURN") == true || instruction.instructionType?.contains("KEEP") == true) ? 4 : 20)
                 
-                // --- NEW: Lane Guidance Visualizer ---
-                if instruction.instructionType?.contains("TURN") == true || instruction.instructionType?.contains("KEEP") == true {
-                    HStack(spacing: 16) {
-                        let isRight = instruction.instructionType?.contains("RIGHT") == true
-                        ForEach(0..<4, id: \.self) { index in
-                            let isTargetLane = isRight ? (index >= 2) : (index <= 1)
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 28, weight: .heavy))
-                                .foregroundColor(isTargetLane ? .white : .white.opacity(0.2))
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(isTargetLane ? Color.black.opacity(0.25) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
-                        }
-                    }
-                    .padding(.bottom, 16)
-                    .frame(maxWidth: .infinity)
-                }
-                
                 // --- NEW: Next Turn Preview ---
                 let currentDist = Double(instruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
                 if currentDist > 1600 && routingService.currentInstructionIndex + 1 < routingService.instructions.count {
