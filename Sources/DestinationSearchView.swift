@@ -38,6 +38,9 @@ struct DestinationSearchView: View {
     @Binding var destinationName: String
     @FocusState private var isSearchFocused: Bool
     
+    // Mocking an empty favorites list to demonstrate the empty state
+    @State private var favorites: [(title: String, subtitle: String)] = []
+    
     var body: some View {
         VStack(spacing: 16) {
             HStack(spacing: 8) {
@@ -99,10 +102,23 @@ struct DestinationSearchView: View {
                     
                     VStack(spacing: 0) {
                         FavoriteRow(icon: "plus", title: "Add", subtitle: "", color: .gray)
-                        Divider().padding(.leading, 60)
-                        FavoriteRow(icon: "mappin.circle.fill", title: "Golden Gate Park", subtitle: "San Francisco, CA", color: .blue)
-                        Divider().padding(.leading, 60)
-                        FavoriteRow(icon: "mappin.circle.fill", title: "Alice's Restaurant", subtitle: "Woodside, CA", color: .blue)
+                        
+                        if favorites.isEmpty {
+                            Divider().padding(.leading, 60)
+                            HStack {
+                                Text("No favorites added yet.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 16)
+                        } else {
+                            ForEach(favorites, id: \.title) { favorite in
+                                Divider().padding(.leading, 60)
+                                FavoriteRow(icon: "mappin.circle.fill", title: favorite.title, subtitle: favorite.subtitle, color: .blue)
+                            }
+                        }
                     }
                     .background(.regularMaterial)
                     .cornerRadius(12)
@@ -118,40 +134,61 @@ struct DestinationSearchView: View {
                         .foregroundColor(.primary)
                         .padding(.horizontal)
                     
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Image(systemName: "leaf.fill")
-                                .font(.title2)
-                                .foregroundColor(.green)
-                            Text("Saved")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Text("$\(owlPolice.camerasPassedThisRide * 100)")
-                                .font(.title3)
-                                .fontWeight(.bold)
+                    if journal.entries.isEmpty && owlPolice.camerasPassedThisRide == 0 {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Image(systemName: "car.2.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.secondary)
+                                Text("No rides recorded.")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text("Complete a trip to see your savings.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
                         .background(.regularMaterial)
                         .cornerRadius(12)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Image(systemName: "car.fill")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                            Text("Trips")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Text("\(journal.entries.count)")
-                                .font(.title3)
-                                .fontWeight(.bold)
+                        .padding(.horizontal)
+                    } else {
+                        HStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Image(systemName: "leaf.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.green)
+                                Text("Saved")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Text("$\((owlPolice.camerasPassedThisRide + journal.totalSaved / 100) * 100)")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(.regularMaterial)
+                            .cornerRadius(12)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Image(systemName: "car.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                                Text("Trips")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Text("\(journal.entries.count)")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(.regularMaterial)
+                            .cornerRadius(12)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(.regularMaterial)
-                        .cornerRadius(12)
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 24)

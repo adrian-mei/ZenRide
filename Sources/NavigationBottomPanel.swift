@@ -75,6 +75,7 @@ struct NavigationBottomPanel: View {
                         .frame(width: 80, height: 56) // Fixed width for standard rounded rectangle
                         .background(Color.red, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
+                .accessibilityLabel("End Route")
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)

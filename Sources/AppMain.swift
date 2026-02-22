@@ -43,19 +43,19 @@ struct ContentView: View {
         Group {
             switch appState {
             case .garage:
-                GarageView(onRollOut: {
-                    withAnimation { appState = .riding }
-                })
-            case .riding:
-                RideView(onStop: {
-                    withAnimation { appState = .windDown }
-                })
-            case .windDown:
-                WindDownView(ticketsAvoided: owlPolice.camerasPassedThisRide) { mood in
-                    journal.addEntry(mood: mood, ticketsAvoided: owlPolice.camerasPassedThisRide)
-                    owlPolice.resetRideStats()
-                    withAnimation { appState = .riding } // Skip garage to maintain maps clone feel
-                }
+                        GarageView(onRollOut: {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
+                        })
+                    case .riding:
+                        RideView(onStop: {
+                            withAnimation(.easeInOut(duration: 0.6)) { appState = .windDown }
+                        })
+                    case .windDown:
+                        WindDownView(ticketsAvoided: owlPolice.camerasPassedThisRide) { mood in
+                            journal.addEntry(mood: mood, ticketsAvoided: owlPolice.camerasPassedThisRide)
+                            owlPolice.resetRideStats()
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding } // Skip garage to maintain maps clone feel
+                        }
             }
         }
     }
@@ -132,6 +132,8 @@ struct RideView: View {
                                     .strokeBorder(Color.black, lineWidth: 1)
                                     .padding(2)
                             )
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Speed limit \(owlPolice.nearestCamera?.speed_limit_mph ?? 45) miles per hour")
                             
                                 // NEW: Early Speed Drop Anticipation Badge
                                 if owlPolice.currentZone == .safe, 
@@ -176,6 +178,8 @@ struct RideView: View {
                                 )
                                 .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: owlPolice.currentSpeedMPH)
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel("Current speed \(Int(owlPolice.currentSpeedMPH)) miles per hour")
                             }
                         }
                         .padding(.leading, 16)
@@ -218,6 +222,8 @@ struct RideView: View {
                                             .font(.title3)
                                             .frame(width: 48, height: 48)
                                     }
+                                    .accessibilityLabel("Search along route")
+                                    
                                     Divider().padding(.horizontal, 8)
                                     
                                     Button(action: {
@@ -227,6 +233,8 @@ struct RideView: View {
                                             .font(.title3)
                                             .frame(width: 48, height: 48)
                                     }
+                                    .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
+                                    
                                     Divider().padding(.horizontal, 8)
                                 } else {
                                     Button(action: {}) {
@@ -234,6 +242,8 @@ struct RideView: View {
                                             .font(.title3)
                                             .frame(width: 48, height: 48)
                                     }
+                                    .accessibilityLabel("Map Settings")
+                                    
                                     Divider().padding(.horizontal, 8)
                                 }
                                 
@@ -244,6 +254,7 @@ struct RideView: View {
                                         .font(.title3)
                                         .frame(width: 48, height: 48)
                                 }
+                                .accessibilityLabel("Recenter map on your location")
                             }
                             .frame(width: 48) // Strict constraint for layout issue
                             .foregroundColor(.primary)
@@ -301,12 +312,12 @@ struct RideView: View {
             set: { _ in }
         )) {
             RouteSelectionSheet(destinationName: destinationName, onGo: {
-                withAnimation {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     owlPolice.simulateDrive(along: routingService.activeRoute)
                 }
             }, onCancel: {
-                withAnimation {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     routeState = .search
                     routingService.availableRoutes = []
                     routingService.activeRoute = []
@@ -334,7 +345,7 @@ struct RideView: View {
                 if !routingService.activeRoute.isEmpty && owlPolice.currentSimulationIndex >= routingService.activeRoute.count - 1 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
                         if routeState == .navigating {
-                            withAnimation {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                 routeState = .search
                                 routingService.activeRoute = []
                                 routingService.availableRoutes = []
@@ -349,7 +360,7 @@ struct RideView: View {
     }
     
     private func endRide() {
-        withAnimation {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
             routeState = .search
             routingService.activeRoute = []
             routingService.availableRoutes = []
