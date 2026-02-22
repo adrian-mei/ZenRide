@@ -177,7 +177,33 @@ struct ZenMapView: UIViewRepresentable {
                     view?.layer.shadowRadius = 4
                 }
                 
-                view?.image = UIImage(systemName: "location.north.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 30, weight: .bold))?.withTintColor(.systemBlue, renderingMode: .alwaysOriginal)
+                // Draw a Navigation Chevron (Apple Maps style)
+                let size = CGSize(width: 44, height: 44)
+                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+                if let context = UIGraphicsGetCurrentContext() {
+                    // Drop shadow
+                    context.setShadow(offset: CGSize(width: 0, height: 4), blur: 8, color: UIColor.black.withAlphaComponent(0.6).cgColor)
+                    
+                    let path = UIBezierPath()
+                    // Draw arrowhead pointing up
+                    path.move(to: CGPoint(x: 22, y: 4))      // Top tip
+                    path.addLine(to: CGPoint(x: 40, y: 38))  // Bottom right
+                    path.addLine(to: CGPoint(x: 22, y: 30))  // Inner notch
+                    path.addLine(to: CGPoint(x: 4, y: 38))   // Bottom left
+                    path.close()
+                    
+                    // Neon glowing accent
+                    UIColor.systemBlue.setFill()
+                    path.fill()
+                    
+                    UIColor.white.setStroke()
+                    path.lineWidth = 2.0
+                    path.stroke()
+                    
+                    let image = UIGraphicsGetImageFromCurrentImageContext()
+                    UIGraphicsEndImageContext()
+                    view?.image = image
+                }
                 
                 return view
             }
