@@ -2,7 +2,8 @@ import SwiftUI
 
 struct RouteSelectionSheet: View {
     let destinationName: String
-    var onGo: () -> Void
+    var onDrive: () -> Void
+    var onSimulate: () -> Void
     var onCancel: () -> Void
     
     @EnvironmentObject var routingService: RoutingService
@@ -50,10 +51,9 @@ struct RouteSelectionSheet: View {
                     RouteListRow(
                         route: route,
                         isSelected: routingService.selectedRouteIndex == index,
-                        onSelect: { 
+                        onSelect: {
                             routingService.selectRoute(at: index)
-                            timer?.invalidate()
-                            countdown = 0
+                            resetTimer()
                         }
                     )
                 }
@@ -64,10 +64,10 @@ struct RouteSelectionSheet: View {
             // Actions
             HStack(spacing: 16) {
                 Button(action: {
-                    // Simulating a custom route/avoidance sheet
-                    print("Avoidance tapped")
+                    timer?.invalidate()
+                    onSimulate()
                 }) {
-                    Text("Avoid")
+                    Text("Simulate")
                         .font(.headline)
                         .foregroundColor(.primary)
                         .frame(maxWidth: .infinity)
@@ -78,9 +78,9 @@ struct RouteSelectionSheet: View {
                 
                 Button(action: {
                     timer?.invalidate()
-                    onGo()
+                    onDrive()
                 }) {
-                    Text(countdown > 0 ? "GO (\(countdown)s)" : "GO")
+                    Text(countdown > 0 ? "Drive (\(countdown)s)" : "Drive")
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -105,11 +105,13 @@ struct RouteSelectionSheet: View {
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if countdown > 1 {
-                countdown -= 1
-            } else {
-                timer?.invalidate()
-                onGo()
+            DispatchQueue.main.async {
+                if countdown > 1 {
+                    countdown -= 1
+                } else {
+                    timer?.invalidate()
+                    onDrive()
+                }
             }
         }
     }
@@ -145,8 +147,8 @@ struct RouteListRow: View {
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.green)
-                        } else if !route.isLessTraffic {
-                            Label("Has Speed Cameras", systemImage: "camera.badge.ellipsis")
+                        } else if route.cameraCount > 0 {
+                            Label("\(route.cameraCount) Speed Cameras", systemImage: "camera.badge.ellipsis")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.orange)
@@ -163,9 +165,21 @@ struct RouteListRow: View {
                         }
                     }
                     
-                    Text("via Default Route") // We can mock street name or omit
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if route.isZeroCameras {
+                        Text("Safest Choice")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                            .fontWeight(.medium)
+                    } else if route.cameraCount > 0 {
+                        Text("Risk: ~$\(route.savedFines) in potential fines")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .fontWeight(.medium)
+                    } else {
+                        Text("Standard Route")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Spacer()

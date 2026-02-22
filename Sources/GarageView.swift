@@ -3,8 +3,7 @@ import SwiftUI
 struct GarageView: View {
     @EnvironmentObject var journal: RideJournal
     var onRollOut: () -> Void
-    @State private var dummyRouteState: RouteState = .search
-    
+
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -22,7 +21,7 @@ struct GarageView: View {
     var body: some View {
         ZStack {
             // Live map in the background
-            ZenMapView(routeState: $dummyRouteState)
+            ZenMapView(routeState: .constant(.search))
                 .edgesIgnoringSafeArea(.all)
                 .allowsHitTesting(false)
             

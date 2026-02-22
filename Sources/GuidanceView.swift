@@ -3,11 +3,12 @@ import SwiftUI
 struct GuidanceView: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var owlPolice: OwlPolice
-    
+    @State private var currentInstructionIndex: Int = 0
+
     var body: some View {
         VStack {
-            if !routingService.instructions.isEmpty, routingService.currentInstructionIndex < routingService.instructions.count {
-                let instruction = routingService.instructions[routingService.currentInstructionIndex]
+            if !routingService.instructions.isEmpty, currentInstructionIndex < routingService.instructions.count {
+                let instruction = routingService.instructions[currentInstructionIndex]
                 
                 VStack(spacing: 0) {
                     HStack(spacing: 16) {
@@ -48,8 +49,8 @@ struct GuidanceView: View {
                 
                 // --- NEW: Next Turn Preview ---
                 let currentDist = Double(instruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
-                if currentDist > 1600 && routingService.currentInstructionIndex + 1 < routingService.instructions.count {
-                    let nextInst = routingService.instructions[routingService.currentInstructionIndex + 1]
+                if currentDist > 1600 && currentInstructionIndex + 1 < routingService.instructions.count {
+                    let nextInst = routingService.instructions[currentInstructionIndex + 1]
                     if nextInst.instructionType != "ARRIVE" {
                         HStack(spacing: 8) {
                             Text("THEN:")
@@ -72,13 +73,18 @@ struct GuidanceView: View {
                 
                 } // End of inner VStack
                 .background(
-                    instruction.instructionType == "ARRIVE" 
+                    instruction.instructionType == "ARRIVE"
                         ? Color(red: 0.8, green: 0.6, blue: 0.1) // Gold/yellow for arrival
-                        : Color(red: 0.1, green: 0.55, blue: 0.25), 
+                        : Color(red: 0.1, green: 0.55, blue: 0.25),
                     in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                 )
                 .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 8)
                 .padding(.horizontal, 16)
+                .id(currentInstructionIndex)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
             }
         }
         // Advance instructions based on our simulation point index.
@@ -86,12 +92,10 @@ struct GuidanceView: View {
         .onChange(of: owlPolice.currentSimulationIndex) { newIndex in
             if owlPolice.isSimulating {
                 if let nextInstructionIndex = routingService.instructions.firstIndex(where: { $0.pointIndex > newIndex }) {
-                    // Show the upcoming instruction
                     if routingService.currentInstructionIndex != nextInstructionIndex {
                         routingService.currentInstructionIndex = nextInstructionIndex
                     }
                 } else if !routingService.instructions.isEmpty {
-                    // If we passed all triggers, show the last one (ARRIVE)
                     let lastIndex = routingService.instructions.count - 1
                     if routingService.currentInstructionIndex != lastIndex {
                         routingService.currentInstructionIndex = lastIndex
@@ -101,15 +105,19 @@ struct GuidanceView: View {
         }
         .onChange(of: routingService.currentInstructionIndex) { index in
             if index >= 0 && index < routingService.instructions.count {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    currentInstructionIndex = index
+                }
                 if let message = routingService.instructions[index].message {
                     owlPolice.speak(message)
                 }
             }
         }
         .onChange(of: owlPolice.isSimulating) { isSimulating in
-             if isSimulating {
-                  routingService.currentInstructionIndex = 0
-             }
+            if isSimulating {
+                currentInstructionIndex = 0
+                routingService.currentInstructionIndex = 0
+            }
         }
     }
     

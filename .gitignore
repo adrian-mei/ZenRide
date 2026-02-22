@@ -26,3 +26,6 @@ Podfile.lock
 
 # xcodegen
 ZenRide.xcodeproj/
+
+# Secrets
+Sources/Secrets.swift

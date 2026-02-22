@@ -33,6 +33,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var exitCooldowns: [String: Date] = [:]
     private var dangerCooldowns: [String: Date] = [:]
     private var simulationTimer: Timer?
+    private var lastProximityCheckLocation: CLLocation?
     @Published var currentSimulationIndex: Int = 0
     @Published var distanceTraveledInSimulationMeters: Double = 0
     
@@ -51,7 +52,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            print("Failed to set audio session category.")
+            Log.error("OwlPolice", "Failed to set audio session: \(error)")
         }
     }
     
@@ -77,17 +78,13 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
     
     private func processLocation(_ location: CLLocation) {
+        let speedMPS = max(0, location.speed) // negative if invalid
+
         DispatchQueue.main.async {
             self.currentLocation = location
-        }
-        
-        // Update speed
-        let speedMPS = max(0, location.speed) // negative if invalid
-        
-        DispatchQueue.main.async {
             self.currentSpeedMPH = speedMPS * 2.23694
         }
-        
+
         checkProximity(to: location)
     }
     
@@ -176,11 +173,16 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     private func checkProximity(to location: CLLocation) {
         guard !cameras.isEmpty else { return }
-        
+
+        if let last = lastProximityCheckLocation, location.distance(from: last) < 5 {
+            return // Haven't moved enough to warrant a recheck
+        }
+        lastProximityCheckLocation = location
+
         // Find nearest camera
         var closestDist = Double.greatestFiniteMagnitude
         var closestCam: SpeedCamera? = nil
-        
+
         for camera in cameras {
             let camLoc = CLLocation(latitude: camera.lat, longitude: camera.lng)
             let distance = location.distance(from: camLoc) * 3.28084 // Convert meters to feet
@@ -189,13 +191,12 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
                 closestCam = camera
             }
         }
-        
+
         guard let nearest = closestCam else { return }
-        
+
         DispatchQueue.main.async {
             self.nearestCamera = nearest
             self.distanceToNearestFT = closestDist
-            
             self.updateZone(distance: closestDist, camera: nearest)
         }
     }

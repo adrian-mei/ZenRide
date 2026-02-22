@@ -40,46 +40,42 @@ struct ZenMapView: UIViewRepresentable {
         
         // Handle Simulated Car Annotation
         if owlPolice.isSimulating, let location = owlPolice.currentLocation {
-            DispatchQueue.main.async {
-                if simulatedCarAnnotation == nil {
-                    let newCar = SimulatedCarAnnotation(coordinate: location.coordinate)
-                    simulatedCarAnnotation = newCar
-                    uiView.addAnnotation(newCar)
-                } else {
-                    UIView.animate(withDuration: 0.1) {
-                        simulatedCarAnnotation?.coordinate = location.coordinate
-                    }
-                }
-                
-                // The Apple Maps "Look-Ahead" 3D Camera during Navigation
-                if routeState == .navigating {
-                    let lookAheadCoord = location.coordinate.coordinate(offsetBy: 150, bearingDegrees: location.course >= 0 ? location.course : 0)
-                    
-                    // Dynamic Map Zoom based on speed for hands-free driving
-                    let speedMph = max(0, owlPolice.currentSpeedMPH)
-                    let dynamicDistance = max(500, min(1800, 500 + (speedMph * 25))) // Zoom out at higher speeds
-                    let dynamicPitch = max(45, min(75, 75 - (speedMph * 0.4))) // Flatter pitch at high speeds
-                    
-                    let camera = MKMapCamera(lookingAtCenter: lookAheadCoord, fromDistance: dynamicDistance, pitch: dynamicPitch, heading: location.course >= 0 ? location.course : 0)
-                    // CRITICAL FIX: animated: false prevents a huge backlog of queued animations and stuttering
-                    uiView.setCamera(camera, animated: false)
+            if simulatedCarAnnotation == nil {
+                let newCar = SimulatedCarAnnotation(coordinate: location.coordinate)
+                simulatedCarAnnotation = newCar
+                uiView.addAnnotation(newCar)
+            } else {
+                UIView.animate(withDuration: 0.1) {
+                    simulatedCarAnnotation?.coordinate = location.coordinate
                 }
             }
+
+            // The Apple Maps "Look-Ahead" 3D Camera during Navigation
+            if routeState == .navigating {
+                let lookAheadCoord = location.coordinate.coordinate(offsetBy: 150, bearingDegrees: location.course >= 0 ? location.course : 0)
+
+                // Dynamic Map Zoom based on speed for hands-free driving
+                let speedMph = max(0, owlPolice.currentSpeedMPH)
+                let dynamicDistance = max(500, min(1800, 500 + (speedMph * 25))) // Zoom out at higher speeds
+                let dynamicPitch = max(45, min(75, 75 - (speedMph * 0.4))) // Flatter pitch at high speeds
+
+                let camera = MKMapCamera(lookingAtCenter: lookAheadCoord, fromDistance: dynamicDistance, pitch: dynamicPitch, heading: location.course >= 0 ? location.course : 0)
+                // CRITICAL FIX: animated: false prevents a huge backlog of queued animations and stuttering
+                uiView.setCamera(camera, animated: false)
+            }
         } else if !owlPolice.isSimulating, let car = simulatedCarAnnotation {
-            DispatchQueue.main.async {
-                uiView.removeAnnotation(car)
-                simulatedCarAnnotation = nil
-                
-                if routeState == .search {
-                    // Return to normal 2D view pointing north when stopping simulation
-                    let camera = MKMapCamera(lookingAtCenter: uiView.centerCoordinate, fromDistance: 10000, pitch: 0, heading: 0)
-                    uiView.setCamera(camera, animated: true)
-                }
+            uiView.removeAnnotation(car)
+            simulatedCarAnnotation = nil
+
+            if routeState == .search {
+                // Return to normal 2D view pointing north when stopping simulation
+                let camera = MKMapCamera(lookingAtCenter: uiView.centerCoordinate, fromDistance: 10000, pitch: 0, heading: 0)
+                uiView.setCamera(camera, animated: true)
             }
         }
         
         // Add camera annotations
-        let existingIds = uiView.annotations.compactMap { ($0 as? CameraAnnotation)?.id }
+        let existingIds = Set(uiView.annotations.compactMap { ($0 as? CameraAnnotation)?.id })
         let newAnnotations = cameraStore.cameras.filter { !existingIds.contains($0.id) }.map {
             CameraAnnotation(camera: $0)
         }
@@ -98,10 +94,11 @@ struct ZenMapView: UIViewRepresentable {
         
         // CRITICAL FIX: Only redraw heavy overlays when they actually change.
         // We use a custom hash of the active route coordinates + route state as a cache key.
+        // Progress index is intentionally excluded — the selected-route overlay doesn't need
+        // a full redraw on every GPS tick, only when the route itself or state changes.
         let activeHash = routingService.activeRoute.count
         let stateHash = routeState.hashValue
-        let progressHash = routingService.routeProgressIndex
-        let cacheKey = "\(activeHash)_\(stateHash)_\(progressHash)"
+        let cacheKey = "\(activeHash)_\(stateHash)"
         
         let needsRedraw = context.coordinator.lastOverlayCacheKey != cacheKey
         

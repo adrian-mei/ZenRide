@@ -31,14 +31,25 @@ struct TomTomInstruction: Decodable {
 }
 
 struct TomTomRoute: Decodable, Identifiable {
-    let id = UUID()
+    var id = UUID()
     let summary: TomTomSummary
     let tags: [String]?
     let legs: [TomTomLeg]
     let guidance: TomTomGuidance?
     
+    // Custom properties to track cameras
+    var cameraCount: Int = 0
+    var isSafeRoute: Bool = false
+    var savedFines: Int {
+        return cameraCount * 100 // $100 per camera ticket
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case summary, tags, legs, guidance
+    }
+    
     var isZeroCameras: Bool {
-        tags?.contains("zero_cameras") == true
+        tags?.contains("zero_cameras") == true || isSafeRoute || cameraCount == 0
     }
     
     var isLessTraffic: Bool {
@@ -69,9 +80,8 @@ class RoutingService: ObservableObject {
     @Published var instructions: [TomTomInstruction] = []
     @Published var currentInstructionIndex: Int = 0
     
-    // Replace with a real TomTom API Key
-    private let apiKey = "YOUR_TOMTOM_API_KEY"
-    var useMockData = true
+    private let apiKey = Secrets.tomTomAPIKey
+    var useMockData = false
     
     func checkReroute(currentLocation: CLLocation) {
         guard activeRoute.count > 1 else { return }
@@ -110,7 +120,7 @@ class RoutingService: ObservableObject {
         
         // If we are more than 100 meters away from the closest segment of our route, we missed a turn!
         if closestDistance > 100 {
-            print("🚨 Off route! Distance: \(closestDistance)m. Seamlessly rerouting in the background...")
+            Log.info("Routing", "Off route — switching to next alternative")
             
             // In a real app, we would fetch a new route from TomTom here using currentLocation as the new origin.
             // For this prototype, we will just simulate a successful reroute by picking the next alternative route if available,
@@ -177,6 +187,53 @@ class RoutingService: ObservableObject {
         routeProgressIndex = 0
     }
     
+
+    private func countCameras(on route: TomTomRoute, cameras: [SpeedCamera]) -> Int {
+        var count = 0
+        guard let leg = route.legs.first else { return 0 }
+        
+        for camera in cameras {
+            let camLoc = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
+            // If any point in the route is within 50 meters of the camera, it counts as a hit
+            for point in leg.points {
+                let pLoc = CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude)
+                if pLoc.distance(to: camLoc) < 70 { // using 70 meters to be safe
+                    count += 1
+                    break // count this camera once
+                }
+            }
+        }
+        return count
+    }
+    
+    private func fetchTomTom(origin: CLLocationCoordinate2D, destination: CLLocationCoordinate2D, avoiding avoidAreasParam: String) async throws -> TomTomRouteResponse? {
+        var urlString = "https://api.tomtom.com/routing/1/calculateRoute/\(origin.latitude),\(origin.longitude):\(destination.latitude),\(destination.longitude)/json"
+        
+        guard var components = URLComponents(string: urlString) else { return nil }
+        components.queryItems = [
+            URLQueryItem(name: "key", value: apiKey),
+            URLQueryItem(name: "routeType", value: "fastest"),
+            URLQueryItem(name: "traffic", value: "true")
+        ]
+        
+        if !avoidAreasParam.isEmpty {
+            components.queryItems?.append(URLQueryItem(name: "avoidAreas", value: avoidAreasParam))
+        }
+        
+        guard let url = components.url else { return nil }
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            if let httpResponse = response as? HTTPURLResponse {
+                Log.error("Routing", "TomTom HTTP \(httpResponse.statusCode)")
+            }
+            return nil
+        }
+        
+        return try JSONDecoder().decode(TomTomRouteResponse.self, from: data)
+    }
+
     func calculateSafeRoute(from origin: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, avoiding cameras: [SpeedCamera]) async {
         if useMockData {
             do {
@@ -194,63 +251,64 @@ class RoutingService: ObservableObject {
                     let defaultIndex = result.routes.firstIndex(where: { $0.isZeroCameras }) ?? 0
                     self.selectRoute(at: defaultIndex)
                     
-                    print("Successfully loaded mock routes: \(result.routes.count)")
+                    Log.info("Routing", "Got \(result.routes.count) routes")
                 }
             } catch {
-                print("Failed to decode mock route: \(error)")
+                Log.error("Routing", "Route calculation failed: \(error)")
             }
             return
         }
         
-        // ... API fallback remains similar, but for now we focus on mock for the UI ...
         guard !apiKey.isEmpty && apiKey != "YOUR_TOMTOM_API_KEY" else {
-            print("Missing TomTom API Key. Cannot calculate route.")
+            Log.error("Routing", "Missing TomTom API key — cannot calculate route")
             return
         }
         
         let avoidAreasParam = cameras.map { $0.boundingBoxForRouting }.joined(separator: "!")
         
-        var urlString = "https://api.tomtom.com/routing/1/calculateRoute/\(origin.latitude),\(origin.longitude):\(destination.latitude),\(destination.longitude)/json"
-        
-        // Use URLComponents to safely add query items
-        guard var components = URLComponents(string: urlString) else { return }
-        components.queryItems = [
-            URLQueryItem(name: "key", value: apiKey),
-            URLQueryItem(name: "routeType", value: "fastest"),
-            URLQueryItem(name: "traffic", value: "true")
-        ]
-        
-        if !avoidAreasParam.isEmpty {
-            components.queryItems?.append(URLQueryItem(name: "avoidAreas", value: avoidAreasParam))
-        }
-        
-        guard let url = components.url else {
-            print("Invalid URL")
-            return
-        }
-        
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                let errorString = String(data: data, encoding: .utf8) ?? "Unknown Error"
-                print("TomTom API Error: \(errorString)")
-                return
+            var standardRoutes: [TomTomRoute] = []
+            if let stdData = try await fetchTomTom(origin: origin, destination: destination, avoiding: "") {
+                var mapped = stdData.routes
+                for i in 0..<mapped.count {
+                    let count = countCameras(on: mapped[i], cameras: cameras)
+                    mapped[i].cameraCount = count
+                    mapped[i].isSafeRoute = (count == 0)
+                }
+                standardRoutes = mapped
             }
             
-            let result = try JSONDecoder().decode(TomTomRouteResponse.self, from: data)
+            var safeRoutes: [TomTomRoute] = []
+            if let safeData = try await fetchTomTom(origin: origin, destination: destination, avoiding: avoidAreasParam) {
+                var mapped = safeData.routes
+                for i in 0..<mapped.count {
+                    mapped[i].cameraCount = 0
+                    mapped[i].isSafeRoute = true
+                }
+                safeRoutes = mapped
+            }
+            
+            var combined = standardRoutes
+            for safe in safeRoutes {
+                // Avoid exact duplicates
+                if !combined.contains(where: { abs($0.summary.travelTimeInSeconds - safe.summary.travelTimeInSeconds) < 10 && abs($0.summary.lengthInMeters - safe.summary.lengthInMeters) < 100 }) {
+                    combined.append(safe)
+                }
+            }
             
             DispatchQueue.main.async {
-                self.availableRoutes = result.routes
-                self.activeAlternativeRoutes = result.routes.compactMap { route in
+                self.availableRoutes = combined
+                self.activeAlternativeRoutes = combined.compactMap { route in
                     route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
                 }
-                self.selectRoute(at: 0)
-                print("Successfully calculated safe routes avoiding \(cameras.count) cameras.")
+                
+                let defaultIndex = combined.firstIndex(where: { $0.isSafeRoute }) ?? 0
+                self.selectRoute(at: defaultIndex)
+                Log.info("Routing", "Got \(combined.count) routes")
             }
-            
+
         } catch {
-            print("Routing Service Error: \(error.localizedDescription)")
+            Log.error("Routing", "Route calculation failed: \(error.localizedDescription)")
         }
     }
 }

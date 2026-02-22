@@ -95,11 +95,13 @@ struct WindDownView: View {
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if dismissCountdown > 1 {
-                dismissCountdown -= 1
-            } else {
-                timer?.invalidate()
-                onComplete("Focused") // Default mood
+            DispatchQueue.main.async {
+                if dismissCountdown > 1 {
+                    dismissCountdown -= 1
+                } else {
+                    timer?.invalidate()
+                    onComplete("Focused") // Default mood
+                }
             }
         }
     }

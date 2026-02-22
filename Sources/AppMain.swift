@@ -68,6 +68,7 @@ struct RideView: View {
     
     @State private var routeState: RouteState = .search
     @State private var destinationName: String = ""
+    @State private var controlsVisible = true
     
     var currentSpeedColor: Color {
         let speed = owlPolice.currentSpeedMPH
@@ -153,7 +154,7 @@ struct RideView: View {
                                     .background(Color.orange, in: Capsule())
                                     .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                                     .transition(.opacity.combined(with: .scale))
-                                    .animation(.easeInOut, value: owlPolice.distanceToNearestFT)
+                                    .animation(.easeInOut(duration: 0.4), value: owlPolice.currentZone)
                                 }
                             } // End of outer VStack container
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
@@ -274,9 +275,8 @@ struct RideView: View {
                         }
                         .padding(.trailing, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
-                        // FADE OUT CONTROLS WHILE DRIVING TO MAXIMIZE MAP
-                        .opacity(owlPolice.currentSpeedMPH > 15.0 ? 0.0 : 1.0)
-                        .animation(.easeInOut(duration: 0.5), value: owlPolice.currentSpeedMPH > 15.0)
+                        // FADE OUT CONTROLS WHILE DRIVING TO MAXIMIZE MAP (hysteresis: hide >15 mph, show <12 mph)
+                        .opacity(controlsVisible ? 1.0 : 0.0)
                     }
                     .transition(.opacity)
                 }
@@ -311,7 +311,13 @@ struct RideView: View {
             get: { routeState == .reviewing },
             set: { _ in }
         )) {
-            RouteSelectionSheet(destinationName: destinationName, onGo: {
+            RouteSelectionSheet(destinationName: destinationName, onDrive: {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    routeState = .navigating
+                    owlPolice.isSimulating = false
+                    // Real GPS updates handle progress
+                }
+            }, onSimulate: {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     owlPolice.simulateDrive(along: routingService.activeRoute)
@@ -327,6 +333,13 @@ struct RideView: View {
             .presentationDetents([.medium, .fraction(0.3)])
             .presentationDragIndicator(.visible)
             .interactiveDismissDisabled()
+        }
+        .onChange(of: owlPolice.currentSpeedMPH) { speed in
+            if speed > 15.0 && controlsVisible {
+                withAnimation(.easeInOut(duration: 0.5)) { controlsVisible = false }
+            } else if speed < 12.0 && !controlsVisible {
+                withAnimation(.easeInOut(duration: 0.3)) { controlsVisible = true }
+            }
         }
         .onChange(of: routeState) { state in
             if state == .navigating {
