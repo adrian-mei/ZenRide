@@ -128,7 +128,13 @@ struct ZenMapView: UIViewRepresentable {
         if !routingService.activeRoute.isEmpty {
             // Trim the route behind the user
             let startIndex = routingService.routeProgressIndex
-            let route = Array(routingService.activeRoute[startIndex...])
+            var route = Array(routingService.activeRoute[startIndex...])
+            
+            // Standard Navigation Feature: Start the route line exactly at the user's location
+            // to prevent the line from trailing behind or having visual gaps.
+            if routeState == .navigating, let carLoc = owlPolice.currentLocation?.coordinate, route.count > 1 {
+                route[0] = carLoc
+            }
             
             // Outer border
             let outlinePolyline = BorderedPolyline(coordinates: route, count: route.count)
@@ -254,11 +260,12 @@ struct ZenMapView: UIViewRepresentable {
                 
                 if isSelected {
                     if borderedPolyline.isBorder {
-                        renderer.strokeColor = UIColor.systemBlue.withAlphaComponent(0.8) // Dark outline
+                        // Classic Navigation dark blue outline
+                        renderer.strokeColor = UIColor(red: 0.05, green: 0.35, blue: 0.9, alpha: 1.0)
                         renderer.lineWidth = 16
                     } else {
-                        // High contrast cyan/blue for selected route
-                        renderer.strokeColor = UIColor(red: 0.1, green: 0.5, blue: 1.0, alpha: 1.0)
+                        // Classic Navigation inner light blue
+                        renderer.strokeColor = UIColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0)
                         renderer.lineWidth = 10
                     }
                 } else {

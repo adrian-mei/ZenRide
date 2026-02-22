@@ -74,34 +74,41 @@ class RoutingService: ObservableObject {
     var useMockData = true
     
     func checkReroute(currentLocation: CLLocation) {
-        guard !activeRoute.isEmpty else { return }
+        guard activeRoute.count > 1 else { return }
         
-        // Find the closest point on the active route from the current progress point onwards
+        let currentCoord = currentLocation.coordinate
+        
+        // Find the closest segment on the active route from the current progress segment onwards
         var minDistance = Double.greatestFiniteMagnitude
-        var closestIndex = routeProgressIndex
+        var closestSegmentIndex = routeProgressIndex
         
-        // Look ahead a reasonable amount (e.g., next 50 points) to avoid snapping backward or to a parallel segment
-        let searchEndIndex = min(routeProgressIndex + 50, activeRoute.count)
+        // Look ahead a reasonable amount (e.g., next 50 segments) to avoid snapping backward or to a parallel segment
+        let searchEndIndex = min(routeProgressIndex + 50, activeRoute.count - 1)
         
-        for i in routeProgressIndex..<searchEndIndex {
-            let coord = activeRoute[i]
-            let distance = currentLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
-            if distance < minDistance {
-                minDistance = distance
-                closestIndex = i
+        if routeProgressIndex < activeRoute.count - 1 {
+            for i in routeProgressIndex..<searchEndIndex {
+                let start = activeRoute[i]
+                let end = activeRoute[i + 1]
+                let distance = currentCoord.distanceToSegment(start: start, end: end)
+                if distance < minDistance {
+                    minDistance = distance
+                    closestSegmentIndex = i
+                }
             }
-        }
-        
-        // Update progress index to trim the route behind us
-        DispatchQueue.main.async {
-            if closestIndex > self.routeProgressIndex {
-                self.routeProgressIndex = closestIndex
+            
+            // Update progress index to trim the route behind us
+            DispatchQueue.main.async {
+                if closestSegmentIndex > self.routeProgressIndex {
+                    self.routeProgressIndex = closestSegmentIndex
+                }
             }
+        } else {
+            minDistance = currentCoord.distance(to: activeRoute.last!)
         }
         
         let closestDistance = minDistance
         
-        // If we are more than 100 meters away from the closest point of our route, we missed a turn!
+        // If we are more than 100 meters away from the closest segment of our route, we missed a turn!
         if closestDistance > 100 {
             print("🚨 Off route! Distance: \(closestDistance)m. Seamlessly rerouting in the background...")
             

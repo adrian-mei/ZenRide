@@ -41,4 +41,21 @@ extension CLLocationCoordinate2D {
         
         return CLLocationCoordinate2D(latitude: lat2 * 180 / .pi, longitude: lon2 * 180 / .pi)
     }
+    /// Returns the shortest distance (in meters) to a line segment defined by two coordinates
+    func distanceToSegment(start: CLLocationCoordinate2D, end: CLLocationCoordinate2D) -> CLLocationDistance {
+        let dx = end.longitude - start.longitude
+        let dy = end.latitude - start.latitude
+        
+        if dx == 0 && dy == 0 {
+            return self.distance(to: start)
+        }
+        
+        let t = ((self.longitude - start.longitude) * dx + (self.latitude - start.latitude) * dy) / (dx * dx + dy * dy)
+        let clampedT = max(0, min(1, t))
+        
+        let closestLon = start.longitude + clampedT * dx
+        let closestLat = start.latitude + clampedT * dy
+        
+        return self.distance(to: CLLocationCoordinate2D(latitude: closestLat, longitude: closestLon))
+    }
 }
