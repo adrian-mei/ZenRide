@@ -1,6 +1,24 @@
 import SwiftUI
 import MapKit
 
+private let carChevronImage: UIImage = {
+    let size = CGSize(width: 44, height: 44)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    return renderer.image { ctx in
+        let context = ctx.cgContext
+        context.setShadow(offset: CGSize(width: 0, height: 4), blur: 8,
+                          color: UIColor.black.withAlphaComponent(0.6).cgColor)
+        let path = UIBezierPath()
+        path.move(to: CGPoint(x: 22, y: 4))
+        path.addLine(to: CGPoint(x: 40, y: 38))
+        path.addLine(to: CGPoint(x: 22, y: 30))
+        path.addLine(to: CGPoint(x: 4, y: 38))
+        path.close()
+        UIColor.systemBlue.setFill(); path.fill()
+        UIColor.white.setStroke(); path.lineWidth = 2.0; path.stroke()
+    }
+}()
+
 struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var cameraStore: CameraStore
     @EnvironmentObject var owlPolice: OwlPolice
@@ -50,6 +68,15 @@ struct ZenMapView: UIViewRepresentable {
                 }
             }
 
+            // Rotate car chevron to face direction of travel
+            if let carAnnotation = simulatedCarAnnotation, let carView = uiView.view(for: carAnnotation) {
+                let bearing = location.course >= 0 ? location.course : 0
+                let radians = CGFloat(bearing * .pi / 180.0)
+                UIView.animate(withDuration: 0.1) {
+                    carView.transform = CGAffineTransform(rotationAngle: radians)
+                }
+            }
+
             // The Apple Maps "Look-Ahead" 3D Camera during Navigation
             if routeState == .navigating {
                 let lookAheadCoord = location.coordinate.coordinate(offsetBy: 150, bearingDegrees: location.course >= 0 ? location.course : 0)
@@ -83,13 +110,21 @@ struct ZenMapView: UIViewRepresentable {
             uiView.addAnnotations(newAnnotations)
         }
         
-        // Add Destination Annotation
-        let destAnnotations = uiView.annotations.compactMap { $0 as? DestinationAnnotation }
-        uiView.removeAnnotations(destAnnotations)
-        
-        if (routeState == .reviewing || routeState == .navigating), let destCoord = routingService.activeRoute.last {
-            let destAnnotation = DestinationAnnotation(coordinate: destCoord, title: "Destination")
-            uiView.addAnnotation(destAnnotation)
+        // Update destination annotation in-place to avoid flicker
+        let destCoord: CLLocationCoordinate2D? = (routeState == .reviewing || routeState == .navigating)
+            ? routingService.activeRoute.last : nil
+        let existingDest = uiView.annotations.compactMap { $0 as? DestinationAnnotation }.first
+
+        if let destCoord {
+            if let existing = existingDest {
+                if existing.coordinate.latitude != destCoord.latitude || existing.coordinate.longitude != destCoord.longitude {
+                    existing.coordinate = destCoord
+                }
+            } else {
+                uiView.addAnnotation(DestinationAnnotation(coordinate: destCoord, title: "Destination"))
+            }
+        } else if let existing = existingDest {
+            uiView.removeAnnotation(existing)
         }
         
         // CRITICAL FIX: Only redraw heavy overlays when they actually change.
@@ -188,33 +223,7 @@ struct ZenMapView: UIViewRepresentable {
                     view?.layer.shadowRadius = 4
                 }
                 
-                // Draw a Navigation Chevron (Apple Maps style)
-                let size = CGSize(width: 44, height: 44)
-                UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
-                if let context = UIGraphicsGetCurrentContext() {
-                    // Drop shadow
-                    context.setShadow(offset: CGSize(width: 0, height: 4), blur: 8, color: UIColor.black.withAlphaComponent(0.6).cgColor)
-                    
-                    let path = UIBezierPath()
-                    // Draw arrowhead pointing up
-                    path.move(to: CGPoint(x: 22, y: 4))      // Top tip
-                    path.addLine(to: CGPoint(x: 40, y: 38))  // Bottom right
-                    path.addLine(to: CGPoint(x: 22, y: 30))  // Inner notch
-                    path.addLine(to: CGPoint(x: 4, y: 38))   // Bottom left
-                    path.close()
-                    
-                    // Neon glowing accent
-                    UIColor.systemBlue.setFill()
-                    path.fill()
-                    
-                    UIColor.white.setStroke()
-                    path.lineWidth = 2.0
-                    path.stroke()
-                    
-                    let image = UIGraphicsGetImageFromCurrentImageContext()
-                    UIGraphicsEndImageContext()
-                    view?.image = image
-                }
+                view?.image = carChevronImage
                 
                 return view
             }

@@ -4,14 +4,14 @@ import MapKit
 class DestinationSearcher: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [MKMapItem] = []
+    @Published var isSearching = false
 
     private var activeSearch: MKLocalSearch?
 
     func search(for query: String, near location: CLLocationCoordinate2D? = nil) {
         activeSearch?.cancel()
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
-            searchResults = []
-            return
+            searchResults = []; isSearching = false; return
         }
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = query
@@ -21,11 +21,12 @@ class DestinationSearcher: ObservableObject {
 
         activeSearch = MKLocalSearch(request: request)
         activeSearch?.start { response, error in
-            guard let response = response, error == nil else {
-                Log.error("Search", "MKLocalSearch failed: \(error?.localizedDescription ?? "unknown")")
-                return
-            }
             DispatchQueue.main.async {
+                self.isSearching = false
+                guard let response = response, error == nil else {
+                    Log.error("Search", "MKLocalSearch failed: \(error?.localizedDescription ?? "unknown")")
+                    return
+                }
                 self.searchResults = response.mapItems
             }
         }
@@ -33,17 +34,16 @@ class DestinationSearcher: ObservableObject {
 }
 
 struct DestinationSearchView: View {
-    @StateObject private var searcher = DestinationSearcher()
+    @ObservedObject var searcher: DestinationSearcher
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var cameraStore: CameraStore
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var journal: RideJournal
-    
+
     @Binding var routeState: RouteState
     @Binding var destinationName: String
     @FocusState private var isSearchFocused: Bool
 
-    @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
 
     // Mocking an empty favorites list to demonstrate the empty state
@@ -63,15 +63,15 @@ struct DestinationSearchView: View {
                         searchTask?.cancel()
                         if query.trimmingCharacters(in: .whitespaces).isEmpty {
                             searcher.searchResults = []
-                            isSearching = false
+                            searcher.isSearching = false
                             return
                         }
-                        isSearching = true
+                        searcher.isSearching = true
                         searchTask = Task {
                             try? await Task.sleep(nanoseconds: 300_000_000)
                             guard !Task.isCancelled else { return }
                             searcher.search(for: query, near: owlPolice.currentLocation?.coordinate)
-                            await MainActor.run { isSearching = false }
+                            // isSearching = false is set inside search() callback
                         }
                     }
                 .font(.body)
@@ -81,6 +81,7 @@ struct DestinationSearchView: View {
                     Button(action: {
                         searcher.searchQuery = ""
                         searcher.searchResults = []
+                        searcher.isSearching = false
                         isSearchFocused = false
                     }) {
                         Image(systemName: "xmark.circle.fill")
@@ -104,23 +105,18 @@ struct DestinationSearchView: View {
                     HStack(spacing: 20) {
                         CategoryButton(icon: "house.fill", title: "Home", color: .blue) {
                             searcher.searchQuery = "Home"
-                            searcher.search(for: "home", near: owlPolice.currentLocation?.coordinate)
                         }
                         CategoryButton(icon: "briefcase.fill", title: "Work", color: .brown) {
                             searcher.searchQuery = "Work"
-                            searcher.search(for: "work", near: owlPolice.currentLocation?.coordinate)
                         }
                         CategoryButton(icon: "fork.knife", title: "Restaurants", color: .orange) {
                             searcher.searchQuery = "Restaurants"
-                            searcher.search(for: "restaurants near me", near: owlPolice.currentLocation?.coordinate)
                         }
                         CategoryButton(icon: "fuelpump.fill", title: "Gas Stations", color: .indigo) {
                             searcher.searchQuery = "Gas Stations"
-                            searcher.search(for: "gas station", near: owlPolice.currentLocation?.coordinate)
                         }
                         CategoryButton(icon: "cup.and.saucer.fill", title: "Coffee", color: .orange) {
                             searcher.searchQuery = "Coffee"
-                            searcher.search(for: "coffee shop", near: owlPolice.currentLocation?.coordinate)
                         }
                     }
                     .padding(.horizontal)
@@ -229,46 +225,53 @@ struct DestinationSearchView: View {
                 .padding(.bottom, 24)
             }
             
-            if isSearching {
-                HStack { Spacer(); ProgressView(); Spacer() }
-                    .padding(.vertical, 20)
-            } else if !searcher.searchQuery.isEmpty && searcher.searchResults.isEmpty {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    Text("No results for \"\(searcher.searchQuery)\"")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                }
-                .padding()
-                .background(.regularMaterial)
-                .cornerRadius(12)
-                .padding(.horizontal)
-            } else if !searcher.searchResults.isEmpty {
-                List(searcher.searchResults, id: \.self) { item in
-                    Button(action: {
-                        startRouting(to: item)
-                    }) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.name ?? "Unknown")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            Text(item.placemark.title ?? "")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 8)
+            Group {
+                if searcher.isSearching {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                        .padding(.vertical, 20)
+                        .transition(.opacity)
+                } else if !searcher.searchQuery.isEmpty && searcher.searchResults.isEmpty {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                        Text("No results for \"\(searcher.searchQuery)\"")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
                     }
-                    .listRowBackground(Color.clear)
+                    .padding()
+                    .background(.regularMaterial)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                } else if !searcher.searchResults.isEmpty {
+                    List(searcher.searchResults, id: \.self) { item in
+                        Button(action: {
+                            startRouting(to: item)
+                        }) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.name ?? "Unknown")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text(item.placemark.title ?? "")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .listRowBackground(Color.clear)
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(.regularMaterial)
+                    .frame(maxHeight: 240)
+                    .cornerRadius(16)
+                    .padding(.horizontal)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(.regularMaterial)
-                .frame(maxHeight: 240)
-                .cornerRadius(16)
-                .padding(.horizontal)
             }
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: searcher.isSearching)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: searcher.searchResults.isEmpty)
             
             Spacer()
         }

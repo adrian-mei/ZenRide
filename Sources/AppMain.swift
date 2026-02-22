@@ -65,10 +65,12 @@ struct RideView: View {
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var routingService: RoutingService
     var onStop: () -> Void
-    
+
+    @StateObject private var searcher = DestinationSearcher()
     @State private var routeState: RouteState = .search
     @State private var destinationName: String = ""
     @State private var controlsVisible = true
+    @State private var searchSheetDetent: PresentationDetent = .fraction(0.15)
     
     var currentSpeedColor: Color {
         let speed = owlPolice.currentSpeedMPH
@@ -273,11 +275,16 @@ struct RideView: View {
             get: { routeState == .search },
             set: { _ in }
         )) {
-            DestinationSearchView(routeState: $routeState, destinationName: $destinationName)
-                .presentationDetents([.fraction(0.15), .medium, .large])
+            DestinationSearchView(searcher: searcher, routeState: $routeState, destinationName: $destinationName)
+                .presentationDetents([.fraction(0.15), .medium, .large], selection: $searchSheetDetent)
                 .presentationDragIndicator(.visible)
                 .presentationBackgroundInteraction(.enabled)
                 .interactiveDismissDisabled()
+        }
+        .onChange(of: searcher.searchQuery) { query in
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                searchSheetDetent = query.isEmpty ? .fraction(0.15) : .medium
+            }
         }
         .sheet(isPresented: Binding(
             get: { routeState == .reviewing },

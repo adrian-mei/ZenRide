@@ -29,8 +29,10 @@ struct NavigationBottomPanel: View {
     }
     
     var formattedTime: String {
+        if remainingTimeSeconds <= 10 { return "Arriving" }
+        if remainingTimeSeconds < 60  { return "< 1 min" }
         let minutes = remainingTimeSeconds / 60
-        return "\(max(1, minutes)) min" // Minimum 1 min
+        return "\(minutes) min"
     }
     
     var body: some View {

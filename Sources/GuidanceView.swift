@@ -105,7 +105,7 @@ struct GuidanceView: View {
         }
         .onChange(of: routingService.currentInstructionIndex) { index in
             if index >= 0 && index < routingService.instructions.count {
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                     currentInstructionIndex = index
                 }
                 if let message = routingService.instructions[index].message {
