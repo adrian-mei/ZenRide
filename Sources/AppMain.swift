@@ -104,12 +104,10 @@ struct RideView: View {
                                 .font(.system(size: 8, weight: .bold, design: .default))
                                 .foregroundColor(.black)
                                 .padding(.bottom, 2)
-                            Text("\(Int(owlPolice.currentSpeedMPH))")
+                            Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)") // Show the actual speed limit, not current speed, inside the sign!
                                 .font(.system(size: 26, weight: .bold, design: .default))
-                                .foregroundColor((owlPolice.currentZone != .safe && owlPolice.currentSpeedMPH > Double((owlPolice.nearestCamera?.speed_limit_mph ?? 100))) ? .red : .black)
+                                .foregroundColor(.black)
                         }
-                        .opacity((owlPolice.currentZone != .safe && owlPolice.currentSpeedMPH > Double((owlPolice.nearestCamera?.speed_limit_mph ?? 100))) ? 0.3 : 1.0)
-                        .animation((owlPolice.currentZone != .safe && owlPolice.currentSpeedMPH > Double((owlPolice.nearestCamera?.speed_limit_mph ?? 100))) ? Animation.easeInOut(duration: 0.3).repeatForever(autoreverses: true) : .default, value: owlPolice.currentZone)
                         .frame(width: 54, height: 64)
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                         .overlay(
@@ -334,17 +332,44 @@ struct AlertOverlayView: View {
     
     var body: some View {
         if let camera = camera {
-            VStack {
-                Text("SPEED CAMERA AHEAD")
-                    .font(.system(size: 28, weight: .heavy))
-                    .foregroundColor(.white)
-                    .padding(.top, 40)
+            HStack(spacing: 20) {
+                // Classic Speed Limit Sign Graphic
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.white)
+                        .frame(width: 70, height: 90)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.black, lineWidth: 3)
+                        )
+                    
+                    VStack(spacing: 0) {
+                        Text("SPEED\nLIMIT")
+                            .font(.system(size: 10, weight: .black))
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.black)
+                            .padding(.top, 8)
+                        
+                        Text("\(camera.speed_limit_mph)")
+                            .font(.system(size: 38, weight: .heavy))
+                            .foregroundColor(.black)
+                            .padding(.bottom, 4)
+                    }
+                }
                 
-                Text("\(camera.speed_limit_mph) MPH")
-                    .font(.system(size: 48, weight: .black))
-                    .foregroundColor(.white)
-                    .padding(.bottom, 20)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("SPEED CAMERA AHEAD")
+                        .font(.system(size: 20, weight: .heavy))
+                        .foregroundColor(.white)
+                    Text("Reduce speed now")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                Spacer()
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 60)
+            .padding(.bottom, 20)
             .frame(maxWidth: .infinity)
             .background(Color.red)
             .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
