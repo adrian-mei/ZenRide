@@ -64,8 +64,37 @@ struct GuidanceView: View {
                     .frame(maxWidth: .infinity)
                 }
                 
+                // --- NEW: Next Turn Preview ---
+                let currentDist = Double(instruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
+                if currentDist > 1600 && routingService.currentInstructionIndex + 1 < routingService.instructions.count {
+                    let nextInst = routingService.instructions[routingService.currentInstructionIndex + 1]
+                    if nextInst.instructionType != "ARRIVE" {
+                        HStack(spacing: 8) {
+                            Text("THEN:")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white.opacity(0.6))
+                            Image(systemName: iconForInstruction(nextInst.instructionType))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white.opacity(0.8))
+                            Text(nextInst.street ?? nextInst.message ?? "")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white.opacity(0.8))
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+                    }
+                }
+                // -----------------------------
+                
                 } // End of inner VStack
-                .background(Color(red: 0.1, green: 0.55, blue: 0.25), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(
+                    instruction.instructionType == "ARRIVE" 
+                        ? Color(red: 0.8, green: 0.6, blue: 0.1) // Gold/yellow for arrival
+                        : Color(red: 0.1, green: 0.55, blue: 0.25), 
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
                 .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 8)
                 .padding(.horizontal, 16)
             }

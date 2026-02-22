@@ -90,7 +90,8 @@ struct RideView: View {
                 if routeState == .search || routeState == .navigating {
                     HStack(alignment: .top) {
                         // Left Side: Speed Indicator
-                        VStack(spacing: 0) {
+                        VStack(alignment: .center, spacing: 4) {
+                            VStack(spacing: 0) {
                             Text("SPEED")
                                 .font(.system(size: 8, weight: .bold, design: .default))
                                 .foregroundColor(.black)
@@ -115,6 +116,28 @@ struct RideView: View {
                                 .strokeBorder(Color.black, lineWidth: 1)
                                 .padding(2)
                         )
+                        
+                            // NEW: Early Speed Drop Anticipation Badge
+                            if owlPolice.currentZone == .safe, 
+                               let nearest = owlPolice.nearestCamera, 
+                               owlPolice.distanceToNearestFT > 500 && owlPolice.distanceToNearestFT < 3000,
+                               owlPolice.currentSpeedMPH > Double(nearest.speed_limit_mph) {
+                                
+                                HStack(spacing: 2) {
+                                    Image(systemName: "arrow.down")
+                                        .font(.system(size: 10, weight: .bold))
+                                    Text("\(nearest.speed_limit_mph)")
+                                        .font(.system(size: 12, weight: .black))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(Color.orange, in: Capsule())
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                                .transition(.opacity.combined(with: .scale))
+                                .animation(.easeInOut, value: owlPolice.distanceToNearestFT)
+                            }
+                        } // End of outer VStack container
                         .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                         .padding(.leading, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
