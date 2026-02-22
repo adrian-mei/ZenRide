@@ -75,10 +75,10 @@ struct GarageView: View {
                 
                 Button(action: onRollOut) {
                     Text("Open Maps")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.title2) // Larger
+                        .fontWeight(.heavy)
                         .foregroundColor(.white)
-                        .padding(.vertical, 18)
+                        .padding(.vertical, 24) // Massive hit target for quick mounting
                         .frame(maxWidth: .infinity)
                         .background(Color.blue)
                         .clipShape(Capsule())
