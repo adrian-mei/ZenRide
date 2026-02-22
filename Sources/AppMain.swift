@@ -73,6 +73,11 @@ struct RideView: View {
         ZStack(alignment: .top) {
             ZenMapView(routeState: $routeState)
                 .edgesIgnoringSafeArea(.all)
+                
+            if routeState == .navigating {
+                AmbientGlowView()
+                    .zIndex(1)
+            }
             
             if routeState == .navigating && (owlPolice.currentZone == .approach || owlPolice.currentZone == .danger) {
                 AlertOverlayView(camera: owlPolice.nearestCamera)
@@ -146,6 +151,18 @@ struct RideView: View {
                         
                         // Right Side: Map Controls Stack
                         VStack(alignment: .trailing, spacing: 12) {
+                            if owlPolice.isMuted && routeState == .navigating {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "speaker.slash.fill")
+                                    Text("MUTED")
+                                        .font(.caption.bold())
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.red.opacity(0.8), in: Capsule())
+                                .foregroundColor(.white)
+                                .shadow(radius: 4)
+                            }
                             if routeState == .search && owlPolice.camerasPassedThisRide > 0 {
                                 HStack(spacing: 4) {
                                     Image(systemName: "leaf.fill")
@@ -332,6 +349,63 @@ struct AlertOverlayView: View {
             .background(Color.red)
             .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
             .transition(.move(edge: .top).combined(with: .opacity))
+        }
+    }
+}
+
+struct AmbientGlowView: View {
+    @EnvironmentObject var owlPolice: OwlPolice
+    @State private var pulse: Bool = false
+    
+    var body: some View {
+        ZStack {
+            if owlPolice.currentZone != .safe {
+                LinearGradient(colors: [glowColor, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: glowWidth * 3)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                
+                LinearGradient(colors: [glowColor, .clear], startPoint: .bottom, endPoint: .top)
+                    .frame(height: glowWidth * 3)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                
+                LinearGradient(colors: [glowColor, .clear], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: glowWidth * 3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                LinearGradient(colors: [glowColor, .clear], startPoint: .trailing, endPoint: .leading)
+                    .frame(width: glowWidth * 3)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .edgesIgnoringSafeArea(.all)
+        .opacity(owlPolice.currentZone == .danger ? (pulse ? 0.8 : 0.3) : 0.6)
+        .allowsHitTesting(false)
+        .onChange(of: owlPolice.currentZone) { zone in
+            if zone == .danger {
+                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                    pulse = true
+                }
+            } else {
+                withAnimation {
+                    pulse = false
+                }
+            }
+        }
+    }
+    
+    var glowColor: Color {
+        switch owlPolice.currentZone {
+        case .danger: return .red
+        case .approach: return .orange
+        case .safe: return .clear
+        }
+    }
+    
+    var glowWidth: CGFloat {
+        switch owlPolice.currentZone {
+        case .danger: return 40
+        case .approach: return 20
+        case .safe: return 0
         }
     }
 }
