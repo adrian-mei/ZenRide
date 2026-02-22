@@ -99,7 +99,8 @@ struct ZenMapView: UIViewRepresentable {
         // We use a custom hash of the active route coordinates + route state as a cache key.
         let activeHash = routingService.activeRoute.count
         let stateHash = routeState.hashValue
-        let cacheKey = "\(activeHash)_\(stateHash)"
+        let progressHash = routingService.routeProgressIndex
+        let cacheKey = "\(activeHash)_\(stateHash)_\(progressHash)"
         
         let needsRedraw = context.coordinator.lastOverlayCacheKey != cacheKey
         
@@ -118,26 +119,28 @@ struct ZenMapView: UIViewRepresentable {
                     polyline.isBorder = true // We use the border hack to pass state to the renderer
                     // We'll use subtitle to hack passing the selection state to the coordinator
                     polyline.subtitle = "unselected"
-                    uiView.addOverlay(polyline)
+                    uiView.addOverlay(polyline, level: .aboveRoads)
                 }
             }
         }
         
         // Draw the active/selected route on top
         if !routingService.activeRoute.isEmpty {
-            let route = routingService.activeRoute
+            // Trim the route behind the user
+            let startIndex = routingService.routeProgressIndex
+            let route = Array(routingService.activeRoute[startIndex...])
             
             // Outer border
             let outlinePolyline = BorderedPolyline(coordinates: route, count: route.count)
             outlinePolyline.isBorder = true
             outlinePolyline.subtitle = "selected"
-            uiView.addOverlay(outlinePolyline)
+            uiView.addOverlay(outlinePolyline, level: .aboveRoads)
             
             // Inner vibrant line
             let innerPolyline = BorderedPolyline(coordinates: route, count: route.count)
             innerPolyline.isBorder = false
             innerPolyline.subtitle = "selected"
-            uiView.addOverlay(innerPolyline)
+            uiView.addOverlay(innerPolyline, level: .aboveRoads)
             
             // Frame the route if we are reviewing
             if routeState == .reviewing {

@@ -60,7 +60,9 @@ class RoutingService: ObservableObject {
     @Published var selectedRouteIndex: Int = 0
     
     @Published var activeRoute: [CLLocationCoordinate2D] = []
-    @Published var activeAlternativeRoutes: [[CLLocationCoordinate2D]] = []
+        @Published var activeAlternativeRoutes: [[CLLocationCoordinate2D]] = []
+    
+    @Published var routeProgressIndex: Int = 0
     
     @Published var routeDistanceMeters: Int = 0
     @Published var routeTimeSeconds: Int = 0
@@ -74,10 +76,30 @@ class RoutingService: ObservableObject {
     func checkReroute(currentLocation: CLLocation) {
         guard !activeRoute.isEmpty else { return }
         
-        // Find the closest point on the active route
-        let closestDistance = activeRoute.map { coord in
-            currentLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
-        }.min() ?? 0
+        // Find the closest point on the active route from the current progress point onwards
+        var minDistance = Double.greatestFiniteMagnitude
+        var closestIndex = routeProgressIndex
+        
+        // Look ahead a reasonable amount (e.g., next 50 points) to avoid snapping backward or to a parallel segment
+        let searchEndIndex = min(routeProgressIndex + 50, activeRoute.count)
+        
+        for i in routeProgressIndex..<searchEndIndex {
+            let coord = activeRoute[i]
+            let distance = currentLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+            if distance < minDistance {
+                minDistance = distance
+                closestIndex = i
+            }
+        }
+        
+        // Update progress index to trim the route behind us
+        DispatchQueue.main.async {
+            if closestIndex > self.routeProgressIndex {
+                self.routeProgressIndex = closestIndex
+            }
+        }
+        
+        let closestDistance = minDistance
         
         // If we are more than 100 meters away from the closest point of our route, we missed a turn!
         if closestDistance > 100 {
@@ -144,7 +166,8 @@ class RoutingService: ObservableObject {
             routeTimeSeconds = route.summary.travelTimeInSeconds
             instructions = route.guidance?.instructions ?? []
         }
-        currentInstructionIndex = 0
+                currentInstructionIndex = 0
+        routeProgressIndex = 0
     }
     
     func calculateSafeRoute(from origin: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D, avoiding cameras: [SpeedCamera]) async {
