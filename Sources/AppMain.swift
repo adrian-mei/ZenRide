@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum AppState {
+    case onboarding
     case garage
     case riding
     case windDown
@@ -18,7 +19,8 @@ struct ZenRideApp: App {
     @StateObject private var owlPolice = OwlPolice()
     @StateObject private var routingService = RoutingService()
     @StateObject private var journal = RideJournal()
-    
+    @StateObject private var savedRoutes = SavedRoutesStore()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -26,6 +28,7 @@ struct ZenRideApp: App {
                 .environmentObject(owlPolice)
                 .environmentObject(routingService)
                 .environmentObject(journal)
+                .environmentObject(savedRoutes)
                 .preferredColorScheme(.dark)
                 .onAppear {
                     owlPolice.startPatrol(with: cameraStore.cameras)
@@ -35,27 +38,45 @@ struct ZenRideApp: App {
 }
 
 struct ContentView: View {
-    @State private var appState: AppState = .riding
+    @State private var appState: AppState =
+        UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") ? .garage : .onboarding
+    @State private var lastRideContext: RideContext? = nil
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var journal: RideJournal
-    
+    @EnvironmentObject var savedRoutes: SavedRoutesStore
+
     var body: some View {
         Group {
             switch appState {
+            case .onboarding:
+                OnboardingView {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
+                }
             case .garage:
-                        GarageView(onRollOut: {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
-                        })
-                    case .riding:
-                        RideView(onStop: {
-                            withAnimation(.easeInOut(duration: 0.6)) { appState = .windDown }
-                        })
-                    case .windDown:
-                        WindDownView(ticketsAvoided: owlPolice.camerasPassedThisRide) { mood in
-                            journal.addEntry(mood: mood, ticketsAvoided: owlPolice.camerasPassedThisRide)
-                            owlPolice.resetRideStats()
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding } // Skip garage to maintain maps clone feel
-                        }
+                GarageView(onRollOut: {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
+                })
+            case .riding:
+                RideView(onStop: { context in
+                    lastRideContext = context
+                    withAnimation(.easeInOut(duration: 0.6)) { appState = .windDown }
+                })
+            case .windDown:
+                WindDownView(ticketsAvoided: owlPolice.camerasPassedThisRide,
+                             rideContext: lastRideContext) { mood in
+                    journal.addEntry(mood: mood, ticketsAvoided: owlPolice.camerasPassedThisRide, context: lastRideContext)
+                    if let ctx = lastRideContext {
+                        savedRoutes.recordVisit(
+                            destinationName: ctx.destinationName,
+                            coordinate: ctx.destinationCoordinate,
+                            durationSeconds: ctx.routeDurationSeconds,
+                            departureTime: ctx.departureTime
+                        )
+                    }
+                    owlPolice.resetRideStats()
+                    lastRideContext = nil
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
+                }
             }
         }
     }
@@ -64,17 +85,18 @@ struct ContentView: View {
 struct RideView: View {
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var routingService: RoutingService
-    var onStop: () -> Void
+    var onStop: (RideContext?) -> Void
 
     @StateObject private var searcher = DestinationSearcher()
     @State private var routeState: RouteState = .search
     @State private var destinationName: String = ""
     @State private var controlsVisible = true
     @State private var searchSheetDetent: PresentationDetent = .fraction(0.15)
-    
+    @State private var departureTime: Date? = nil
+
     var currentSpeedColor: Color {
         let speed = owlPolice.currentSpeedMPH
-        let limit = Double(owlPolice.nearestCamera?.speed_limit_mph ?? 45) // Or a general limit if available
+        let limit = Double(owlPolice.nearestCamera?.speed_limit_mph ?? 45)
         if speed > limit + 10 {
             return .red
         } else if speed > limit {
@@ -83,22 +105,22 @@ struct RideView: View {
             return .white
         }
     }
-    
+
     var body: some View {
         ZStack(alignment: .top) {
             ZenMapView(routeState: $routeState)
                 .edgesIgnoringSafeArea(.all)
-                
+
             if routeState == .navigating {
                 AmbientGlowView()
                     .zIndex(1)
             }
-            
+
             if routeState == .navigating && (owlPolice.currentZone == .approach || owlPolice.currentZone == .danger) {
                 AlertOverlayView(camera: owlPolice.nearestCamera)
                     .zIndex(100)
             }
-            
+
             // Top HUD
             VStack(spacing: 12) {
                 if routeState == .navigating {
@@ -106,7 +128,7 @@ struct RideView: View {
                         .padding(.top, 16)
                         .transition(.move(edge: .top))
                 }
-                
+
                 if routeState == .search || routeState == .navigating {
                     HStack(alignment: .top) {
                         // Left Side: Speed Indicator
@@ -120,7 +142,7 @@ struct RideView: View {
                                     .font(.system(size: 8, weight: .bold, design: .default))
                                     .foregroundColor(.black)
                                     .padding(.bottom, 2)
-                                Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)") // Show the actual speed limit, not current speed, inside the sign!
+                                Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)")
                                     .font(.system(size: 26, weight: .bold, design: .default))
                                     .foregroundColor(.black)
                             }
@@ -137,13 +159,13 @@ struct RideView: View {
                             )
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel("Speed limit \(owlPolice.nearestCamera?.speed_limit_mph ?? 45) miles per hour")
-                            
-                                // NEW: Early Speed Drop Anticipation Badge
-                                if owlPolice.currentZone == .safe, 
-                                   let nearest = owlPolice.nearestCamera, 
+
+                                // Early Speed Drop Anticipation Badge
+                                if owlPolice.currentZone == .safe,
+                                   let nearest = owlPolice.nearestCamera,
                                    owlPolice.distanceToNearestFT > 500 && owlPolice.distanceToNearestFT < 3000,
                                    owlPolice.currentSpeedMPH > Double(nearest.speed_limit_mph) {
-                                    
+
                                     HStack(spacing: 2) {
                                         Image(systemName: "arrow.down")
                                             .font(.system(size: 10, weight: .bold))
@@ -160,7 +182,7 @@ struct RideView: View {
                                 }
                             } // End of outer VStack container
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-                            
+
                             // Motorcycle-friendly Current Speed Readout
                             if routeState == .navigating {
                                 VStack(spacing: -2) {
@@ -187,9 +209,9 @@ struct RideView: View {
                         }
                         .padding(.leading, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
-                        
+
                         Spacer()
-                        
+
                         // Right Side: Map Controls Stack
                         VStack(alignment: .trailing, spacing: 12) {
                             if owlPolice.isMuted && routeState == .navigating {
@@ -217,7 +239,7 @@ struct RideView: View {
                                 .background(.regularMaterial, in: Capsule())
                                 .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                             }
-                            
+
                             VStack(spacing: 0) {
                                 if routeState == .navigating {
                                     Button(action: {
@@ -231,7 +253,7 @@ struct RideView: View {
 
                                     Divider().padding(.horizontal, 8)
                                 }
-                                
+
                                 Button(action: {
                                     NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
                                 }) {
@@ -241,22 +263,21 @@ struct RideView: View {
                                 }
                                 .accessibilityLabel("Recenter map on your location")
                             }
-                            .frame(width: 48) // Strict constraint for layout issue
+                            .frame(width: 48)
                             .foregroundColor(.primary)
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-                            
+
                         }
                         .padding(.trailing, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
-                        // FADE OUT CONTROLS WHILE DRIVING TO MAXIMIZE MAP (hysteresis: hide >15 mph, show <12 mph)
                         .opacity(controlsVisible ? 1.0 : 0.0)
                     }
                     .transition(.opacity)
                 }
-                
+
                 Spacer()
-                
+
                 if routeState == .navigating {
                     NavigationBottomPanel(onEnd: {
                         endRide()
@@ -291,12 +312,13 @@ struct RideView: View {
             set: { _ in }
         )) {
             RouteSelectionSheet(destinationName: destinationName, onDrive: {
+                departureTime = Date()
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     owlPolice.isSimulating = false
-                    // Real GPS updates handle progress
                 }
             }, onSimulate: {
+                departureTime = Date()
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     owlPolice.simulateDrive(along: routingService.activeRoute)
@@ -342,7 +364,7 @@ struct RideView: View {
                                 routingService.activeRoute = []
                                 routingService.availableRoutes = []
                                 routingService.activeAlternativeRoutes = []
-                                onStop()
+                                onStop(buildRideContext())
                             }
                         }
                     }
@@ -350,22 +372,37 @@ struct RideView: View {
             }
         }
     }
-    
+
+    private func buildRideContext() -> RideContext? {
+        guard !destinationName.isEmpty, let departure = departureTime else { return nil }
+        guard let destCoord = routingService.activeRoute.last,
+              let originCoord = routingService.activeRoute.first else { return nil }
+        return RideContext(
+            destinationName: destinationName,
+            destinationCoordinate: destCoord,
+            originCoordinate: originCoord,
+            routeDurationSeconds: routingService.routeTimeSeconds,
+            routeDistanceMeters: routingService.routeDistanceMeters,
+            departureTime: departure
+        )
+    }
+
     private func endRide() {
+        let context = buildRideContext()
         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
             routeState = .search
             routingService.activeRoute = []
             routingService.availableRoutes = []
             routingService.activeAlternativeRoutes = []
             owlPolice.stopSimulation()
-            onStop()
+            onStop(context)
         }
     }
 }
 
 struct AlertOverlayView: View {
     let camera: SpeedCamera?
-    
+
     var body: some View {
         if let camera = camera {
             HStack(spacing: 20) {
@@ -378,21 +415,21 @@ struct AlertOverlayView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.black, lineWidth: 3)
                         )
-                    
+
                     VStack(spacing: 0) {
                         Text("SPEED\nLIMIT")
                             .font(.system(size: 10, weight: .black))
                             .multilineTextAlignment(.center)
                             .foregroundColor(.black)
                             .padding(.top, 8)
-                        
+
                         Text("\(camera.speed_limit_mph)")
                             .font(.system(size: 38, weight: .heavy))
                             .foregroundColor(.black)
                             .padding(.bottom, 4)
                     }
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("SPEED CAMERA AHEAD")
                         .font(.system(size: 20, weight: .heavy))
@@ -417,22 +454,22 @@ struct AlertOverlayView: View {
 struct AmbientGlowView: View {
     @EnvironmentObject var owlPolice: OwlPolice
     @State private var pulse: Bool = false
-    
+
     var body: some View {
         ZStack {
             if owlPolice.currentZone != .safe {
                 LinearGradient(colors: [glowColor, .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: glowWidth * 3)
                     .frame(maxHeight: .infinity, alignment: .top)
-                
+
                 LinearGradient(colors: [glowColor, .clear], startPoint: .bottom, endPoint: .top)
                     .frame(height: glowWidth * 3)
                     .frame(maxHeight: .infinity, alignment: .bottom)
-                
+
                 LinearGradient(colors: [glowColor, .clear], startPoint: .leading, endPoint: .trailing)
                     .frame(width: glowWidth * 3)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 LinearGradient(colors: [glowColor, .clear], startPoint: .trailing, endPoint: .leading)
                     .frame(width: glowWidth * 3)
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -453,7 +490,7 @@ struct AmbientGlowView: View {
             }
         }
     }
-    
+
     var glowColor: Color {
         switch owlPolice.currentZone {
         case .danger: return .red
@@ -461,7 +498,7 @@ struct AmbientGlowView: View {
         case .safe: return .clear
         }
     }
-    
+
     var glowWidth: CGFloat {
         switch owlPolice.currentZone {
         case .danger: return 40

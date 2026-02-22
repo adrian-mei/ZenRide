@@ -39,6 +39,7 @@ struct DestinationSearchView: View {
     @EnvironmentObject var cameraStore: CameraStore
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var journal: RideJournal
+    @EnvironmentObject var savedRoutes: SavedRoutesStore
 
     @Binding var routeState: RouteState
     @Binding var destinationName: String
@@ -46,16 +47,13 @@ struct DestinationSearchView: View {
 
     @State private var searchTask: Task<Void, Never>?
 
-    // Mocking an empty favorites list to demonstrate the empty state
-    @State private var favorites: [(title: String, subtitle: String)] = []
-    
     var body: some View {
         VStack(spacing: 16) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
                     .font(.body)
-                
+
                 TextField("Search Maps", text: $searcher.searchQuery)
                     .focused($isSearchFocused)
                     .submitLabel(.search)
@@ -71,12 +69,11 @@ struct DestinationSearchView: View {
                             try? await Task.sleep(nanoseconds: 300_000_000)
                             guard !Task.isCancelled else { return }
                             searcher.search(for: query, near: owlPolice.currentLocation?.coordinate)
-                            // isSearching = false is set inside search() callback
                         }
                     }
                 .font(.body)
                 .foregroundColor(.primary)
-                
+
                 if !searcher.searchQuery.isEmpty {
                     Button(action: {
                         searcher.searchQuery = ""
@@ -98,7 +95,7 @@ struct DestinationSearchView: View {
             .cornerRadius(10)
             .padding(.horizontal)
             .padding(.top, 16)
-            
+
             if searcher.searchQuery.isEmpty {
                 // Quick Categories (Apple Maps Style)
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -122,22 +119,73 @@ struct DestinationSearchView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 8)
                 }
-                
-                // Favorites Section
+
+                // Suggested Section — only when suggestions exist
+                let currentSuggestions = SmartSuggestionService.suggestions(from: savedRoutes)
+                if !currentSuggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Suggested")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal)
+
+                        VStack(spacing: 0) {
+                            ForEach(Array(currentSuggestions.enumerated()), id: \.element.id) { index, route in
+                                Button(action: { startRoutingToSaved(route) }) {
+                                    HStack(spacing: 16) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.yellow.opacity(0.15))
+                                                .frame(width: 40, height: 40)
+                                            Image(systemName: "sparkles")
+                                                .font(.system(size: 18))
+                                                .foregroundColor(.yellow)
+                                        }
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(route.destinationName)
+                                                .font(.body)
+                                                .foregroundColor(.primary)
+                                            if let typicalHour = route.typicalDepartureHours.sorted().dropFirst(route.typicalDepartureHours.count / 4).first {
+                                                Text("Usually around \(formattedHour(typicalHour))")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                }
+
+                                if index < currentSuggestions.count - 1 {
+                                    Divider().padding(.leading, 60)
+                                }
+                            }
+                        }
+                        .background(.regularMaterial)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    }
+                    .padding(.top, 8)
+                }
+
+                // Recent Routes Section
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Favorites")
+                    Text("Recent Routes")
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                         .padding(.horizontal)
-                    
+
                     VStack(spacing: 0) {
                         FavoriteRow(icon: "plus", title: "Add", subtitle: "", color: .gray)
-                        
-                        if favorites.isEmpty {
+
+                        let recentRoutes = savedRoutes.topRecent(limit: 5)
+                        if recentRoutes.isEmpty {
                             Divider().padding(.leading, 60)
                             HStack {
-                                Text("No favorites added yet.")
+                                Text("No routes recorded yet.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -145,9 +193,31 @@ struct DestinationSearchView: View {
                             .padding(.vertical, 16)
                             .padding(.horizontal, 16)
                         } else {
-                            ForEach(favorites, id: \.title) { favorite in
+                            ForEach(recentRoutes) { route in
                                 Divider().padding(.leading, 60)
-                                FavoriteRow(icon: "mappin.circle.fill", title: favorite.title, subtitle: favorite.subtitle, color: .blue)
+                                Button(action: { startRoutingToSaved(route) }) {
+                                    HStack(spacing: 16) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.blue.opacity(0.15))
+                                                .frame(width: 40, height: 40)
+                                            Image(systemName: "mappin.circle.fill")
+                                                .font(.system(size: 20))
+                                                .foregroundColor(.blue)
+                                        }
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(route.destinationName)
+                                                .font(.body)
+                                                .foregroundColor(.primary)
+                                            Text(relativeDate(route.lastUsedDate))
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                }
                             }
                         }
                     }
@@ -156,15 +226,15 @@ struct DestinationSearchView: View {
                     .padding(.horizontal)
                 }
                 .padding(.top, 8)
-                
-                // Ride Archive (ZenRide Custom Integration)
+
+                // Ride Archive stats
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Ride Archive")
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
                         .padding(.horizontal)
-                    
+
                     if journal.entries.isEmpty && owlPolice.camerasPassedThisRide == 0 {
                         HStack {
                             VStack(alignment: .leading, spacing: 6) {
@@ -201,7 +271,7 @@ struct DestinationSearchView: View {
                             .padding()
                             .background(.regularMaterial)
                             .cornerRadius(12)
-                            
+
                             VStack(alignment: .leading, spacing: 8) {
                                 Image(systemName: "car.fill")
                                     .font(.title2)
@@ -224,7 +294,7 @@ struct DestinationSearchView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
-            
+
             Group {
                 if searcher.isSearching {
                     HStack { Spacer(); ProgressView(); Spacer() }
@@ -272,11 +342,16 @@ struct DestinationSearchView: View {
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: searcher.isSearching)
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: searcher.searchResults.isEmpty)
-            
+
             Spacer()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .zenRideNavigateTo)) { note in
+            if let route = note.object as? SavedRoute {
+                startRoutingToSaved(route)
+            }
+        }
     }
-    
+
     private func startRouting(to item: MKMapItem) {
         guard let destCoordinate = item.placemark.location?.coordinate else { return }
 
@@ -295,6 +370,35 @@ struct DestinationSearchView: View {
 
         withAnimation {
             routeState = .reviewing
+        }
+    }
+
+    private func startRoutingToSaved(_ route: SavedRoute) {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
+        let origin = owlPolice.currentLocation?.coordinate
+            ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        destinationName = route.destinationName
+        Task {
+            await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras)
+        }
+        withAnimation { routeState = .reviewing }
+    }
+
+    private func formattedHour(_ hour: Int) -> String {
+        let period = hour < 12 ? "am" : "pm"
+        let h = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)
+        return "\(h)\(period)"
+    }
+
+    private func relativeDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        let days = calendar.dateComponents([.day], from: date, to: now).day ?? 0
+        switch days {
+        case 0: return "Today"
+        case 1: return "Yesterday"
+        default: return "\(days) days ago"
         }
     }
 }
@@ -330,7 +434,7 @@ struct FavoriteRow: View {
     let title: String
     let subtitle: String
     let color: Color
-    
+
     var body: some View {
         Button(action: {}) {
             HStack(spacing: 16) {
@@ -342,7 +446,7 @@ struct FavoriteRow: View {
                         .font(.system(size: 20))
                         .foregroundColor(color)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.body)
@@ -353,7 +457,7 @@ struct FavoriteRow: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Spacer()
             }
             .padding(.vertical, 12)
