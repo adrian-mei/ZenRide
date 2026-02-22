@@ -1,36 +1,26 @@
 # ZenRide
 
-ZenRide is a SwiftUI-based iOS application that simulates a turn-by-turn navigation driving experience with speed camera alerts and Apple Maps-style routing overlays.
+A privacy-focused iOS application designed to help you avoid speed cameras and potential fines while riding.
 
 ## Features
-- **3D Navigation Routing**: Authentic MapKit rendering with `.aboveRoads` polylines that hug terrain and respect 3D building occlusion.
-- **Dynamic Route Trimming**: Real-time trimming of the route trail behind the user using exact segment-based calculations to prevent visual gaps.
-- **Classic iOS UI**: Features standard navigation chevrons, rounded ETA bottom panels, and high-visibility speed camera and speed limit signs.
-- **Simulation Engine**: Includes an `OwlPolice` service to mock driving the route for testing and demonstrations.
-- **Speed Camera Warnings**: Visual and audio alerts when approaching known speed cameras.
+- **Live Routing:** Calculates safe routes that actively avoid known speed cameras using the TomTom API.
+- **Cost Analysis:** Displays the potential cost of fines if you take a faster route with cameras.
+- **Smart Directions:** Large, clear UI designed for quick glances while driving.
+- **Simulate Mode:** Test routes and alerts from your couch before you hit the road.
+- **Drive Mode:** Uses your real-time GPS location to track your progress and alert you to cameras.
 
-## Getting Started
+## Setup
 
-This project relies on [XcodeGen](https://github.com/yonaskolb/XcodeGen) to manage the Xcode project file.
-
-### Prerequisites
-- macOS with Xcode 14+ installed.
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
-
-### Setup & Build
-
-1. Clone this repository.
-2. Generate the Xcode project:
+1. Open the project in Xcode:
    ```bash
-   xcodegen generate
+   open ZenRide.xcodeproj
    ```
-3. Open the generated `ZenRide.xcodeproj` or build directly from the command line:
-   ```bash
-   xcodebuild -project ZenRide.xcodeproj -scheme ZenRide -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
-   ```
+2. Select your development team in the **Signing & Capabilities** tab.
+3. Select your device and press **Run**.
 
-## Architecture
-- **Views**: 100% SwiftUI interface.
-- **Map Rendering**: Built using `UIViewRepresentable` to bridge modern `MKMapView` and MapKit annotations/overlays to SwiftUI.
-- **Services**: Heavy logic such as routing (`RoutingService`), simulation (`OwlPolice`), and camera handling (`CameraStore`) are extracted into `ObservableObject` classes.
+## Note on Debugging Performance
+If you see the warning: `warning: libobjc.A.dylib is being read from process memory`, it means Xcode hasn't finished preparing your device for development yet.
 
+1. This usually happens the first time you connect a device with a new iOS version to Xcode.
+2. It's safe to ignore for testing the app's functionality. The app will run fine, but breakpoints and variable inspection in Xcode might be slower.
+3. **To fix it permanently:** Leave the device plugged in and open the **Window -> Devices and Simulators** menu in Xcode. Wait for the yellow progress bar ("Preparing device for development...") to complete.

@@ -208,7 +208,7 @@ class RoutingService: ObservableObject {
     }
     
     private func fetchTomTom(origin: CLLocationCoordinate2D, destination: CLLocationCoordinate2D, avoiding avoidAreasParam: String) async throws -> TomTomRouteResponse? {
-        var urlString = "https://api.tomtom.com/routing/1/calculateRoute/\(origin.latitude),\(origin.longitude):\(destination.latitude),\(destination.longitude)/json"
+        let urlString = "https://api.tomtom.com/routing/1/calculateRoute/\(origin.latitude),\(origin.longitude):\(destination.latitude),\(destination.longitude)/json"
         
         guard var components = URLComponents(string: urlString) else { return nil }
         components.queryItems = [
@@ -244,17 +244,17 @@ class RoutingService: ObservableObject {
                 let data = MockRoutingData.tomTomResponseJSON.data(using: .utf8)!
                 let result = try JSONDecoder().decode(TomTomRouteResponse.self, from: data)
                 
-                DispatchQueue.main.async {
+                await MainActor.run {
                     self.availableRoutes = result.routes
-                    
+
                     self.activeAlternativeRoutes = result.routes.compactMap { route in
                         route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
                     }
-                    
+
                     // Select the zero_cameras route by default if available, else first
                     let defaultIndex = result.routes.firstIndex(where: { $0.isZeroCameras }) ?? 0
                     self.selectRoute(at: defaultIndex)
-                    
+
                     Log.info("Routing", "Got \(result.routes.count) routes")
                 }
             } catch {
@@ -300,12 +300,12 @@ class RoutingService: ObservableObject {
                 }
             }
             
-            DispatchQueue.main.async {
+            await MainActor.run {
                 self.availableRoutes = combined
                 self.activeAlternativeRoutes = combined.compactMap { route in
                     route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
                 }
-                
+
                 let defaultIndex = combined.firstIndex(where: { $0.isSafeRoute }) ?? 0
                 self.selectRoute(at: defaultIndex)
                 Log.info("Routing", "Got \(combined.count) routes")
