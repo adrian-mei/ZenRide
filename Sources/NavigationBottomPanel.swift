@@ -42,22 +42,20 @@ struct NavigationBottomPanel: View {
                 .padding(.top, 8)
             
             HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(arrivalTime)
-                        .font(.system(size: 32, weight: .bold))
+                        .font(.system(size: 40, weight: .black)) // Massive bold ETA
                         .foregroundColor(Color(red: 0.1, green: 0.8, blue: 0.3)) // Apple Maps ETA green
                     
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Text(formattedTime)
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 24, weight: .bold)) // Larger remaining time
                             .foregroundColor(.primary)
                         Text("•")
-                            .font(.title3)
+                            .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.secondary)
                         Text(formattedDistance)
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 24, weight: .bold)) // Larger remaining distance
                             .foregroundColor(.primary)
                     }
                 }
@@ -66,11 +64,11 @@ struct NavigationBottomPanel: View {
                 
                 Button(action: onEnd) {
                     Text("End")
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.title2) // Larger button text
+                        .fontWeight(.heavy)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 20) // Fatter button for easier tapping
                         .background(Color.red)
                         .clipShape(Capsule())
                 }

@@ -185,6 +185,9 @@ struct RideView: View {
                         }
                         .padding(.trailing, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
+                        // FADE OUT CONTROLS WHILE DRIVING TO MAXIMIZE MAP
+                        .opacity(owlPolice.currentSpeedMPH > 15.0 ? 0.0 : 1.0)
+                        .animation(.easeInOut(duration: 0.5), value: owlPolice.currentSpeedMPH > 15.0)
                     }
                     .transition(.opacity)
                 }

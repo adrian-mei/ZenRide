@@ -12,30 +12,30 @@ struct GuidanceView: View {
                 HStack(spacing: 16) {
                     VStack(spacing: 6) {
                         Image(systemName: iconForInstruction(instruction.instructionType))
-                            .font(.system(size: 38, weight: .heavy)) // Apple Maps style arrow
+                            .font(.system(size: 48, weight: .heavy)) // Larger arrow for driving
                             .foregroundColor(.white)
-                            .frame(width: 60)
+                            .frame(width: 80)
                         
                         Text(formatDistance(instruction: instruction))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 24, weight: .black)) // Thicker, larger distance
                             .foregroundColor(.white)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text(instruction.message ?? "Continue")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: 22, weight: .bold)) // Larger instruction message
                             .foregroundColor(.white.opacity(0.85))
                             .lineLimit(1)
                         
                         if let street = instruction.street, !street.isEmpty {
                             Text(street)
-                                .font(.system(size: 28, weight: .bold))
+                                .font(.system(size: 34, weight: .black)) // Massive street name
                                 .foregroundColor(.white)
                                 .lineLimit(2)
-                                .minimumScaleFactor(0.8)
+                                .minimumScaleFactor(0.7)
                         } else {
                             Text("Main Route")
-                                .font(.system(size: 28, weight: .bold))
+                                .font(.system(size: 34, weight: .black))
                                 .foregroundColor(.white)
                         }
                     }

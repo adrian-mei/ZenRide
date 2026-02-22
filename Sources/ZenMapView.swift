@@ -51,7 +51,13 @@ struct ZenMapView: UIViewRepresentable {
                 // The Apple Maps "Look-Ahead" 3D Camera during Navigation
                 if routeState == .navigating {
                     let lookAheadCoord = location.coordinate.coordinate(offsetBy: 150, bearingDegrees: location.course >= 0 ? location.course : 0)
-                    let camera = MKMapCamera(lookingAtCenter: lookAheadCoord, fromDistance: 800, pitch: 65, heading: location.course >= 0 ? location.course : 0)
+                    
+                    // Dynamic Map Zoom based on speed for hands-free driving
+                    let speedMph = max(0, owlPolice.currentSpeedMPH)
+                    let dynamicDistance = max(500, min(1800, 500 + (speedMph * 25))) // Zoom out at higher speeds
+                    let dynamicPitch = max(45, min(75, 75 - (speedMph * 0.4))) // Flatter pitch at high speeds
+                    
+                    let camera = MKMapCamera(lookingAtCenter: lookAheadCoord, fromDistance: dynamicDistance, pitch: dynamicPitch, heading: location.course >= 0 ? location.course : 0)
                     // CRITICAL FIX: animated: false prevents a huge backlog of queued animations and stuttering
                     uiView.setCamera(camera, animated: false)
                 }
