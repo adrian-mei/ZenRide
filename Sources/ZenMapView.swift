@@ -52,7 +52,8 @@ struct ZenMapView: UIViewRepresentable {
                 if routeState == .navigating {
                     let lookAheadCoord = location.coordinate.coordinate(offsetBy: 150, bearingDegrees: location.course >= 0 ? location.course : 0)
                     let camera = MKMapCamera(lookingAtCenter: lookAheadCoord, fromDistance: 800, pitch: 65, heading: location.course >= 0 ? location.course : 0)
-                    uiView.setCamera(camera, animated: true)
+                    // CRITICAL FIX: animated: false prevents a huge backlog of queued animations and stuttering
+                    uiView.setCamera(camera, animated: false)
                 }
             }
         } else if !owlPolice.isSimulating, let car = simulatedCarAnnotation {
@@ -86,11 +87,22 @@ struct ZenMapView: UIViewRepresentable {
             uiView.addAnnotation(destAnnotation)
         }
         
-        // Handle Routing Polylines
-        let currentOverlays = uiView.overlays
-        uiView.removeOverlays(currentOverlays)
+        // CRITICAL FIX: Only redraw heavy overlays when they actually change.
+        // We use a custom hash of the active route coordinates + route state as a cache key.
+        let activeHash = routingService.activeRoute.count
+        let stateHash = routeState.hashValue
+        let cacheKey = "\(activeHash)_\(stateHash)"
         
-        if routeState == .reviewing {
+        let needsRedraw = context.coordinator.lastOverlayCacheKey != cacheKey
+        
+        if needsRedraw {
+            context.coordinator.lastOverlayCacheKey = cacheKey
+            
+            // Handle Routing Polylines
+            let currentOverlays = uiView.overlays
+            uiView.removeOverlays(currentOverlays)
+            
+            if routeState == .reviewing {
             // Draw all alternative routes first (in gray)
             for (index, routeCoords) in routingService.activeAlternativeRoutes.enumerated() {
                 if index != routingService.selectedRouteIndex && !routeCoords.isEmpty {
@@ -126,6 +138,7 @@ struct ZenMapView: UIViewRepresentable {
                 uiView.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 80, left: 50, bottom: 150, right: 50), animated: true)
             }
         }
+        } // End of needsRedraw
     }
     
     func makeCoordinator() -> Coordinator {
@@ -134,6 +147,7 @@ struct ZenMapView: UIViewRepresentable {
     
     class Coordinator: NSObject, MKMapViewDelegate {
         var parent: ZenMapView
+        var lastOverlayCacheKey: String = ""
         
         init(_ parent: ZenMapView) {
             self.parent = parent

@@ -167,6 +167,7 @@ struct RideView: View {
                                         .frame(width: 48, height: 48)
                                 }
                             }
+                            .frame(width: 48) // Strict constraint for layout issue
                             .foregroundColor(.primary)
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
