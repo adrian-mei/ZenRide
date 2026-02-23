@@ -85,6 +85,7 @@ struct DigitalDashSpeedometer: View {
                     radius: isPerfectPace ? 16 * pulseScale : 7
                 )
                 .scaleEffect(isPerfectPace ? pulseScale : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: speedRatio)
 
             // Center readout (Larger, more aggressive font for speed)
             VStack(spacing: -8) {
@@ -118,16 +119,16 @@ struct DigitalDashSpeedometer: View {
                 // Speed delta vs. limit — "+8" in red or "−3" in green
                 if let delta = speedDelta {
                     Text(delta > 0 ? "+\(delta)" : "\(delta)")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .font(.system(size: 14, weight: .black, design: .monospaced))
                         .foregroundColor(delta > 0 ? .red : .green)
-                        .padding(.top, 3)
+                        .padding(.top, 4)
                         .transition(.scale.combined(with: .opacity))
                 } else if isPerfectPace {
                     Text("ZEN")
-                        .font(.system(size: 8, weight: .black))
+                        .font(.system(size: 12, weight: .black))
                         .foregroundColor(.green)
                         .kerning(1)
-                        .padding(.top, 3)
+                        .padding(.top, 4)
                         .transition(.opacity)
                 }
 

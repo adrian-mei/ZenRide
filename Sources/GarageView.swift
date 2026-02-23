@@ -24,11 +24,12 @@ struct MapHomeView: View {
     @State private var showGarage = false
     @State private var showHistory = false
     @State private var showMoodCard = false
-    @State private var showVoiceSettings = false
+    @State private var showProfile = false
     @State private var toastVisible = false
     @State private var topSuggestion: SavedRoute? = nil
 
     @State private var hasCheckedIn = false
+    @State private var isTracking = true
     
     var timeOfDayGreeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -63,7 +64,7 @@ struct MapHomeView: View {
     var body: some View {
         ZStack {
             // MARK: Full-screen interactive map
-            ZenMapView(routeState: .constant(.search))
+            ZenMapView(routeState: .constant(.search), isTracking: $isTracking)
                 .edgesIgnoringSafeArea(.all)
                 // Interactive — no allowsHitTesting(false)
 
@@ -82,7 +83,7 @@ struct MapHomeView: View {
                         }
                     },
                     onOpenGarage: { showGarage = true },
-                    onOpenSettings: { showVoiceSettings = true }
+                    onOpenSettings: { showProfile = true }
                 )
                 .padding(.top, 50)
                 
@@ -150,8 +151,8 @@ struct MapHomeView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showVoiceSettings) {
-            VoiceSettingsView()
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
@@ -211,6 +212,12 @@ private struct BasecampHeader: View {
                     Text(hasCheckedIn ? "Ready to roll." : greeting)
                         .font(.system(size: 22, weight: .black, design: .serif))
                         .foregroundColor(.white)
+                    
+                    if hasCheckedIn {
+                        StatsMiniHUD()
+                            .padding(.top, 6)
+                            .transition(.opacity)
+                    }
                 }
                 
                 Spacer()
@@ -227,15 +234,7 @@ private struct BasecampHeader: View {
                         }
                     }
                     
-                    Button(action: onOpenGarage) {
-                        Image(systemName: vehicleStore.selectedVehicle?.type.icon ?? "car.fill")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(Color(hex: vehicleStore.selectedVehicle?.colorHex ?? "007AFF"))
-                            .frame(width: 36, height: 36)
-                            .background(Color.white.opacity(0.1))
-                            .clipShape(Circle())
-                            .overlay(Circle().strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
-                    }
+                    VehicleHUDButton(onTap: onOpenGarage)
                 }
             }
             .padding(.horizontal, 20)
@@ -575,7 +574,10 @@ private struct QuickRoutesPanel: View {
             }
 
             // Start Riding button
-            Button(action: onRollOut) {
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                onRollOut()
+            }) {
                 HStack(spacing: 10) {
                     Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
                         .font(.system(size: 16, weight: .bold))
@@ -585,9 +587,15 @@ private struct QuickRoutesPanel: View {
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(Color.cyan)
+                .background(
+                    LinearGradient(
+                        colors: [.cyan, Color(red: 0.0, green: 0.65, blue: 0.85)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: Color.cyan.opacity(0.3), radius: 10, x: 0, y: 4)
+                .shadow(color: Color.cyan.opacity(0.4), radius: 12, x: 0, y: 5)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
