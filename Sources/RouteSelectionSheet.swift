@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RouteSelectionSheet: View {
     let destinationName: String
@@ -38,7 +39,7 @@ struct RouteSelectionSheet: View {
                     ModeButton(icon: "bicycle", isSelected: false)
                 }
                 .background(.regularMaterial)
-                .cornerRadius(10)
+                .cornerRadius(10, corners: .allCorners)
                 .padding(.top, 8)
             }
             .padding(.top, 24)
@@ -108,8 +109,11 @@ struct RouteSelectionSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color.green)
+                        .background(
+                            LinearGradient(colors: [Color.blue, Color(red: 0.1, green: 0.4, blue: 0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
                         .clipShape(Capsule())
+                        .shadow(color: Color.blue.opacity(0.4), radius: 8, x: 0, y: 4)
                 }
             }
             .padding(.horizontal, 24)
@@ -227,7 +231,7 @@ struct RouteListRow: View {
             .padding()
             .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
             .background(.regularMaterial)
-            .cornerRadius(12)
+            .cornerRadius(12, corners: .allCorners)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
@@ -265,7 +269,7 @@ struct ModeButton: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(isSelected ? Color.blue : Color.clear)
-                .cornerRadius(8)
+                .cornerRadius(8, corners: .allCorners)
                 .padding(2)
                 .opacity(isSelected ? 1.0 : 0.3) // Visually indicate they are inactive/coming soon
         }

@@ -49,19 +49,22 @@ struct ZenMapView: UIViewRepresentable {
     func updateUIView(_ uiView: MKMapView, context: Context) {
         let coordinator = context.coordinator
 
-        // Hide GPS dot if simulating
-        if uiView.showsUserLocation == owlPolice.isSimulating {
-            uiView.showsUserLocation = !owlPolice.isSimulating
+        // We want to use our custom car chevron for both simulation AND real navigation.
+        // We only show the native GPS dot during search mode.
+        let shouldShowNativeGPS = (routeState == .search)
+        if uiView.showsUserLocation != shouldShowNativeGPS {
+            uiView.showsUserLocation = shouldShowNativeGPS
         }
 
-        // Handle Simulated Car Annotation
-        if owlPolice.isSimulating, let location = owlPolice.currentLocation {
+        // Handle Car Annotation (Simulated OR Real Navigation)
+        if routeState == .navigating || owlPolice.isSimulating, let location = owlPolice.currentLocation {
             if coordinator.simulatedCarAnnotation == nil {
                 let newCar = SimulatedCarAnnotation(coordinate: location.coordinate)
                 coordinator.simulatedCarAnnotation = newCar
                 uiView.addAnnotation(newCar)
             } else {
-                UIView.animate(withDuration: 0.1) {
+                let duration = owlPolice.isSimulating ? (1.0 / 60.0) : 1.0
+                UIView.animate(withDuration: duration, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
                     coordinator.simulatedCarAnnotation?.coordinate = location.coordinate
                 }
             }
@@ -73,42 +76,50 @@ struct ZenMapView: UIViewRepresentable {
                 if let carAnnotation = coordinator.simulatedCarAnnotation,
                    let carView = uiView.view(for: carAnnotation) {
                     let radians = CGFloat(bearing * .pi / 180.0)
-                    UIView.animate(withDuration: 0.1) {
+                    let duration = owlPolice.isSimulating ? (1.0 / 60.0) : 1.0
+                    UIView.animate(withDuration: duration, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
                         carView.transform = CGAffineTransform(rotationAngle: radians)
                     }
                 }
             }
-
-            // Dynamic 3D camera during navigation
-            if routeState == .navigating {
-                let lookAheadCoord = location.coordinate.coordinate(
-                    offsetBy: 150,
-                    bearingDegrees: bearing
-                )
-                let speedMph = max(0, owlPolice.currentSpeedMPH)
-                let dynamicDistance = max(500, min(1800, 500 + (speedMph * 25)))
-                let dynamicPitch = max(45, min(75, 75 - (speedMph * 0.4)))
-                let camera = MKMapCamera(
-                    lookingAtCenter: lookAheadCoord,
-                    fromDistance: dynamicDistance,
-                    pitch: dynamicPitch,
-                    heading: bearing
-                )
-                // animated: false prevents animation backlog/stutter at 20fps
-                uiView.setCamera(camera, animated: false)
-            }
-        } else if !owlPolice.isSimulating, let car = coordinator.simulatedCarAnnotation {
+        } else if routeState == .search, let car = coordinator.simulatedCarAnnotation {
+            // Remove the custom car when we go back to search mode
             uiView.removeAnnotation(car)
             coordinator.simulatedCarAnnotation = nil
             coordinator.lastBearing = 0
+        }
 
-            if routeState == .search {
-                let camera = MKMapCamera(
-                    lookingAtCenter: uiView.centerCoordinate,
-                    fromDistance: 10000, pitch: 0, heading: 0
-                )
-                uiView.setCamera(camera, animated: true)
+        // Dynamic 3D camera during navigation (for both real and simulated driving)
+        if routeState == .navigating, let location = owlPolice.currentLocation {
+            let bearing = location.course >= 0 ? location.course : 0
+            let lookAheadCoord = location.coordinate.coordinate(
+                offsetBy: 150,
+                bearingDegrees: bearing
+            )
+            let speedMph = max(0, owlPolice.currentSpeedMPH)
+            let dynamicDistance = max(500, min(1800, 500 + (speedMph * 25)))
+            let dynamicPitch = max(45, min(75, 75 - (speedMph * 0.4)))
+            let camera = MKMapCamera(
+                lookingAtCenter: lookAheadCoord,
+                fromDistance: dynamicDistance,
+                pitch: dynamicPitch,
+                heading: bearing
+            )
+            // Use curveLinear animation for real GPS to smoothly interpolate between drops without rubber-banding. Instant for simulation.
+            if !owlPolice.isSimulating {
+                UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                    uiView.setCamera(camera, animated: false) // Handled by UIView.animate
+                }
+            } else {
+                uiView.setCamera(camera, animated: false)
             }
+        } else if routeState == .search && coordinator.lastRouteState != .search {
+            uiView.userTrackingMode = .followWithHeading
+            let camera = MKMapCamera(
+                lookingAtCenter: uiView.centerCoordinate,
+                fromDistance: 10000, pitch: 0, heading: 0
+            )
+            uiView.setCamera(camera, animated: true)
         }
 
         // Add any new camera annotations (idempotent — never re-adds existing ones)
@@ -193,6 +204,7 @@ struct ZenMapView: UIViewRepresentable {
         var parent: ZenMapView
         var lastOverlayCacheKey: String = ""
         var lastBearing: Double = 0
+        var lastRouteState: RouteState = .search
         // Stored in coordinator (class/ref type) to avoid @State re-entrancy in updateUIView
         var simulatedCarAnnotation: SimulatedCarAnnotation?
         weak var mapView: MKMapView?

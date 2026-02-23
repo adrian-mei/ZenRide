@@ -74,13 +74,29 @@ struct GuidanceView: View {
                 
                 } // End of inner VStack
                 .background(
-                    instruction.instructionType == "ARRIVE"
-                        ? Color(red: 0.8, green: 0.6, blue: 0.1) // Gold/yellow for arrival
-                        : Color(red: 0.1, green: 0.55, blue: 0.25),
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    ZStack {
+                        if instruction.instructionType == "ARRIVE" {
+                            Color(red: 0.8, green: 0.6, blue: 0.1).opacity(0.85)
+                        } else {
+                            Color(red: 0.05, green: 0.45, blue: 0.2).opacity(0.85)
+                        }
+                        
+                        // Subtle inner gloss
+                        LinearGradient(
+                            colors: [.white.opacity(0.15), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 )
-                .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 8)
-                .padding(.horizontal, 16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.4), radius: 15, x: 0, y: 10)
+                .padding(.horizontal, 12)
                 .id(currentInstructionIndex)
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),

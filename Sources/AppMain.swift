@@ -197,12 +197,23 @@ struct RideView: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .background(
+                                    ZStack {
+                                        Color.black.opacity(0.6)
+                                        LinearGradient(
+                                            colors: [.white.opacity(0.1), .clear],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    }
+                                    .background(.ultraThinMaterial)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(currentSpeedColor.opacity(0.3), lineWidth: 2)
+                                        .stroke(currentSpeedColor.opacity(0.4), lineWidth: 2)
                                 )
-                                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: owlPolice.currentSpeedMPH)
                                 .accessibilityElement(children: .ignore)
                                 .accessibilityLabel("Current speed \(Int(owlPolice.currentSpeedMPH)) miles per hour")
@@ -416,11 +427,11 @@ struct AlertOverlayView: View {
             HStack(spacing: 20) {
                 // Classic Speed Limit Sign Graphic
                 ZStack {
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(Color.white)
                         .frame(width: 70, height: 90)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 12)
                                 .stroke(Color.black, lineWidth: 3)
                         )
 
@@ -449,11 +460,23 @@ struct AlertOverlayView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .padding(.top, 60)
-            .padding(.bottom, 20)
+            .padding(.top, 64)
+            .padding(.bottom, 24)
             .frame(maxWidth: .infinity)
-            .background(Color.red)
-            .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
+            .background(
+                ZStack {
+                    Color.red.opacity(0.9)
+                    // Inner gloss
+                    LinearGradient(
+                        colors: [.white.opacity(0.2), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+                .background(.ultraThinMaterial)
+            )
+            .clipShape(RoundedCorner(radius: 24, corners: [.bottomLeft, .bottomRight]))
+            .shadow(color: .red.opacity(0.4), radius: 15, x: 0, y: 8)
             .transition(.move(edge: .top).combined(with: .opacity))
         }
     }

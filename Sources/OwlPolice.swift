@@ -106,7 +106,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Configuration
         let targetSpeedMPS: Double = 20.1 // ~45 mph
-        let tickInterval: TimeInterval = 0.05 // 20 updates per second for smooth movement
+        let tickInterval: TimeInterval = 1.0 / 60.0 // 60 updates per second for perfectly smooth movement
         let distancePerTick = targetSpeedMPS * tickInterval
         
         var currentCoord = route[0]

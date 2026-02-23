@@ -92,10 +92,10 @@ struct NavigationBottomPanel: View {
                     onEnd()
                 }) {
                     Text("End")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.red)
                         .frame(width: 80, height: 56)
-                        .background(Color.red, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .background(Color.red.opacity(0.15), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
                 .accessibilityLabel("End Route")
             }
