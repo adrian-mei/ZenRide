@@ -8,8 +8,9 @@ struct SavedRoute: Codable, Identifiable {
     var longitude: Double
     var useCount: Int
     var lastUsedDate: Date
-    var typicalDepartureHours: [Int]   // hours appended per visit, capped at 50
+    var typicalDepartureHours: [Int]   // capped at 50
     var averageDurationSeconds: Int
+    var isPinned: Bool = false         // user explicitly saved this place
 }
 
 extension Notification.Name {
@@ -22,6 +23,46 @@ class SavedRoutesStore: ObservableObject {
 
     init() { load() }
 
+    // MARK: - Pinned / Saved Places
+
+    var pinnedRoutes: [SavedRoute] {
+        routes.filter(\.isPinned).sorted { $0.destinationName < $1.destinationName }
+    }
+
+    /// Manually save a place the user hasn't visited yet
+    func savePlace(name: String, coordinate: CLLocationCoordinate2D) {
+        if let idx = findExistingIndex(near: coordinate, name: name) {
+            routes[idx].isPinned = true
+            routes[idx].lastUsedDate = Date()
+        } else {
+            let route = SavedRoute(
+                destinationName: name,
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude,
+                useCount: 0,
+                lastUsedDate: Date(),
+                typicalDepartureHours: [],
+                averageDurationSeconds: 0,
+                isPinned: true
+            )
+            routes.insert(route, at: 0)
+        }
+        save()
+    }
+
+    func togglePin(id: UUID) {
+        guard let idx = routes.firstIndex(where: { $0.id == id }) else { return }
+        routes[idx].isPinned.toggle()
+        save()
+    }
+
+    func deleteRoute(id: UUID) {
+        routes.removeAll { $0.id == id }
+        save()
+    }
+
+    // MARK: - Auto-recorded visit
+
     func recordVisit(destinationName: String, coordinate: CLLocationCoordinate2D,
                      durationSeconds: Int, departureTime: Date) {
         let hour = Calendar.current.component(.hour, from: departureTime)
@@ -30,7 +71,6 @@ class SavedRoutesStore: ObservableObject {
             routes[idx].lastUsedDate = departureTime
             routes[idx].typicalDepartureHours.append(hour)
             routes[idx].typicalDepartureHours = Array(routes[idx].typicalDepartureHours.suffix(50))
-            // Rolling average duration
             let prev = routes[idx].averageDurationSeconds
             let count = routes[idx].useCount
             routes[idx].averageDurationSeconds = (prev * (count - 1) + durationSeconds) / count
@@ -49,8 +89,15 @@ class SavedRoutesStore: ObservableObject {
         save()
     }
 
+    // MARK: - Queries
+
     func topRecent(limit: Int = 3) -> [SavedRoute] {
-        Array(routes.sorted { $0.lastUsedDate > $1.lastUsedDate }.prefix(limit))
+        Array(
+            routes
+                .filter { $0.useCount > 0 }        // only actually visited
+                .sorted { $0.lastUsedDate > $1.lastUsedDate }
+                .prefix(limit)
+        )
     }
 
     func suggestions(for hour: Int) -> [SavedRoute] {
@@ -64,6 +111,8 @@ class SavedRoutesStore: ObservableObject {
             .prefix(3)
             .map { $0 }
     }
+
+    // MARK: - Private
 
     private func findExistingIndex(near coord: CLLocationCoordinate2D, name: String) -> Int? {
         let target = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
