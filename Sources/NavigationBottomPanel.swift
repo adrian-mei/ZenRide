@@ -59,9 +59,28 @@ struct NavigationBottomPanel: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(isArriving ? "You're here" : arrivalTime)
-                            .font(.system(size: 38, weight: .heavy, design: .rounded))
+                            .font(.system(size: 38, weight: .heavy, design: .monospaced)) // Monospaced digital feel
                             .foregroundColor(etaColor)
                             .opacity(isArriving ? (arrivingPulse ? 1.0 : 0.5) : 1.0)
+                            .contentTransition(.numericText())
+                        if !isArriving {
+                            Text("ETA")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundColor(.cyan) // Subtitle tint
+                        }
+                    }
+
+                    HStack(spacing: 6) {
+                        Text(formattedTime)
+                            .font(.system(size: 22, weight: .bold, design: .monospaced))
+                            .foregroundColor(.primary)
+                            .contentTransition(.numericText())
+                        Text("•")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.secondary)
+                        Text(formattedDistance)
+                            .font(.system(size: 22, weight: .medium, design: .monospaced))
+                            .foregroundColor(.secondary)
                             .contentTransition(.numericText())
                         if !isArriving {
                             Text("ETA")

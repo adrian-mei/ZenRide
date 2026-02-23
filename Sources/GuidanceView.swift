@@ -15,18 +15,19 @@ struct GuidanceView: View {
                     VStack(spacing: 6) {
                         Image(systemName: iconForInstruction(instruction.instructionType))
                             .font(.system(size: 48, weight: .heavy)) // Larger arrow for driving
-                            .foregroundColor(.white)
+                            .foregroundColor(.cyan) // Neon Arrow
+                            .shadow(color: .cyan.opacity(0.6), radius: 5)
                             .frame(width: 80)
                         
                         Text(formatDistance(instruction: instruction))
-                            .font(.system(size: 24, weight: .black)) // Thicker, larger distance
+                            .font(.system(size: 24, weight: .black, design: .monospaced)) // Thicker, digital distance
                             .foregroundColor(.white)
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text(instruction.message ?? "Continue")
-                            .font(.system(size: 22, weight: .bold)) // Larger instruction message
-                            .foregroundColor(.white.opacity(0.85))
+                            .font(.system(size: 20, weight: .bold)) // Larger instruction message
+                            .foregroundColor(.cyan.opacity(0.85)) // Tinted instruction text
                             .lineLimit(1)
                         
                         if let street = instruction.street, !street.isEmpty {
@@ -76,12 +77,17 @@ struct GuidanceView: View {
                 .background(
                     ZStack {
                         if instruction.instructionType == "ARRIVE" {
-                            Color(red: 0.8, green: 0.6, blue: 0.1).opacity(0.85)
+                            Color(red: 0.8, green: 0.5, blue: 0.0).opacity(0.9)
                         } else {
-                            Color(red: 0.05, green: 0.45, blue: 0.2).opacity(0.85)
+                            // "Night Rider" Deep Indigo-Cyan gradient
+                            LinearGradient(
+                                colors: [Color(red: 0.0, green: 0.2, blue: 0.4), Color(red: 0.05, green: 0.05, blue: 0.15)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         }
                         
-                        // Subtle inner gloss
+                        // Subtle inner gloss for the HUD look
                         LinearGradient(
                             colors: [.white.opacity(0.15), .clear],
                             startPoint: .top,
@@ -89,13 +95,13 @@ struct GuidanceView: View {
                         )
                     }
                     .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(Color.cyan.opacity(0.4), lineWidth: 1.5) // Neon outline matching the bike
                 )
-                .shadow(color: .black.opacity(0.4), radius: 15, x: 0, y: 10)
+                .shadow(color: .cyan.opacity(0.2), radius: 15, x: 0, y: 10)
                 .padding(.horizontal, 12)
                 .id(currentInstructionIndex)
                 .transition(.asymmetric(

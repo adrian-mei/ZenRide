@@ -12,23 +12,25 @@ struct WindDownView: View {
         VStack(spacing: 40) {
             Spacer()
 
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.shield.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.green)
+                .foregroundColor(.cyan)
+                .shadow(color: .cyan.opacity(0.5), radius: 10)
 
             VStack(spacing: 12) {
-                Text("Engine Off.")
+                Text("Kickstand Down.")
                     .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .fontWeight(.black)
                     .foregroundColor(.white)
 
                 if ticketsAvoided > 0 {
-                    Text("Officer Owl kept you safe.\nYou saved $\(ticketsAvoided * 100) today.")
+                    Text("Officer Owl had your back.\nEvaded $\(ticketsAvoided * 100) in theoretical fines.")
                         .font(.title3)
-                        .foregroundColor(.green)
+                        .fontWeight(.bold)
+                        .foregroundColor(.cyan)
                         .multilineTextAlignment(.center)
                 } else {
-                    Text("A quiet, peaceful ride.")
+                    Text("Clean run. No traps triggered.")
                         .font(.title3)
                         .foregroundColor(.gray)
                 }

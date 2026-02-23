@@ -6,16 +6,26 @@ private let carChevronImage: UIImage = {
     let renderer = UIGraphicsImageRenderer(size: size)
     return renderer.image { ctx in
         let context = ctx.cgContext
-        context.setShadow(offset: CGSize(width: 0, height: 4), blur: 8,
-                          color: UIColor.black.withAlphaComponent(0.6).cgColor)
+        context.setShadow(offset: CGSize(width: 0, height: 2), blur: 8,
+                          color: UIColor.cyan.withAlphaComponent(0.8).cgColor) // Neon Cyan exhaust glow
+        
         let path = UIBezierPath()
-        path.move(to: CGPoint(x: 22, y: 4))
-        path.addLine(to: CGPoint(x: 40, y: 38))
-        path.addLine(to: CGPoint(x: 22, y: 30))
-        path.addLine(to: CGPoint(x: 4, y: 38))
+        
+        // A stylized "V" or sportbike headlight/cowl shape
+        path.move(to: CGPoint(x: 22, y: 4)) // Top tip (nose)
+        path.addLine(to: CGPoint(x: 40, y: 34)) // Bottom right swept wing
+        path.addLine(to: CGPoint(x: 22, y: 26)) // Inner indent
+        path.addLine(to: CGPoint(x: 4, y: 34))  // Bottom left swept wing
         path.close()
-        UIColor.systemBlue.setFill(); path.fill()
-        UIColor.white.setStroke(); path.lineWidth = 2.0; path.stroke()
+        
+        // Aggressive dark body
+        UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 1.0).setFill()
+        path.fill()
+        
+        // Neon Cyan stroke outlining the bike
+        UIColor.cyan.setStroke()
+        path.lineWidth = 2.5
+        path.stroke()
     }
 }()
 
@@ -35,9 +45,8 @@ struct ZenMapView: UIViewRepresentable {
         mapView.userTrackingMode = .followWithHeading
         mapView.isPitchEnabled = true
 
-        let hour = Calendar.current.component(.hour, from: Date())
-        let isDaytime = hour >= 7 && hour < 18
-        mapView.overrideUserInterfaceStyle = isDaytime ? .light : .dark
+        // Force dark mode for a sleek nighttime motorcycle vibe
+        mapView.overrideUserInterfaceStyle = .dark
 
         let config = MKStandardMapConfiguration(elevationStyle: .realistic, emphasisStyle: .muted)
         config.pointOfInterestFilter = .excludingAll
@@ -278,15 +287,15 @@ struct ZenMapView: UIViewRepresentable {
                 let isSelected = borderedPolyline.subtitle == "selected"
                 if isSelected {
                     if borderedPolyline.isBorder {
-                        renderer.strokeColor = UIColor(red: 0.05, green: 0.35, blue: 0.9, alpha: 1.0)
-                        renderer.lineWidth = 16
+                        renderer.strokeColor = UIColor(red: 0.05, green: 0.4, blue: 0.8, alpha: 0.8) // Inner Glow Base
+                        renderer.lineWidth = 14
                     } else {
-                        renderer.strokeColor = UIColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0)
-                        renderer.lineWidth = 10
+                        renderer.strokeColor = UIColor.cyan // Neon Cyan Track
+                        renderer.lineWidth = 6
                     }
                 } else {
-                    renderer.strokeColor = UIColor.systemGray3
-                    renderer.lineWidth = 10
+                    renderer.strokeColor = UIColor.systemGray3.withAlphaComponent(0.4)
+                    renderer.lineWidth = 6
                 }
                 renderer.lineCap = .round
                 renderer.lineJoin = .round

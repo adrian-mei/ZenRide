@@ -147,11 +147,11 @@ struct DestinationSearchView: View {
             Section {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14) {
-                        chip("house.fill",      "Home",     .blue)    { searcher.searchQuery = "Home" }
-                        chip("briefcase.fill",  "Work",     .brown)   { searcher.searchQuery = "Work" }
-                        chip("fork.knife",      "Food",     .orange)  { searcher.searchQuery = "Restaurants" }
-                        chip("fuelpump.fill",   "Gas",      .indigo)  { searcher.searchQuery = "Gas Stations" }
-                        chip("cup.and.saucer.fill", "Coffee", .brown) { searcher.searchQuery = "Coffee" }
+                        chip("house.fill",      "Home",     .cyan)    { searcher.searchQuery = "Home" }
+                        chip("briefcase.fill",  "Work",     .cyan)    { searcher.searchQuery = "Work" }
+                        chip("fuelpump.fill",   "Gas",      .orange)  { searcher.searchQuery = "Gas Stations" }
+                        chip("wrench.and.screwdriver.fill", "Shop", .gray) { searcher.searchQuery = "Motorcycle Repair" }
+                        chip("cup.and.saucer.fill", "Coffee", .orange) { searcher.searchQuery = "Coffee" }
                         chip("cross.fill",      "Hospital", .red)     { searcher.searchQuery = "Hospital" }
                     }
                     .padding(.horizontal, 4)

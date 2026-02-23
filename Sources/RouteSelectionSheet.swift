@@ -33,7 +33,7 @@ struct RouteSelectionSheet: View {
                 // Transportation Mode Picker Placeholder
                 HStack(spacing: 0) {
                     ModeButton(icon: "car.fill", isSelected: false)
-                    ModeButton(icon: "figure.outdoor.cycle", isSelected: true)
+                    ModeButton(icon: "figure.motorcycle", isSelected: true)
                     ModeButton(icon: "figure.walk", isSelected: false)
                     ModeButton(icon: "bus.fill", isSelected: false)
                     ModeButton(icon: "bicycle", isSelected: false)
@@ -102,18 +102,18 @@ struct RouteSelectionSheet: View {
                     timer?.invalidate()
                     onDrive()
                 }) {
-                    Text(countdown > 0 ? "Drive (\(countdown)s)" : "Drive")
+                    Text(countdown > 0 ? "Ride (\(countdown)s)" : "Ride")
                         .font(.title3)
                         .fontWeight(.bold)
                         .contentTransition(.numericText())
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
-                            LinearGradient(colors: [Color.blue, Color(red: 0.1, green: 0.4, blue: 0.9)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            LinearGradient(colors: [.cyan, Color(red: 0.0, green: 0.6, blue: 0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
                         )
                         .clipShape(Capsule())
-                        .shadow(color: Color.blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .shadow(color: .cyan.opacity(0.4), radius: 8, x: 0, y: 4)
                 }
             }
             .padding(.horizontal, 24)

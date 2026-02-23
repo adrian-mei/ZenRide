@@ -94,18 +94,6 @@ struct RideView: View {
     @State private var searchSheetDetent: PresentationDetent = .fraction(0.15)
     @State private var departureTime: Date? = nil
 
-    var currentSpeedColor: Color {
-        let speed = owlPolice.currentSpeedMPH
-        let limit = Double(owlPolice.nearestCamera?.speed_limit_mph ?? 45)
-        if speed > limit + 10 {
-            return .red
-        } else if speed > limit {
-            return .orange
-        } else {
-            return .white
-        }
-    }
-
     var body: some View {
         ZStack(alignment: .top) {
             ZenMapView(routeState: $routeState)
@@ -133,9 +121,13 @@ struct RideView: View {
                 if routeState == .search || routeState == .navigating {
                     HStack(alignment: .top) {
                         // Left Side: Speed Indicator
-                        HStack(alignment: .top, spacing: 12) {
-                            VStack(alignment: .center, spacing: 4) {
-                                VStack(spacing: 0) {
+                        if routeState == .navigating {
+                            DigitalDashSpeedometer(owlPolice: owlPolice)
+                                .padding(.leading, 16)
+                                .transition(.scale.combined(with: .opacity))
+                        } else {
+                            // Search Mode Mini-HUD (Just the Limit)
+                            VStack(spacing: 0) {
                                 Text("SPEED")
                                     .font(.system(size: 8, weight: .bold, design: .default))
                                     .foregroundColor(.black)
@@ -158,69 +150,10 @@ struct RideView: View {
                                     .strokeBorder(Color.black, lineWidth: 1)
                                     .padding(2)
                             )
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel("Speed limit \(owlPolice.nearestCamera?.speed_limit_mph ?? 45) miles per hour")
-
-                                // Early Speed Drop Anticipation Badge
-                                if owlPolice.currentZone == .safe,
-                                   let nearest = owlPolice.nearestCamera,
-                                   owlPolice.distanceToNearestFT > 500 && owlPolice.distanceToNearestFT < 3000,
-                                   owlPolice.currentSpeedMPH > Double(nearest.speed_limit_mph) {
-
-                                    HStack(spacing: 2) {
-                                        Image(systemName: "arrow.down")
-                                            .font(.system(size: 10, weight: .bold))
-                                        Text("\(nearest.speed_limit_mph)")
-                                            .font(.system(size: 12, weight: .black))
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 4)
-                                    .background(Color.orange, in: Capsule())
-                                    .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                                    .transition(.opacity.combined(with: .scale))
-                                    .animation(.easeInOut(duration: 0.4), value: owlPolice.currentZone)
-                                }
-                            } // End of outer VStack container
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-
-                            // Motorcycle-friendly Current Speed Readout
-                            if routeState == .navigating {
-                                VStack(spacing: -2) {
-                                    Text("\(Int(owlPolice.currentSpeedMPH))")
-                                        .font(.system(size: 40, weight: .heavy, design: .rounded))
-                                        .foregroundColor(currentSpeedColor)
-                                        .contentTransition(.numericText())
-                                    Text("MPH")
-                                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                                        .foregroundColor(currentSpeedColor.opacity(0.8))
-                                }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
-                                .background(
-                                    ZStack {
-                                        Color.black.opacity(0.6)
-                                        LinearGradient(
-                                            colors: [.white.opacity(0.1), .clear],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    }
-                                    .background(.ultraThinMaterial)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(currentSpeedColor.opacity(0.4), lineWidth: 2)
-                                )
-                                .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-                                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: owlPolice.currentSpeedMPH)
-                                .accessibilityElement(children: .ignore)
-                                .accessibilityLabel("Current speed \(Int(owlPolice.currentSpeedMPH)) miles per hour")
-                            }
+                            .padding(.leading, 16)
+                            .padding(.top, 16)
                         }
-                        .padding(.leading, 16)
-                        .padding(.top, routeState == .search ? 16 : 0)
 
                         Spacer()
 
@@ -264,7 +197,7 @@ struct RideView: View {
                                     }
                                     .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
 
-                                    Divider().padding(.horizontal, 8)
+                                    Divider().padding(.horizontal, 8).opacity(0.3)
                                 }
 
                                 Button(action: {
@@ -273,13 +206,24 @@ struct RideView: View {
                                     Image(systemName: "location.fill")
                                         .font(.title3)
                                         .frame(width: 48, height: 48)
+                                        .foregroundColor(routeState == .navigating ? .cyan : .primary)
                                 }
                                 .accessibilityLabel("Recenter map on your location")
                             }
                             .frame(width: 48)
-                            .foregroundColor(.primary)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            .foregroundColor(.white)
+                            .background(
+                                ZStack {
+                                    Color(red: 0.1, green: 0.1, blue: 0.15)
+                                    LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .top, endPoint: .bottom)
+                                }
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(routeState == .navigating ? Color.cyan.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
 
                         }
                         .padding(.trailing, 16)
@@ -450,12 +394,13 @@ struct AlertOverlayView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("SPEED CAMERA AHEAD")
-                        .font(.system(size: 20, weight: .heavy))
+                    Text("SPEED TRAP AHEAD")
+                        .font(.system(size: 20, weight: .black, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Reduce speed now")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+                        .shadow(color: .white.opacity(0.5), radius: 2)
+                    Text("Roll off the throttle")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white.opacity(0.9))
                 }
                 Spacer()
             }
@@ -465,10 +410,10 @@ struct AlertOverlayView: View {
             .frame(maxWidth: .infinity)
             .background(
                 ZStack {
-                    Color.red.opacity(0.9)
+                    Color(red: 0.9, green: 0.1, blue: 0.2).opacity(0.9) // Neon Danger Red
                     // Inner gloss
                     LinearGradient(
-                        colors: [.white.opacity(0.2), .clear],
+                        colors: [.white.opacity(0.3), .clear],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -476,7 +421,7 @@ struct AlertOverlayView: View {
                 .background(.ultraThinMaterial)
             )
             .clipShape(RoundedCorner(radius: 24, corners: [.bottomLeft, .bottomRight]))
-            .shadow(color: .red.opacity(0.4), radius: 15, x: 0, y: 8)
+            .shadow(color: Color(red: 0.9, green: 0.1, blue: 0.2).opacity(0.6), radius: 20, x: 0, y: 10)
             .transition(.move(edge: .top).combined(with: .opacity))
         }
     }
@@ -524,8 +469,8 @@ struct AmbientGlowView: View {
 
     var glowColor: Color {
         switch owlPolice.currentZone {
-        case .danger: return .red
-        case .approach: return .orange
+        case .danger: return Color(red: 0.9, green: 0.1, blue: 0.2) // Neon Red
+        case .approach: return Color(red: 0.9, green: 0.5, blue: 0.0) // Bright Orange
         case .safe: return .clear
         }
     }
