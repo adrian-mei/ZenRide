@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-ZenRide App Icon Generator
-Theme: Lone rider, open road, forest horizon — dawn light, deep green, total zen.
+ZenRide App Icon Generator — v2
+Theme: Open road, forest horizon, dawn sun. No rider — you are the rider.
+Design principles (per iOS HIG + app icon UX research):
+  - Single focal point: vanishing-point road leading to the sun
+  - 3-color palette: amber sky / forest green / charcoal road
+  - Bold silhouette shapes that survive scaling to 60px
+  - High contrast between all regions
 Outputs: 1024×1024 PNG
 """
 
@@ -15,447 +20,325 @@ OUTPUT_PATH = os.path.join(
     "../Resources/Assets.xcassets/AppIcon.appiconset/icon_1024.png"
 )
 
+# ── Horizon sits at 50% — equal sky and ground, strong bisection ──────────────
+HORIZON_Y = int(SIZE * 0.50)
+
+# ── Color palette (3 families) ────────────────────────────────────────────────
+SKY_TOP    = (210,  80,  20)   # deep burnt-orange at top
+SKY_MID    = (240, 140,  40)   # warm amber
+SKY_HRZ    = (255, 200,  90)   # bright gold near horizon
+
+GRD_TOP    = ( 38,  80,  38)   # forest green near horizon
+GRD_BOT    = ( 18,  42,  18)   # deep forest at bottom
+
+ROAD_COLOR = ( 32,  32,  32)   # near-black charcoal
+ROAD_EDGE  = ( 55,  52,  42)   # shoulder warm tint
+DASH_COLOR = (240, 185,  80)   # golden amber dashes
+
+TREE_COLOR = ( 12,  35,  12)   # very dark forest silhouette
+
+SUN_CORE   = (255, 245, 180)   # near-white warm core
+SUN_MID    = (255, 210,  80)   # gold halo
+SUN_OUTER  = (250, 160,  40)   # amber outer glow
+
 
 def lerp_color(c1, c2, t):
-    """Linear interpolate between two RGB tuples."""
+    t = max(0.0, min(1.0, t))
     return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
 
 
-def clamp(v, lo, hi):
-    return max(lo, min(hi, v))
+# ── Sky ───────────────────────────────────────────────────────────────────────
 
-
-def draw_sky_gradient(img):
-    """Top 55% — warm amber dawn sky gradient."""
+def draw_sky(img):
     draw = ImageDraw.Draw(img)
-    sky_bottom_y = int(SIZE * 0.55)
-
-    # Amber at very top → warm peach → misty sage at horizon
-    top_color = (245, 166, 35)       # #F5A623 warm amber
-    mid_color = (232, 200, 140)      # #E8C88C warm peach
-    horizon_color = (180, 205, 175)  # misty sage-green
-
-    for y in range(sky_bottom_y):
-        t = y / sky_bottom_y
-        if t < 0.5:
-            color = lerp_color(top_color, mid_color, t * 2)
+    for y in range(HORIZON_Y):
+        t = y / HORIZON_Y
+        if t < 0.55:
+            color = lerp_color(SKY_TOP, SKY_MID, t / 0.55)
         else:
-            color = lerp_color(mid_color, horizon_color, (t - 0.5) * 2)
+            color = lerp_color(SKY_MID, SKY_HRZ, (t - 0.55) / 0.45)
         draw.line([(0, y), (SIZE, y)], fill=color)
 
 
-def draw_ground_gradient(img):
-    """Bottom 45% — forest green ground."""
+# ── Ground ────────────────────────────────────────────────────────────────────
+
+def draw_ground(img):
     draw = ImageDraw.Draw(img)
-    horizon_y = int(SIZE * 0.55)
-
-    forest_top = (107, 158, 107)   # #6B9E6B mist-edge
-    forest_mid = (45, 90, 45)      # #2D5A2D mid forest
-    forest_bot = (26, 61, 26)      # #1A3D1A deep forest
-
-    ground_height = SIZE - horizon_y
-    for y in range(ground_height):
-        t = y / ground_height
-        if t < 0.4:
-            color = lerp_color(forest_top, forest_mid, t / 0.4)
-        else:
-            color = lerp_color(forest_mid, forest_bot, (t - 0.4) / 0.6)
-        draw.line([(0, horizon_y + y), (SIZE, horizon_y + y)], fill=color)
+    ground_h = SIZE - HORIZON_Y
+    for y in range(ground_h):
+        t = y / ground_h
+        color = lerp_color(GRD_TOP, GRD_BOT, t ** 0.7)
+        draw.line([(0, HORIZON_Y + y), (SIZE, HORIZON_Y + y)], fill=color)
 
 
-def draw_mist_band(img):
-    """Soft mist at the horizon blending sky into forest."""
-    horizon_y = int(SIZE * 0.55)
-    mist_height = int(SIZE * 0.08)
-    mist_img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(mist_img)
+# ── Sun ───────────────────────────────────────────────────────────────────────
 
-    mist_color = (200, 220, 195)  # pale sage-white
-
-    for i in range(mist_height):
-        # Bell-curve alpha: peak in middle of band
-        t = i / mist_height
-        alpha = int(120 * math.sin(math.pi * t))
-        draw.line(
-            [(0, horizon_y - mist_height // 2 + i),
-             (SIZE, horizon_y - mist_height // 2 + i)],
-            fill=(*mist_color, alpha)
-        )
-
-    mist_blurred = mist_img.filter(ImageFilter.GaussianBlur(radius=8))
-    img.paste(mist_blurred, (0, 0), mist_blurred)
-
-
-def draw_sun_glow(img):
-    """Warm radial glow at the vanishing point (horizon center)."""
+def draw_sun(img):
+    """Bold sun disc centered at the vanishing point, sitting on the horizon."""
     vp_x = SIZE // 2
-    vp_y = int(SIZE * 0.55)
+    vp_y = HORIZON_Y
 
-    glow_img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(glow_img)
+    glow = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
 
-    # Multiple concentric ellipses, fading out
-    layers = [
-        (60, 35, (255, 220, 100, 160)),   # hot core
-        (120, 70, (255, 200, 80, 100)),
-        (220, 120, (245, 180, 60, 60)),
-        (360, 180, (240, 160, 40, 30)),
-        (520, 240, (220, 140, 30, 12)),
+    # Soft outer glow bloom (drawn first, widest)
+    bloom_layers = [
+        (340, 200, (*SUN_OUTER, 18)),
+        (240, 150, (*SUN_OUTER, 35)),
+        (170, 110, (*SUN_MID,   60)),
+        (120,  80, (*SUN_MID,   90)),
     ]
-    for rx, ry, color in layers:
-        draw.ellipse(
-            [vp_x - rx, vp_y - ry, vp_x + rx, vp_y + ry],
-            fill=color
-        )
+    for rx, ry, color in bloom_layers:
+        gd.ellipse([vp_x - rx, vp_y - ry, vp_x + rx, vp_y + ry], fill=color)
 
-    glow_blurred = glow_img.filter(ImageFilter.GaussianBlur(radius=30))
-    img.paste(glow_blurred, (0, 0), glow_blurred)
+    blurred_glow = glow.filter(ImageFilter.GaussianBlur(radius=28))
+    img.paste(blurred_glow, (0, 0), blurred_glow)
 
-
-def draw_forest_silhouette(img):
-    """Pine tree silhouettes at the horizon."""
+    # Crisp sun disc — circle centered on horizon (half visible above, half behind treeline)
     draw = ImageDraw.Draw(img)
-    horizon_y = int(SIZE * 0.55)
-    tree_color = (20, 50, 20)  # near-black dark green
+    sun_r = 82
+    # Full circle disc
+    draw.ellipse(
+        [vp_x - sun_r, vp_y - sun_r, vp_x + sun_r, vp_y + sun_r],
+        fill=SUN_MID
+    )
+    # Bright core
+    core_r = 52
+    draw.ellipse(
+        [vp_x - core_r, vp_y - core_r, vp_x + core_r, vp_y + core_r],
+        fill=SUN_CORE
+    )
 
-    def draw_pine(cx, base_y, height, width_factor=1.0):
-        """Draw a simple layered pine tree."""
-        layers = 4
-        for layer in range(layers):
-            t = layer / (layers - 1)
-            layer_h = height * (0.45 - t * 0.1)
-            layer_w = int(width_factor * height * (0.22 + t * 0.18))
-            layer_y = base_y - height + int(height * t * 0.65)
-            pts = [
-                (cx, layer_y - layer_h),
-                (cx - layer_w, layer_y),
-                (cx + layer_w, layer_y),
-            ]
-            draw.polygon(pts, fill=tree_color)
 
-    # Left forest bank
-    left_trees = [
-        (20, horizon_y + 10, 160, 0.9),
-        (65, horizon_y + 5, 140, 1.0),
-        (110, horizon_y + 8, 175, 0.85),
-        (150, horizon_y + 3, 130, 1.1),
-        (195, horizon_y + 12, 155, 0.9),
-        (235, horizon_y + 6, 145, 1.0),
-        (275, horizon_y + 10, 120, 0.95),
-        (315, horizon_y + 4, 135, 1.0),
-        (350, horizon_y + 8, 100, 1.1),
-        (385, horizon_y + 6, 85, 0.9),
+# ── Forest treeline silhouette ─────────────────────────────────────────────────
+
+def draw_treeline(img):
+    """
+    Two solid dark silhouette masses, one on each side, with a jagged pine-tip
+    profile. Drawn as single filled polygons — reads perfectly at 60px.
+    Trees are tallest at outer edges, shortest near the road opening.
+    """
+    draw = ImageDraw.Draw(img)
+
+    def pine_profile(cx, base_y, height, width):
+        """Returns the top-point of one pine triangle for profiling."""
+        return (cx, base_y - height), (cx - width, base_y), (cx + width, base_y)
+
+    # ── Left treeline ─────────────────────────────────────────────────────────
+    # Profile: start at left edge high, create jagged pine peaks, end at road edge
+    # Road left edge at horizon: vp_x - road_horizon_half_w
+    road_hw_horizon = 22
+    vp_x = SIZE // 2
+    road_left_at_hz = vp_x - road_hw_horizon  # ~490
+
+    # Pine peak positions (x, peak_y) from left edge inward
+    # Heights drop as we approach the center road gap
+    left_peaks = [
+        (  0,  HORIZON_Y - 310),   # left edge — very tall, partially clipped
+        ( 55,  HORIZON_Y - 265),
+        (115,  HORIZON_Y - 295),
+        (175,  HORIZON_Y - 240),
+        (235,  HORIZON_Y - 270),
+        (295,  HORIZON_Y - 215),
+        (355,  HORIZON_Y - 245),
+        (405,  HORIZON_Y - 180),
+        (445,  HORIZON_Y - 160),
+        (470,  HORIZON_Y - 120),
+        (490,  HORIZON_Y -  75),   # near road edge, short
     ]
-    # Right forest bank (mirror-ish with variation)
-    right_trees = [
-        (SIZE - 20,  horizon_y + 10, 160, 0.9),
-        (SIZE - 65,  horizon_y + 5,  140, 1.0),
-        (SIZE - 110, horizon_y + 8,  175, 0.85),
-        (SIZE - 150, horizon_y + 3,  130, 1.1),
-        (SIZE - 195, horizon_y + 12, 155, 0.9),
-        (SIZE - 235, horizon_y + 6,  145, 1.0),
-        (SIZE - 275, horizon_y + 10, 120, 0.95),
-        (SIZE - 315, horizon_y + 4,  135, 1.0),
-        (SIZE - 350, horizon_y + 8,  100, 1.1),
-        (SIZE - 385, horizon_y + 6,   85, 0.9),
+
+    # Build left polygon: trace the jagged top, then rectangle base
+    # Start: (0, SIZE) — bottom-left corner
+    left_poly = [(0, SIZE), (0, HORIZON_Y)]
+    for (px, py) in left_peaks:
+        left_poly.append((px, py))
+    # Close down to road edge at horizon, then fill down
+    left_poly.append((road_left_at_hz, HORIZON_Y))
+    left_poly.append((road_left_at_hz, SIZE))
+    draw.polygon(left_poly, fill=TREE_COLOR)
+
+    # ── Right treeline (mirror) ────────────────────────────────────────────────
+    right_peaks = [
+        (SIZE,       HORIZON_Y - 310),
+        (SIZE - 55,  HORIZON_Y - 265),
+        (SIZE - 115, HORIZON_Y - 295),
+        (SIZE - 175, HORIZON_Y - 240),
+        (SIZE - 235, HORIZON_Y - 270),
+        (SIZE - 295, HORIZON_Y - 215),
+        (SIZE - 355, HORIZON_Y - 245),
+        (SIZE - 405, HORIZON_Y - 180),
+        (SIZE - 445, HORIZON_Y - 160),
+        (SIZE - 470, HORIZON_Y - 120),
+        (SIZE - 490, HORIZON_Y -  75),
     ]
+    road_right_at_hz = vp_x + road_hw_horizon
 
-    for args in left_trees + right_trees:
-        draw_pine(*args)
+    right_poly = [(SIZE, SIZE), (SIZE, HORIZON_Y)]
+    for (px, py) in right_peaks:
+        right_poly.append((px, py))
+    right_poly.append((road_right_at_hz, HORIZON_Y))
+    right_poly.append((road_right_at_hz, SIZE))
+    draw.polygon(right_poly, fill=TREE_COLOR)
 
+
+# ── Road ──────────────────────────────────────────────────────────────────────
 
 def draw_road(img):
-    """Perspective road: wide trapezoid from bottom center to vanishing point."""
+    """
+    Perspective trapezoid road. Wide at bottom, narrow at vanishing point.
+    Strong dark charcoal — high contrast against forest green.
+    """
     draw = ImageDraw.Draw(img)
-
     vp_x = SIZE // 2
-    horizon_y = int(SIZE * 0.55)
     bottom_y = SIZE
 
-    road_bottom_half_w = 280   # half-width at very bottom
-    road_horizon_half_w = 16   # half-width at horizon
+    road_bottom_hw = 295   # half-width at very bottom edge
+    road_horizon_hw = 22   # half-width at horizon (matches treeline gap)
 
-    # Main road surface
     road_pts = [
-        (vp_x - road_horizon_half_w, horizon_y),
-        (vp_x + road_horizon_half_w, horizon_y),
-        (vp_x + road_bottom_half_w, bottom_y),
-        (vp_x - road_bottom_half_w, bottom_y),
+        (vp_x - road_horizon_hw, HORIZON_Y),
+        (vp_x + road_horizon_hw, HORIZON_Y),
+        (vp_x + road_bottom_hw,  bottom_y),
+        (vp_x - road_bottom_hw,  bottom_y),
     ]
-    draw.polygon(road_pts, fill=(42, 42, 42))
+    draw.polygon(road_pts, fill=ROAD_COLOR)
 
-    # Subtle asphalt shading — slightly lighter center strip
-    center_pts = [
-        (vp_x - road_horizon_half_w // 2, horizon_y),
-        (vp_x + road_horizon_half_w // 2, horizon_y),
-        (vp_x + road_bottom_half_w // 2, bottom_y),
-        (vp_x - road_bottom_half_w // 2, bottom_y),
+    # Warm shoulder strips (subtle, just a few px)
+    shoulder_w = 22
+    left_sh = [
+        (vp_x - road_horizon_hw,                  HORIZON_Y),
+        (vp_x - road_horizon_hw + 4,               HORIZON_Y),
+        (vp_x - road_bottom_hw  + shoulder_w,      bottom_y),
+        (vp_x - road_bottom_hw,                    bottom_y),
     ]
-    # draw subtle lighter center
-    center_img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    center_draw = ImageDraw.Draw(center_img)
-    center_draw.polygon(center_pts, fill=(55, 55, 55, 60))
-    img.paste(center_img, (0, 0), center_img)
-
-    # Road shoulders (slightly lighter edge strip)
-    shoulder_w = 18
-    left_shoulder = [
-        (vp_x - road_horizon_half_w, horizon_y),
-        (vp_x - road_horizon_half_w + 3, horizon_y),
-        (vp_x - road_bottom_half_w + shoulder_w, bottom_y),
-        (vp_x - road_bottom_half_w, bottom_y),
+    right_sh = [
+        (vp_x + road_horizon_hw - 4,               HORIZON_Y),
+        (vp_x + road_horizon_hw,                   HORIZON_Y),
+        (vp_x + road_bottom_hw,                    bottom_y),
+        (vp_x + road_bottom_hw  - shoulder_w,      bottom_y),
     ]
-    right_shoulder = [
-        (vp_x + road_horizon_half_w - 3, horizon_y),
-        (vp_x + road_horizon_half_w, horizon_y),
-        (vp_x + road_bottom_half_w, bottom_y),
-        (vp_x + road_bottom_half_w - shoulder_w, bottom_y),
-    ]
-    draw.polygon(left_shoulder, fill=(68, 65, 55))
-    draw.polygon(right_shoulder, fill=(68, 65, 55))
+    draw.polygon(left_sh,  fill=ROAD_EDGE)
+    draw.polygon(right_sh, fill=ROAD_EDGE)
 
 
-def draw_center_dashes(img):
-    """Perspective dashed center line on road."""
+# ── Center dashes ─────────────────────────────────────────────────────────────
+
+def draw_dashes(img):
+    """
+    Perspective dashed center line. Fewer dashes, more spacing — cleaner.
+    Converge toward the sun at vanishing point.
+    """
     draw = ImageDraw.Draw(img)
-
     vp_x = SIZE // 2
-    horizon_y = int(SIZE * 0.55)
     bottom_y = SIZE
 
-    road_bottom_half_w = 280
-    road_horizon_half_w = 16
+    road_bottom_hw = 295
+    road_horizon_hw = 22
 
-    dash_color = (212, 180, 131)   # #D4B483 warm parchment
+    num_dashes = 7
+    dash_fraction = 0.38   # each dash is 38% of its slot
 
-    # Draw dashes at intervals along the road in perspective
-    num_dashes = 10
     for i in range(num_dashes):
-        t_start = i / num_dashes
-        t_end = (i + 0.45) / num_dashes  # dash is ~45% of interval
+        t0 = (i + 0.1) / num_dashes
+        t1 = (i + 0.1 + dash_fraction) / num_dashes
+        if t1 > 1.0:
+            break
 
-        # Interpolate y positions
-        y_start = horizon_y + int((bottom_y - horizon_y) * t_start)
-        y_end = horizon_y + int((bottom_y - horizon_y) * t_end)
+        y0 = HORIZON_Y + int((bottom_y - HORIZON_Y) * t0)
+        y1 = HORIZON_Y + int((bottom_y - HORIZON_Y) * t1)
 
-        # Road half-width at these y positions (linear interpolation)
-        def road_hw(y):
-            t = (y - horizon_y) / (bottom_y - horizon_y)
-            return road_horizon_half_w + (road_bottom_half_w - road_horizon_half_w) * t
+        def hw_at(y):
+            t = (y - HORIZON_Y) / (bottom_y - HORIZON_Y)
+            return road_horizon_hw + (road_bottom_hw - road_horizon_hw) * t
 
-        w_start = road_hw(y_start) * 0.04  # dash width scales with road
-        w_end = road_hw(y_end) * 0.04
+        # Dash is 5% of road width at that depth
+        dw0 = hw_at(y0) * 0.050
+        dw1 = hw_at(y1) * 0.050
 
-        # Draw as trapezoid
-        dash_pts = [
-            (vp_x - w_start, y_start),
-            (vp_x + w_start, y_start),
-            (vp_x + w_end, y_end),
-            (vp_x - w_end, y_end),
+        pts = [
+            (vp_x - dw0, y0), (vp_x + dw0, y0),
+            (vp_x + dw1, y1), (vp_x - dw1, y1),
         ]
-        draw.polygon(dash_pts, fill=dash_color)
+        draw.polygon(pts, fill=DASH_COLOR)
 
 
-def draw_rider_silhouette(img):
-    """Small motorcycle+rider silhouette centered on road."""
-    draw = ImageDraw.Draw(img)
-
-    cx = SIZE // 2
-    # Place rider ~28% up from bottom
-    base_y = int(SIZE * 0.78)
-
-    # Scale: the rider should feel tiny against the landscape
-    scale = 38  # pixels for wheel radius reference
-    rider_color = (13, 31, 13)  # #0D1F0D near black
-
-    # --- Rear wheel ---
-    rw_r = int(scale * 0.55)
-    rw_cx = cx - int(scale * 0.7)
-    rw_cy = base_y
-    draw.ellipse(
-        [rw_cx - rw_r, rw_cy - rw_r, rw_cx + rw_r, rw_cy + rw_r],
-        fill=rider_color
-    )
-    draw.ellipse(
-        [rw_cx - int(rw_r * 0.45), rw_cy - int(rw_r * 0.45),
-         rw_cx + int(rw_r * 0.45), rw_cy + int(rw_r * 0.45)],
-        fill=(42, 42, 42)
-    )
-
-    # --- Front wheel ---
-    fw_r = int(scale * 0.5)
-    fw_cx = cx + int(scale * 0.85)
-    fw_cy = base_y
-    draw.ellipse(
-        [fw_cx - fw_r, fw_cy - fw_r, fw_cx + fw_r, fw_cy + fw_r],
-        fill=rider_color
-    )
-    draw.ellipse(
-        [fw_cx - int(fw_r * 0.42), fw_cy - int(fw_r * 0.42),
-         fw_cx + int(fw_r * 0.42), fw_cy + int(fw_r * 0.42)],
-        fill=(42, 42, 42)
-    )
-
-    # --- Frame body (main bike body) ---
-    frame_pts = [
-        (rw_cx + rw_r - 4, rw_cy - int(scale * 0.3)),   # rear low
-        (rw_cx + rw_r, rw_cy - int(scale * 0.85)),        # rear high / seat
-        (cx + int(scale * 0.1), rw_cy - int(scale * 0.95)),  # tank top
-        (fw_cx - fw_r + 6, fw_cy - int(scale * 0.4)),    # front low
-        (fw_cx - fw_r + 2, fw_cy - int(scale * 0.15)),   # front fork base
-    ]
-    draw.polygon(frame_pts, fill=rider_color)
-
-    # --- Exhaust / lower frame ---
-    exhaust_pts = [
-        (rw_cx + rw_r - 2, rw_cy - int(scale * 0.2)),
-        (fw_cx - fw_r + 4, fw_cy - int(scale * 0.2)),
-        (fw_cx - fw_r + 4, fw_cy - int(scale * 0.35)),
-        (rw_cx + rw_r - 2, rw_cy - int(scale * 0.35)),
-    ]
-    draw.polygon(exhaust_pts, fill=rider_color)
-
-    # --- Fork / front suspension ---
-    fork_pts = [
-        (fw_cx - int(scale * 0.12), fw_cy - fw_r),
-        (fw_cx + int(scale * 0.08), fw_cy - fw_r),
-        (fw_cx + int(scale * 0.04), fw_cy - int(scale * 0.8)),
-        (fw_cx - int(scale * 0.16), fw_cy - int(scale * 0.8)),
-    ]
-    draw.polygon(fork_pts, fill=rider_color)
-
-    # --- Rider body (crouched riding position) ---
-    body_cx = cx - int(scale * 0.05)
-    body_base = rw_cy - int(scale * 0.9)
-
-    # Torso (leaning forward)
-    torso_pts = [
-        (body_cx - int(scale * 0.2), body_base),                 # seat left
-        (body_cx + int(scale * 0.15), body_base),                # seat right
-        (body_cx + int(scale * 0.4), body_base - int(scale * 0.55)),  # shoulder right
-        (body_cx + int(scale * 0.15), body_base - int(scale * 0.65)), # neck
-        (body_cx - int(scale * 0.1), body_base - int(scale * 0.5)),   # shoulder left
-    ]
-    draw.polygon(torso_pts, fill=rider_color)
-
-    # Head (helmet) — slightly forward of torso
-    head_cx = body_cx + int(scale * 0.28)
-    head_cy = body_base - int(scale * 0.85)
-    head_r = int(scale * 0.28)
-    draw.ellipse(
-        [head_cx - head_r, head_cy - head_r,
-         head_cx + head_r, head_cy + int(head_r * 0.8)],
-        fill=rider_color
-    )
-
-    # Arms reaching to handlebars
-    arm_pts = [
-        (body_cx + int(scale * 0.35), body_base - int(scale * 0.5)),
-        (fw_cx - int(scale * 0.08), fw_cy - int(scale * 0.75)),
-        (fw_cx + int(scale * 0.05), fw_cy - int(scale * 0.7)),
-        (body_cx + int(scale * 0.45), body_base - int(scale * 0.45)),
-    ]
-    draw.polygon(arm_pts, fill=rider_color)
-
-    # Handlebar
-    hbar_y = fw_cy - int(scale * 0.78)
-    draw.rectangle(
-        [fw_cx - int(scale * 0.25), hbar_y - 3,
-         fw_cx + int(scale * 0.18), hbar_y + 3],
-        fill=rider_color
-    )
-
+# ── Vignette ──────────────────────────────────────────────────────────────────
 
 def draw_vignette(img):
-    """Subtle dark vignette around edges to focus the eye to center."""
-    vignette = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(vignette)
+    """Gentle dark vignette at edges to keep the eye centered on the road/sun."""
+    vig = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    vd = ImageDraw.Draw(vig)
 
-    # Several concentric rectangles with increasing alpha
-    steps = 18
+    steps = 20
     for i in range(steps):
         t = i / steps
-        alpha = int(80 * (t ** 2))  # quadratic falloff
-        margin = int(SIZE * 0.5 * (1 - t))
-        draw.rectangle(
-            [SIZE // 2 - margin, SIZE // 2 - margin,
-             SIZE // 2 + margin, SIZE // 2 + margin],
-            outline=(0, 0, 0, 0)
+        alpha = int(95 * (t ** 2.2))
+        rx = int(SIZE * (0.5 - 0.48 * (1 - t)))
+        ry = int(SIZE * (0.5 - 0.48 * (1 - t)))
+        vd.ellipse(
+            [SIZE // 2 - rx, SIZE // 2 - ry,
+             SIZE // 2 + rx, SIZE // 2 + ry],
+            outline=(0, 0, 0, alpha),
+            width=int(SIZE * 0.028)
         )
 
-    # Radial vignette via ellipse mask
-    for i in range(steps):
-        t = (steps - i) / steps
-        alpha = int(110 * (1 - t) ** 2.5)
-        rx = int(SIZE * 0.45 + SIZE * 0.5 * (1 - t))
-        ry = int(SIZE * 0.45 + SIZE * 0.5 * (1 - t))
-        x0 = SIZE // 2 - rx
-        y0 = SIZE // 2 - ry
-        draw.ellipse([x0, y0, x0 + rx * 2, y0 + ry * 2],
-                     outline=(0, 0, 0, alpha), width=int(SIZE * 0.03))
-
-    vignette_blurred = vignette.filter(ImageFilter.GaussianBlur(radius=40))
-    img.paste(vignette_blurred, (0, 0), vignette_blurred)
+    vig_blur = vig.filter(ImageFilter.GaussianBlur(radius=36))
+    img.paste(vig_blur, (0, 0), vig_blur)
 
 
-def apply_ios_rounded_corners(img, radius_fraction=0.2236):
-    """Apply iOS icon rounded corners (squircle approximation via mask)."""
+# ── iOS rounded corners ───────────────────────────────────────────────────────
+
+def apply_rounded_corners(img, radius_fraction=0.2236):
     radius = int(SIZE * radius_fraction)
     mask = Image.new("L", (SIZE, SIZE), 0)
-    mask_draw = ImageDraw.Draw(mask)
-    mask_draw.rounded_rectangle([0, 0, SIZE - 1, SIZE - 1], radius=radius, fill=255)
-    mask_blurred = mask.filter(ImageFilter.GaussianBlur(radius=1))
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, SIZE - 1, SIZE - 1], radius=radius, fill=255
+    )
+    mask = mask.filter(ImageFilter.GaussianBlur(radius=1))
     result = img.copy().convert("RGBA")
-    result.putalpha(mask_blurred)
+    result.putalpha(mask)
     return result
 
 
+# ── Main ──────────────────────────────────────────────────────────────────────
+
 def main():
-    print("ZenRide Icon Generator — Zen Rider + Open Road")
+    print("ZenRide Icon Generator v2 — Open Road")
     print(f"Output: {os.path.abspath(OUTPUT_PATH)}")
 
-    img = Image.new("RGB", (SIZE, SIZE), (26, 61, 26))
-    img = img.convert("RGBA")
+    img = Image.new("RGBA", (SIZE, SIZE), (*GRD_BOT, 255))
 
-    print("  Drawing sky gradient...")
-    draw_sky_gradient(img)
+    print("  Sky gradient...")
+    draw_sky(img)
 
-    print("  Drawing ground/forest gradient...")
-    draw_ground_gradient(img)
+    print("  Ground gradient...")
+    draw_ground(img)
 
-    print("  Drawing sun glow...")
-    draw_sun_glow(img)
+    print("  Sun glow + disc...")
+    draw_sun(img)
 
-    print("  Drawing mist band...")
-    draw_mist_band(img)
+    print("  Forest treeline silhouette...")
+    draw_treeline(img)
 
-    print("  Drawing forest silhouettes...")
-    draw_forest_silhouette(img)
-
-    print("  Drawing road...")
+    print("  Road...")
     draw_road(img)
 
-    print("  Drawing center dashes...")
-    draw_center_dashes(img)
+    print("  Center dashes...")
+    draw_dashes(img)
 
-    print("  Drawing rider silhouette...")
-    draw_rider_silhouette(img)
-
-    print("  Applying vignette...")
+    print("  Vignette...")
     draw_vignette(img)
 
-    print("  Applying iOS rounded corners...")
-    img = apply_ios_rounded_corners(img)
+    print("  Rounded corners...")
+    img = apply_rounded_corners(img)
 
-    # Flatten to RGB for PNG (white background for any transparency)
-    final = Image.new("RGB", (SIZE, SIZE), (255, 255, 255))
+    final = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
     final.paste(img, (0, 0), img)
 
     os.makedirs(os.path.dirname(os.path.abspath(OUTPUT_PATH)), exist_ok=True)
     final.save(OUTPUT_PATH, "PNG", optimize=False)
-    print(f"  Done. Saved {SIZE}x{SIZE} PNG.")
-    print()
-    print(f"  open \"{os.path.abspath(OUTPUT_PATH)}\"")
+    print(f"  Done. {SIZE}×{SIZE} PNG written.")
+    print(f'\n  open "{os.path.abspath(OUTPUT_PATH)}"')
 
 
 if __name__ == "__main__":
