@@ -1,6 +1,8 @@
 import SwiftUI
 import MapKit
 
+// MARK: - Searcher
+
 class DestinationSearcher: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [MKMapItem] = []
@@ -34,6 +36,8 @@ class DestinationSearcher: ObservableObject {
     }
 }
 
+// MARK: - Main View
+
 struct DestinationSearchView: View {
     @ObservedObject var searcher: DestinationSearcher
     @EnvironmentObject var routingService: RoutingService
@@ -45,43 +49,43 @@ struct DestinationSearchView: View {
     @Binding var routeState: RouteState
     @Binding var destinationName: String
     var onSearchFocused: (() -> Void)? = nil
-    @FocusState private var isSearchFocused: Bool
 
+    @FocusState private var isSearchFocused: Bool
     @State private var searchTask: Task<Void, Never>?
-    @State private var justSaved: UUID? = nil  // flash confirmation on save
+    @State private var justSavedIndex: Int? = nil
+    @State private var cachedSuggestions: [SavedRoute] = []
 
     var body: some View {
         VStack(spacing: 0) {
-            // Search bar
             searchBar
                 .padding(.top, 20)
                 .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.bottom, 8)
 
-            Divider().opacity(0.3)
+            Divider().opacity(0.2)
 
             if searcher.searchQuery.isEmpty {
-                idleContent
+                idleList
             } else {
-                searchResultsContent
+                searchResults
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: searcher.searchQuery.isEmpty)
-        .onChange(of: isSearchFocused) { focused in
-            if focused { onSearchFocused?() }
-        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
+        .onChange(of: isSearchFocused) { if $0 { onSearchFocused?() } }
+        .onAppear { refreshSuggestions() }
+        .onChange(of: savedRoutes.routes.count) { _ in refreshSuggestions() }
         .onReceive(NotificationCenter.default.publisher(for: .zenRideNavigateTo)) { note in
-            if let route = note.object as? SavedRoute { startRoutingToSaved(route) }
+            if let route = note.object as? SavedRoute { navigate(to: route) }
         }
     }
 
     // MARK: - Search Bar
 
     private var searchBar: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
-                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.secondary)
+                .font(.system(size: 16, weight: .medium))
 
             TextField("Search destination", text: $searcher.searchQuery)
                 .focused($isSearchFocused)
@@ -97,7 +101,7 @@ struct DestinationSearchView: View {
                     }
                     searcher.isSearching = true
                     searchTask = Task {
-                        try? await Task.sleep(nanoseconds: 180_000_000) // 180ms
+                        try? await Task.sleep(nanoseconds: 180_000_000)
                         guard !Task.isCancelled else { return }
                         searcher.search(for: query, near: owlPolice.currentLocation?.coordinate)
                     }
@@ -110,241 +114,253 @@ struct DestinationSearchView: View {
                     searcher.search(for: q, near: owlPolice.currentLocation?.coordinate)
                 }
 
-            if !searcher.searchQuery.isEmpty {
-                Button(action: {
+            if searcher.searchQuery.isEmpty {
+                Image(systemName: "mic.fill")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 36)
+            } else {
+                Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     searcher.searchQuery = ""
                     searcher.searchResults = []
                     searcher.isSearching = false
-                    isSearchFocused = false
-                }) {
+                    // Keep focus — user wants to type something new
+                    isSearchFocused = true
+                } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                        .frame(width: 44, height: 36)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 36, height: 36)
                 }
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
     }
 
-    // MARK: - Idle Content (no query)
+    // MARK: - Idle: List with native swipe actions
 
-    private var idleContent: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
-                // Quick categories
-                categoryRow
-                    .padding(.vertical, 16)
-
-                Divider().opacity(0.3)
-
-                // Smart suggestions
-                let suggestions = SmartSuggestionService.suggestions(from: savedRoutes)
-                if !suggestions.isEmpty {
-                    SectionHeader(title: "Suggested", icon: "sparkles", iconColor: .yellow)
-                    ForEach(suggestions) { route in
-                        RouteRow(
-                            icon: "sparkles",
-                            iconColor: .yellow,
-                            title: route.destinationName,
-                            subtitle: typicalTimeLabel(route),
-                            trailingIcon: nil
-                        ) {
-                            startRoutingToSaved(route)
-                        }
-                        .contentShape(Rectangle())
+    private var idleList: some View {
+        List {
+            // Category chips — inlined as a full-width list row
+            Section {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 14) {
+                        chip("house.fill",      "Home",     .blue)    { searcher.searchQuery = "Home" }
+                        chip("briefcase.fill",  "Work",     .brown)   { searcher.searchQuery = "Work" }
+                        chip("fork.knife",      "Food",     .orange)  { searcher.searchQuery = "Restaurants" }
+                        chip("fuelpump.fill",   "Gas",      .indigo)  { searcher.searchQuery = "Gas Stations" }
+                        chip("cup.and.saucer.fill", "Coffee", .brown) { searcher.searchQuery = "Coffee" }
+                        chip("cross.fill",      "Hospital", .red)     { searcher.searchQuery = "Hospital" }
                     }
-                    Divider().padding(.leading, 60).opacity(0.3)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 4)
                 }
+                .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
 
-                // Saved / Pinned places
-                let pinned = savedRoutes.pinnedRoutes
-                SectionHeader(title: "Saved Places", icon: "star.fill", iconColor: .orange)
+            // Smart suggestions
+            if !cachedSuggestions.isEmpty {
+                Section {
+                    ForEach(cachedSuggestions) { route in
+                        SavedRouteRow(
+                            systemIcon: "sparkles", iconColor: .yellow,
+                            title: route.destinationName,
+                            subtitle: typicalTimeLabel(route)
+                        ) { navigate(to: route) }
+                    }
+                } header: { listHeader("Suggested", "sparkles", .yellow) }
+            }
+
+            // Saved Places
+            let pinned = savedRoutes.pinnedRoutes
+            Section {
                 if pinned.isEmpty {
-                    emptyPlaceholder(
-                        icon: "star",
-                        message: "Save a place to find it here",
-                        subMessage: "Tap ⋯ on any search result"
-                    )
+                    HStack(spacing: 10) {
+                        Image(systemName: "star")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("No saved places yet")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text("Tap \(Image(systemName: "bookmark")) on any search result")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                    .listRowBackground(Color.clear)
                 } else {
                     ForEach(pinned) { route in
-                        RouteRow(
-                            icon: "star.fill",
-                            iconColor: .orange,
+                        SavedRouteRow(
+                            systemIcon: "star.fill", iconColor: .orange,
                             title: route.destinationName,
-                            subtitle: route.useCount > 0 ? relativeDate(route.lastUsedDate) : "Saved place",
-                            trailingIcon: "chevron.right"
-                        ) {
-                            startRoutingToSaved(route)
+                            subtitle: route.useCount > 0 ? relativeDate(route.lastUsedDate) : "Saved place"
+                        ) { navigate(to: route) }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                withAnimation { savedRoutes.deleteRoute(id: route.id) }
+                            } label: { Label("Delete", systemImage: "trash") }
+
+                            Button {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                withAnimation { savedRoutes.togglePin(id: route.id) }
+                            } label: { Label("Unsave", systemImage: "star.slash") }
+                                .tint(.gray)
+                        }
+                    }
+                }
+            } header: { listHeader("Saved Places", "star.fill", .orange) }
+
+            // Recent
+            let recent = savedRoutes.topRecent(limit: 8).filter { !$0.isPinned }
+            if !recent.isEmpty {
+                Section {
+                    ForEach(recent) { route in
+                        SavedRouteRow(
+                            systemIcon: "clock.arrow.circlepath", iconColor: .secondary,
+                            title: route.destinationName,
+                            subtitle: relativeDate(route.lastUsedDate)
+                        ) { navigate(to: route) }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                withAnimation { savedRoutes.togglePin(id: route.id) }
+                            } label: { Label("Save", systemImage: "star.fill") }
+                                .tint(.orange)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 withAnimation { savedRoutes.deleteRoute(id: route.id) }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            Button {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                withAnimation { savedRoutes.togglePin(id: route.id) }
-                            } label: {
-                                Label("Unsave", systemImage: "star.slash")
-                            }
-                            .tint(.gray)
+                            } label: { Label("Delete", systemImage: "trash") }
                         }
                     }
-                }
-
-                Divider().padding(.leading, 60).opacity(0.3)
-
-                // Recent routes (visited but not pinned)
-                let recent = savedRoutes.topRecent(limit: 6).filter { !$0.isPinned }
-                if !recent.isEmpty {
-                    SectionHeader(title: "Recent", icon: "clock", iconColor: .secondary)
-                    ForEach(recent) { route in
-                        RouteRow(
-                            icon: "clock.arrow.circlepath",
-                            iconColor: .secondary,
-                            title: route.destinationName,
-                            subtitle: relativeDate(route.lastUsedDate),
-                            trailingIcon: "chevron.right"
-                        ) {
-                            startRoutingToSaved(route)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                withAnimation { savedRoutes.deleteRoute(id: route.id) }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            Button {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                withAnimation { savedRoutes.togglePin(id: route.id) }
-                            } label: {
-                                Label("Save", systemImage: "star")
-                            }
-                            .tint(.orange)
-                        }
-                    }
-                    Divider().padding(.leading, 60).opacity(0.3)
-                }
-
-                Spacer(minLength: 40)
+                } header: { listHeader("Recent", "clock", .secondary) }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .transition(.opacity)
     }
 
     // MARK: - Search Results
 
-    private var searchResultsContent: some View {
+    private var searchResults: some View {
         Group {
             if searcher.isSearching {
                 VStack {
                     Spacer()
-                    ProgressView("Searching…")
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Searching…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8)
                     Spacer()
                 }
                 .transition(.opacity)
-            } else if searcher.searchResults.isEmpty {
-                VStack(spacing: 12) {
+            } else if searcher.searchResults.isEmpty && !searcher.searchQuery.isEmpty {
+                VStack(spacing: 10) {
                     Spacer()
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 36))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 32))
+                        .foregroundStyle(.tertiary)
                     Text("No results for \"\(searcher.searchQuery)\"")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Spacer()
                 }
-                .padding()
+                .padding(.horizontal, 32)
                 .transition(.opacity)
             } else {
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 0) {
-                        ForEach(Array(searcher.searchResults.enumerated()), id: \.offset) { _, item in
-                            SearchResultRow(item: item, isSaved: justSaved == nil) {
-                                startRouting(to: item)
+                        ForEach(Array(searcher.searchResults.prefix(12).enumerated()), id: \.offset) { idx, item in
+                            SearchResultRow(
+                                item: item,
+                                isSaved: justSavedIndex == idx
+                            ) {
+                                routeTo(item: item)
                             } onSave: {
                                 guard let coord = item.placemark.location?.coordinate else { return }
                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
-                                withAnimation { justSaved = UUID() }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    withAnimation { justSaved = nil }
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    justSavedIndex = idx
                                 }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                                    withAnimation { justSavedIndex = nil }
+                                }
+                            }
+
+                            if idx < min(searcher.searchResults.count, 12) - 1 {
+                                Divider().padding(.leading, 66)
                             }
                         }
                     }
                     .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 10)
+                    .padding(.bottom, 20)
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.opacity)
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: searcher.isSearching)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: searcher.searchResults.count)
-    }
-
-    // MARK: - Category Row
-
-    private var categoryRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
-                CategoryChip(icon: "house.fill", title: "Home", color: .blue) {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    searcher.searchQuery = "Home"
-                }
-                CategoryChip(icon: "briefcase.fill", title: "Work", color: .brown) {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    searcher.searchQuery = "Work"
-                }
-                CategoryChip(icon: "fork.knife", title: "Food", color: .orange) {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    searcher.searchQuery = "Restaurants"
-                }
-                CategoryChip(icon: "fuelpump.fill", title: "Gas", color: .indigo) {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    searcher.searchQuery = "Gas Stations"
-                }
-                CategoryChip(icon: "cup.and.saucer.fill", title: "Coffee", color: .brown) {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    searcher.searchQuery = "Coffee"
-                }
-                CategoryChip(icon: "cross.fill", title: "Hospital", color: .red) {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    searcher.searchQuery = "Hospital"
-                }
-            }
-            .padding(.horizontal, 16)
-        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.isSearching)
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchResults.count)
     }
 
     // MARK: - Helpers
 
-    private func emptyPlaceholder(icon: String, message: String, subMessage: String) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Image(systemName: icon).foregroundColor(.secondary)
-                    Text(message).font(.subheadline).foregroundColor(.secondary)
+    @ViewBuilder
+    private func chip(_ icon: String, _ title: String, _ color: Color, action: @escaping () -> Void) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+            isSearchFocused = true   // keep keyboard up
+        } label: {
+            VStack(spacing: 6) {
+                ZStack {
+                    Circle().fill(color).frame(width: 50, height: 50)
+                    Image(systemName: icon).font(.system(size: 20)).foregroundStyle(.white)
                 }
-                Text(subMessage).font(.caption).foregroundColor(Color.secondary.opacity(0.6))
+                Text(title).font(.caption).fontWeight(.medium).foregroundStyle(.primary)
             }
-            Spacer()
         }
-        .padding(.horizontal, 60)
-        .padding(.vertical, 14)
+        .buttonStyle(.plain)
     }
 
-    private func startRouting(to item: MKMapItem) {
+    @ViewBuilder
+    private func listHeader(_ title: String, _ icon: String, _ color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(color)
+            Text(title.uppercased())
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func navigate(to route: SavedRoute) {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
+        let origin = owlPolice.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        destinationName = route.destinationName
+        Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { routeState = .reviewing }
+    }
+
+    private func routeTo(item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate else { return }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         let origin = owlPolice.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
@@ -355,18 +371,14 @@ struct DestinationSearchView: View {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { routeState = .reviewing }
     }
 
-    private func startRoutingToSaved(_ route: SavedRoute) {
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
-        let origin = owlPolice.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
-        destinationName = route.destinationName
-        Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { routeState = .reviewing }
+    private func refreshSuggestions() {
+        let hour = Calendar.current.component(.hour, from: Date())
+        cachedSuggestions = hour >= 5 ? savedRoutes.suggestions(for: hour) : []
     }
 
     private func typicalTimeLabel(_ route: SavedRoute) -> String {
-        guard let h = route.typicalDepartureHours.sorted()
-            .dropFirst(route.typicalDepartureHours.count / 4).first else { return "Frequently visited" }
+        let hours = route.typicalDepartureHours.sorted()
+        guard let h = hours.dropFirst(hours.count / 4).first else { return "Frequently visited" }
         let period = h < 12 ? "am" : "pm"
         let display = h == 0 ? 12 : (h > 12 ? h - 12 : h)
         return "Usually around \(display)\(period)"
@@ -382,78 +394,45 @@ struct DestinationSearchView: View {
     }
 }
 
-// MARK: - Section Header
+// MARK: - RouteListRow (used in List — gets native separators + swipe)
 
-private struct SectionHeader: View {
-    let title: String
-    let icon: String
-    let iconColor: Color
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(iconColor)
-            Text(title.uppercased())
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.secondary)
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 6)
-    }
-}
-
-// MARK: - Route Row (for saved/recent sections)
-
-private struct RouteRow: View {
-    let icon: String
+private struct SavedRouteRow: View {
+    let systemIcon: String
     let iconColor: Color
     let title: String
     let subtitle: String
-    let trailingIcon: String?
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(iconColor.opacity(0.12))
-                        .frame(width: 38, height: 38)
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(iconColor)
+                        .fill(iconColor.opacity(0.13))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: systemIcon)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(iconColor)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 16))
-                        .foregroundColor(.primary)
+                        .foregroundStyle(Color.primary)
                         .lineLimit(1)
                     Text(subtitle)
                         .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.secondary)
                         .lineLimit(1)
                 }
-
-                Spacer()
-
-                if let trailing = trailingIcon {
-                    Image(systemName: trailing)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color.secondary.opacity(0.5))
-                }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 11)
             .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 
-// MARK: - Search Result Row
+// MARK: - SearchResultRow
 
 private struct SearchResultRow: View {
     let item: MKMapItem
@@ -462,47 +441,61 @@ private struct SearchResultRow: View {
     let onSave: () -> Void
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 0) {
+            // Main tap target — navigate
             Button(action: action) {
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     ZStack {
                         Circle()
                             .fill(Color.blue.opacity(0.1))
                             .frame(width: 38, height: 38)
                         Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.blue)
+                            .font(.system(size: 19))
+                            .foregroundStyle(Color.blue)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.name ?? "Unknown")
                             .font(.system(size: 16))
-                            .foregroundColor(.primary)
+                            .foregroundStyle(Color.primary)
                             .lineLimit(1)
-                        Text(item.placemark.locality ?? item.placemark.title ?? "")
+                        Text(item.placemark.locality ?? item.placemark.administrativeArea ?? "")
                             .font(.system(size: 13))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.secondary)
                             .lineLimit(1)
                     }
                     Spacer()
                 }
                 .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
-            // Save button
+            // Bookmark save button — shows animated checkmark when saved
             Button(action: onSave) {
-                Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 22))
-                    .foregroundColor(.secondary)
-                    .frame(width: 44, height: 44)
+                ZStack {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.blue)
+                        .scaleEffect(isSaved ? 1 : 0.01)
+                        .opacity(isSaved ? 1 : 0)
+
+                    Image(systemName: "bookmark")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.secondary)
+                        .scaleEffect(isSaved ? 0.01 : 1)
+                        .opacity(isSaved ? 0 : 1)
+                }
+                .frame(width: 44, height: 44)
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSaved)
             }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
     }
 }
 
-// MARK: - Category Chip
+// MARK: - Legacy type aliases for GarageView compatibility
 
 struct CategoryChip: View {
     let icon: String
@@ -515,15 +508,14 @@ struct CategoryChip: View {
             VStack(spacing: 8) {
                 ZStack {
                     Circle().fill(color).frame(width: 52, height: 52)
-                    Image(systemName: icon).font(.title3).foregroundColor(.white)
+                    Image(systemName: icon).font(.title3).foregroundStyle(.white)
                 }
-                Text(title).font(.caption).fontWeight(.medium).foregroundColor(.primary)
+                Text(title).font(.caption).fontWeight(.medium).foregroundStyle(.primary)
             }
         }
     }
 }
 
-// MARK: - Legacy aliases (GarageView uses these names)
 typealias CategoryButton = CategoryChip
 
 struct FavoriteRow: View {
@@ -533,21 +525,19 @@ struct FavoriteRow: View {
     let color: Color
 
     var body: some View {
-        Button(action: {}) {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle().fill(color.opacity(0.15)).frame(width: 40, height: 40)
-                    Image(systemName: icon).font(.system(size: 20)).foregroundColor(color)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.body).foregroundColor(color == .gray ? .blue : .primary)
-                    if !subtitle.isEmpty {
-                        Text(subtitle).font(.subheadline).foregroundColor(.secondary)
-                    }
-                }
-                Spacer()
+        HStack(spacing: 16) {
+            ZStack {
+                Circle().fill(color.opacity(0.15)).frame(width: 40, height: 40)
+                Image(systemName: icon).font(.system(size: 20)).foregroundStyle(color)
             }
-            .padding(.vertical, 12).padding(.horizontal, 16)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.body).foregroundStyle(color == .gray ? Color.blue : Color.primary)
+                if !subtitle.isEmpty {
+                    Text(subtitle).font(.subheadline).foregroundStyle(Color.secondary)
+                }
+            }
+            Spacer()
         }
+        .padding(.vertical, 12).padding(.horizontal, 16)
     }
 }
