@@ -10,7 +10,7 @@ struct RouteSelectionSheet: View {
     @EnvironmentObject var routingService: RoutingService
     @State private var countdown = 10
     @State private var timer: Timer? = nil
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -20,16 +20,16 @@ struct RouteSelectionSheet: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    
+
                     Spacer()
-                    
+
                     Button(action: onCancel) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 // Transportation Mode Picker Placeholder
                 HStack(spacing: 0) {
                     ModeButton(icon: "car.fill", isSelected: false)
@@ -41,11 +41,36 @@ struct RouteSelectionSheet: View {
                 .background(.regularMaterial)
                 .cornerRadius(10, corners: .allCorners)
                 .padding(.top, 8)
+
+                // Route preference toggles
+                HStack(spacing: 8) {
+                    RoutePreferenceChip(
+                        icon: "camera.fill",
+                        label: "No Cameras",
+                        isActive: routingService.avoidSpeedCameras,
+                        activeColor: .green
+                    ) { routingService.avoidSpeedCameras.toggle() }
+
+                    RoutePreferenceChip(
+                        icon: "road.lanes",
+                        label: "No Highways",
+                        isActive: routingService.avoidHighways,
+                        activeColor: .blue
+                    ) { routingService.avoidHighways.toggle() }
+
+                    RoutePreferenceChip(
+                        icon: "dollarsign.circle.fill",
+                        label: "No Tolls",
+                        isActive: routingService.avoidTolls,
+                        activeColor: .orange
+                    ) { routingService.avoidTolls.toggle() }
+                }
+                .padding(.top, 4)
             }
             .padding(.top, 24)
             .padding(.horizontal, 24)
             .padding(.bottom, 20)
-            
+
             // Route Options List
             VStack(spacing: 12) {
                 if routingService.isCalculatingRoute {
@@ -133,6 +158,16 @@ struct RouteSelectionSheet: View {
         .onDisappear {
             timer?.invalidate()
         }
+        .onChange(of: routingService.avoidSpeedCameras) { _ in recalculatePreferences() }
+        .onChange(of: routingService.avoidHighways)     { _ in recalculatePreferences() }
+        .onChange(of: routingService.avoidTolls)        { _ in recalculatePreferences() }
+    }
+
+    private func recalculatePreferences() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        timer?.invalidate()
+        countdown = 10
+        Task { await routingService.recalculate() }
     }
     
     private func startTimer() {
@@ -254,6 +289,41 @@ struct RoundedCorner: Shape {
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
         return Path(path.cgPath)
+    }
+}
+
+// MARK: - Route Preference Chip
+
+struct RoutePreferenceChip: View {
+    let icon: String
+    let label: String
+    let isActive: Bool
+    let activeColor: Color
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .foregroundColor(isActive ? activeColor : .secondary)
+            .background(
+                isActive
+                    ? activeColor.opacity(0.15)
+                    : Color(.systemGray5)
+            )
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(isActive ? activeColor.opacity(0.5) : Color.clear, lineWidth: 1)
+            )
+        }
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isActive)
     }
 }
 
