@@ -298,7 +298,12 @@ struct RideView: View {
             get: { routeState == .search },
             set: { _ in }
         )) {
-            DestinationSearchView(searcher: searcher, routeState: $routeState, destinationName: $destinationName)
+            DestinationSearchView(searcher: searcher, routeState: $routeState, destinationName: $destinationName,
+                                  onSearchFocused: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    searchSheetDetent = .medium
+                }
+            })
                 .presentationDetents([.fraction(0.15), .medium, .large], selection: $searchSheetDetent)
                 .presentationDragIndicator(.visible)
                 .presentationBackgroundInteraction(.enabled)
@@ -328,6 +333,7 @@ struct RideView: View {
             }, onCancel: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     routeState = .search
+                    destinationName = ""
                     routingService.availableRoutes = []
                     routingService.activeRoute = []
                     routingService.activeAlternativeRoutes = []

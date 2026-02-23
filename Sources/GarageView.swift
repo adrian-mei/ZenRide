@@ -5,7 +5,7 @@ struct GarageView: View {
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     var onRollOut: () -> Void
 
-    @State private var suggestionAppeared = false
+    @State private var topSuggestion: SavedRoute? = nil
 
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -64,10 +64,8 @@ struct GarageView: View {
                         }
                     }
 
-                    // Suggestion chip — only when suggestions exist and it's a reasonable hour
-                    let currentHour = Calendar.current.component(.hour, from: Date())
-                    if let top = SmartSuggestionService.suggestions(from: savedRoutes).first,
-                       currentHour >= 5 && currentHour <= 23 {
+                    // Suggestion chip — driven by @State, not computed inline
+                    if let top = topSuggestion {
                         SuggestionChipView(route: top) {
                             onRollOut()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -108,10 +106,19 @@ struct GarageView: View {
                             .clipShape(Capsule())
                     }
                     .padding(.horizontal, 40)
+                    .accessibilityLabel("Open navigation")
                     .padding(.bottom, 40)
                 }
             }
         }
+        .onAppear { refreshSuggestion() }
+        .onChange(of: savedRoutes.routes.count) { _ in refreshSuggestion() }
+    }
+
+    private func refreshSuggestion() {
+        let hour = Calendar.current.component(.hour, from: Date())
+        guard hour >= 5 && hour <= 23 else { topSuggestion = nil; return }
+        topSuggestion = SmartSuggestionService.suggestions(from: savedRoutes).first
     }
 }
 

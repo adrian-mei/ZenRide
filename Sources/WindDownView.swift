@@ -137,7 +137,8 @@ struct WindDownView: View {
                     dismissCountdown -= 1
                 } else {
                     timer?.invalidate()
-                    onComplete("Focused") // Default mood
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    onComplete("Focused") // Default mood on auto-dismiss
                 }
             }
         }

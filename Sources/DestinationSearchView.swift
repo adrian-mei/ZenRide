@@ -43,6 +43,7 @@ struct DestinationSearchView: View {
 
     @Binding var routeState: RouteState
     @Binding var destinationName: String
+    var onSearchFocused: (() -> Void)? = nil
     @FocusState private var isSearchFocused: Bool
 
     @State private var searchTask: Task<Void, Never>?
@@ -326,6 +327,9 @@ struct DestinationSearchView: View {
             Spacer()
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: searcher.searchQuery.isEmpty)
+        .onChange(of: isSearchFocused) { focused in
+            if focused { onSearchFocused?() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .zenRideNavigateTo)) { note in
             if let route = note.object as? SavedRoute { startRoutingToSaved(route) }
         }
