@@ -114,7 +114,8 @@ struct RideView: View {
     @StateObject private var searcher = DestinationSearcher()
     @State private var routeState: RouteState = .search
     @State private var destinationName: String = ""
-    @State private var controlsVisible = true
+    @State private var uiVisible = true
+    @State private var showTapHint = false
     @State private var searchSheetDetent: PresentationDetent = .fraction(0.15)
     @State private var departureTime: Date? = nil
     @State private var navigationStartTime: Date? = nil
@@ -123,41 +124,38 @@ struct RideView: View {
         ZStack(alignment: .top) {
             ZenMapView(routeState: $routeState)
                 .edgesIgnoringSafeArea(.all)
-                .onTapGesture(count: 2) {
-                    owlPolice.isMuted.toggle()
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.prepare()
-                    generator.notificationOccurred(owlPolice.isMuted ? .error : .success)
-                }
 
             if routeState == .navigating {
                 AmbientGlowView()
+                    .allowsHitTesting(false)
                     .zIndex(1)
                     .transition(.opacity)
             }
 
             if routeState == .navigating && (owlPolice.currentZone == .approach || owlPolice.currentZone == .danger) {
                 AlertOverlayView(camera: owlPolice.nearestCamera)
+                    .allowsHitTesting(false)
                     .zIndex(100)
             }
 
-            // Top HUD
+            // Main UI chrome
             VStack(spacing: 12) {
+                // Turn-by-turn HUD — always visible while navigating
                 if routeState == .navigating {
                     GuidanceView()
                         .padding(.top, 16)
-                        .transition(.move(edge: .top))
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                if routeState == .search || routeState == .navigating {
+                // Controls row — shown in search mode always, in nav only when uiVisible
+                if routeState == .search || (routeState == .navigating && uiVisible) {
                     HStack(alignment: .top) {
-                        // Left Side: Speed Indicator
                         if routeState == .navigating {
                             DigitalDashSpeedometer(owlPolice: owlPolice)
                                 .padding(.leading, 16)
                                 .transition(.scale.combined(with: .opacity))
                         } else {
-                            // Search Mode Mini-HUD (Just the Limit)
+                            // Search mode speed limit sign
                             VStack(spacing: 0) {
                                 Text("SPEED")
                                     .font(.system(size: 8, weight: .bold, design: .default))
@@ -188,21 +186,7 @@ struct RideView: View {
 
                         Spacer()
 
-                        // Right Side: Map Controls Stack
                         VStack(alignment: .trailing, spacing: 12) {
-                            if owlPolice.isMuted && routeState == .navigating {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "speaker.slash.fill")
-                                    Text("MUTED")
-                                        .font(.caption.bold())
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.red.opacity(0.8), in: Capsule())
-                                .foregroundColor(.white)
-                                .shadow(radius: 4)
-                                .transition(.scale(scale: 0.85).combined(with: .opacity))
-                            }
                             if routeState == .search && owlPolice.camerasPassedThisRide > 0 {
                                 HStack(spacing: 4) {
                                     Image(systemName: "leaf.fill")
@@ -219,9 +203,9 @@ struct RideView: View {
 
                             VStack(spacing: 0) {
                                 if routeState == .navigating {
-                                    Button(action: {
+                                    Button {
                                         owlPolice.isMuted.toggle()
-                                    }) {
+                                    } label: {
                                         Image(systemName: owlPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                                             .font(.title3)
                                             .frame(width: 60, height: 60)
@@ -231,9 +215,9 @@ struct RideView: View {
                                     Divider().padding(.horizontal, 8).opacity(0.3)
                                 }
 
-                                Button(action: {
+                                Button {
                                     NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
-                                }) {
+                                } label: {
                                     Image(systemName: "location.fill")
                                         .font(.title3)
                                         .frame(width: 60, height: 60)
@@ -244,9 +228,7 @@ struct RideView: View {
                                 if routeState == .navigating {
                                     Divider().padding(.horizontal, 8).opacity(0.3)
 
-                                    Button(action: {
-                                        reportHazard()
-                                    }) {
+                                    Button { reportHazard() } label: {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .font(.title3)
                                             .frame(width: 60, height: 60)
@@ -269,26 +251,67 @@ struct RideView: View {
                                     .stroke(routeState == .navigating ? Color.cyan.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
                             )
                             .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-
                         }
                         .padding(.trailing, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
-                        .opacity(controlsVisible ? 1.0 : 0.0)
                     }
                     .transition(.opacity)
                 }
 
                 Spacer()
 
-                if routeState == .navigating {
-                    if controlsVisible {
-                        NavigationBottomPanel(onEnd: {
-                            endRide()
-                        })
+                // Bottom navigation panel
+                if routeState == .navigating && uiVisible {
+                    NavigationBottomPanel(onEnd: { endRide() })
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .edgesIgnoringSafeArea(.bottom)
-                    }
                 }
+
+                // "Tap to show controls" hint — appears for 3s when navigation starts
+                if routeState == .navigating && showTapHint {
+                    Text("Tap to show controls")
+                        .font(.caption.bold())
+                        .foregroundColor(.white.opacity(0.85))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.black.opacity(0.55), in: Capsule())
+                        .padding(.bottom, 16)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
+            }
+            .zIndex(5)
+
+            // Muted status pill — always visible when controls are hidden so rider
+            // knows audio alerts are off without needing to show the sidebar
+            if routeState == .navigating && owlPolice.isMuted && !uiVisible {
+                VStack {
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 6) {
+                            Image(systemName: "speaker.slash.fill")
+                            Text("MUTED").font(.caption.bold())
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.8), in: Capsule())
+                        .foregroundColor(.white)
+                        .shadow(radius: 4)
+                        .padding(.trailing, 16)
+                        .padding(.top, 16)
+                    }
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+                .zIndex(20)
+                .transition(.scale(scale: 0.85).combined(with: .opacity))
+            }
+        }
+        .onTapGesture {
+            guard routeState == .navigating else { return }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                uiVisible.toggle()
+                if uiVisible { showTapHint = false }
             }
         }
         .sheet(isPresented: Binding(
@@ -345,17 +368,22 @@ struct RideView: View {
             .interactiveDismissDisabled()
         }
         .onChange(of: owlPolice.currentSpeedMPH) { speed in
-            if speed > 15.0 && controlsVisible {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { controlsVisible = false }
-            } else if speed < 12.0 && !controlsVisible {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { controlsVisible = true }
+            // Auto-hide when moving; user must tap to restore controls
+            if speed > 15.0 && uiVisible && routeState == .navigating {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
             }
         }
         .onChange(of: routeState) { state in
             if state == .navigating {
                 UIApplication.shared.isIdleTimerDisabled = true
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
+                showTapHint = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    withAnimation(.easeOut(duration: 0.6)) { showTapHint = false }
+                }
             } else {
                 UIApplication.shared.isIdleTimerDisabled = false
+                withAnimation { uiVisible = true }
             }
         }
         .onChange(of: owlPolice.currentLocation) { location in
