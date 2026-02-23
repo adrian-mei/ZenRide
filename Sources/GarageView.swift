@@ -3,9 +3,11 @@ import SwiftUI
 struct GarageView: View {
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
+    @EnvironmentObject var driveStore: DriveStore
     var onRollOut: () -> Void
 
     @State private var topSuggestion: SavedRoute? = nil
+    @State private var showHistory = false
 
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -76,9 +78,14 @@ struct GarageView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    // Stats card
-                    StatsCardView()
-                        .padding(.horizontal, 20)
+                    // Stats card — enhanced when DriveStore has data
+                    if driveStore.totalRideCount > 0 {
+                        EnhancedStatsCard()
+                            .padding(.horizontal, 20)
+                    } else {
+                        StatsCardView()
+                            .padding(.horizontal, 20)
+                    }
 
                     // Recent routes (only if history exists)
                     let recent = savedRoutes.topRecent(limit: 3)
@@ -94,6 +101,33 @@ struct GarageView: View {
                     }
 
                     Spacer(minLength: 20)
+
+                    // Drive History button (shown once history exists)
+                    if driveStore.totalRideCount > 0 {
+                        Button(action: { showHistory = true }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.subheadline)
+                                Text("Drive History")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text("\(driveStore.totalRideCount) rides")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.5))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 14)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(14)
+                            .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
 
                     Button(action: onRollOut) {
                         Text("Open Maps")
@@ -113,12 +147,61 @@ struct GarageView: View {
         }
         .onAppear { refreshSuggestion() }
         .onChange(of: savedRoutes.routes.count) { _ in refreshSuggestion() }
+        .sheet(isPresented: $showHistory) {
+            DriveHistoryView()
+        }
     }
 
     private func refreshSuggestion() {
         let hour = Calendar.current.component(.hour, from: Date())
         guard hour >= 5 && hour <= 23 else { topSuggestion = nil; return }
         topSuggestion = SmartSuggestionService.suggestions(from: savedRoutes).first
+    }
+}
+
+// MARK: - Enhanced Stats Card (DriveStore-powered)
+
+struct EnhancedStatsCard: View {
+    @EnvironmentObject var driveStore: DriveStore
+
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Ride Archive")
+                    .font(.headline)
+                    .foregroundColor(.white.opacity(0.8))
+                Spacer()
+                if driveStore.allTimeTopSpeedMph > 0 {
+                    Text("Top: \(Int(driveStore.allTimeTopSpeedMph)) mph")
+                        .font(.caption)
+                        .foregroundColor(.yellow.opacity(0.8))
+                }
+            }
+
+            HStack(spacing: 12) {
+                ArchiveStatBox(title: "Saved", value: "$\(Int(driveStore.totalSavedAllTime))", icon: "leaf.fill", color: .green)
+                ArchiveStatBox(title: "Rides", value: "\(driveStore.totalRideCount)", icon: "car.fill", color: .blue)
+                ArchiveStatBox(title: "Miles", value: String(format: "%.1f", driveStore.totalDistanceMiles), icon: "map.fill", color: .orange)
+            }
+
+            // Most driven route
+            if let top = driveStore.mostDrivenRecord, top.sessionCount > 1 {
+                Divider().opacity(0.3)
+                HStack(spacing: 8) {
+                    Image(systemName: "repeat")
+                        .font(.caption)
+                        .foregroundColor(.cyan)
+                    Text("Most driven: \(top.destinationName) ×\(top.sessionCount)")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                    Spacer()
+                }
+            }
+        }
+        .padding(24)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .environment(\.colorScheme, .dark)
     }
 }
 
@@ -184,7 +267,7 @@ struct SuggestionChipView: View {
     }
 }
 
-// MARK: - Stats Card
+// MARK: - Stats Card (legacy fallback)
 
 struct StatsCardView: View {
     @EnvironmentObject var journal: RideJournal
@@ -272,7 +355,7 @@ struct RecentRoutesView: View {
     }
 }
 
-// MARK: - Stat Box (kept for compatibility)
+// MARK: - Stat Box
 
 struct ArchiveStatBox: View {
     let title: String
