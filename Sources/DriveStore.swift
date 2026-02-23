@@ -74,6 +74,37 @@ class DriveStore: ObservableObject {
         return sessions.reduce(0) { $0 + $1.zenScore } / sessions.count
     }
 
+    /// Consecutive days with at least one completed ride (including today).
+    var currentStreak: Int {
+        let calendar = Calendar.current
+        let allDays = records
+            .flatMap(\.sessions)
+            .map { calendar.startOfDay(for: $0.date) }
+        let uniqueDays = Array(Set(allDays)).sorted(by: >)   // newest first
+
+        var streak = 0
+        var cursor = calendar.startOfDay(for: Date())
+
+        for day in uniqueDays {
+            if calendar.isDate(day, inSameDayAs: cursor) {
+                streak += 1
+                cursor = calendar.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+            } else if day < cursor {
+                break
+            }
+        }
+        return streak
+    }
+
+    /// Miles ridden today.
+    var todayMiles: Double {
+        let calendar = Calendar.current
+        return records
+            .flatMap(\.sessions)
+            .filter { calendar.isDateInToday($0.date) }
+            .reduce(0) { $0 + $1.distanceMiles }
+    }
+
     // MARK: - Persistence
 
     private func save() {

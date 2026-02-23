@@ -13,13 +13,19 @@ struct RouteSelectionSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(alignment: .leading, spacing: 12) {
+            // MARK: Header
+            VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text(destinationName.isEmpty ? "Destination" : destinationName)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("ROUTE TO")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .kerning(1.5)
+                        Text(destinationName.isEmpty ? "Destination" : destinationName)
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                    }
 
                     Spacer()
 
@@ -27,34 +33,43 @@ struct RouteSelectionSheet: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
                             .foregroundColor(.secondary)
-                            .frame(width: 44, height: 44) // glove-sized hit area
+                            .frame(width: 44, height: 44)
                     }
                 }
 
-                // Mode picker — motorcycle + car both active, others decorative
-                HStack(spacing: 0) {
+                // MARK: Vehicle Mode Toggle (motorcycle + car only)
+                HStack(spacing: 8) {
                     ForEach(VehicleMode.allCases, id: \.rawValue) { mode in
-                        ModeButton(
-                            icon: mode.icon,
-                            label: mode.displayName,
-                            isSelected: routingService.vehicleMode == mode
-                        ) {
-                            if routingService.vehicleMode != mode {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                routingService.vehicleMode = mode
+                        Button {
+                            guard routingService.vehicleMode != mode else { return }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            routingService.vehicleMode = mode
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: mode.icon)
+                                    .font(.system(size: 16, weight: routingService.vehicleMode == mode ? .bold : .regular))
+                                Text(mode.displayName)
+                                    .font(.system(size: 14, weight: routingService.vehicleMode == mode ? .bold : .regular))
                             }
+                            .foregroundColor(routingService.vehicleMode == mode ? .black : .primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                routingService.vehicleMode == mode
+                                    ? Color.cyan
+                                    : Color(.systemGray5)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .shadow(
+                                color: routingService.vehicleMode == mode ? Color.cyan.opacity(0.4) : .clear,
+                                radius: 8, x: 0, y: 3
+                            )
                         }
+                        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: routingService.vehicleMode)
                     }
-
-                    // Decorative only — walk, bus, bike
-                    DecorativeModeButton(icon: "figure.walk")
-                    DecorativeModeButton(icon: "bus.fill")
-                    DecorativeModeButton(icon: "bicycle")
                 }
-                .background(.regularMaterial)
-                .cornerRadius(12, corners: .allCorners)
 
-                // Route preference toggles
+                // MARK: Route Preference Chips
                 HStack(spacing: 8) {
                     RoutePreferenceChip(
                         icon: "camera.fill",
@@ -82,33 +97,12 @@ struct RouteSelectionSheet: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
 
-            // Route Options List
-            VStack(spacing: 12) {
+            // MARK: Route Options
+            VStack(spacing: 10) {
                 if routingService.isCalculatingRoute {
-                    HStack {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            ProgressView()
-                                .scaleEffect(1.1)
-                            Text("Calculating routes…")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 24)
-                    .transition(.opacity)
+                    routeLoadingState
                 } else if routingService.availableRoutes.isEmpty {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(.orange)
-                        Text("Unable to calculate route")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                    .padding()
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    routeErrorState
                 } else {
                     ForEach(Array(routingService.availableRoutes.enumerated()), id: \.element.id) { index, route in
                         RouteListRow(
@@ -120,51 +114,78 @@ struct RouteSelectionSheet: View {
                                 resetTimer()
                             }
                         )
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                    }
+
+                    // Camera risk strip (shown when routes have cameras)
+                    if routingService.availableRoutes.contains(where: { $0.cameraCount > 0 }) {
+                        CameraRiskStrip(routes: routingService.availableRoutes, selectedIndex: routingService.selectedRouteIndex)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.isCalculatingRoute)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.availableRoutes.count)
             .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+            .padding(.bottom, 16)
 
-            // Actions — large glove-friendly buttons
-            HStack(spacing: 14) {
+            // MARK: Action Buttons
+            HStack(spacing: 12) {
+                // Simulate button
                 Button(action: {
                     timer?.invalidate()
                     onSimulate()
                 }) {
-                    Text("Simulate")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 64)
-                        .background(.regularMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    HStack(spacing: 6) {
+                        Image(systemName: "play.circle")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Simulate")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
+                // Ride button with countdown arc
                 Button(action: {
                     timer?.invalidate()
                     onDrive()
                 }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: routingService.vehicleMode.icon)
-                            .font(.title3.weight(.bold))
-                        Text(countdown > 0 ? "Ride (\(countdown)s)" : "Ride")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .contentTransition(.numericText())
+                    ZStack {
+                        // Countdown arc
+                        if !routingService.isCalculatingRoute && !routingService.availableRoutes.isEmpty {
+                            Circle()
+                                .trim(from: 0, to: Double(countdown) / 10.0)
+                                .stroke(Color.white.opacity(0.35), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                                .padding(3)
+                        }
+
+                        HStack(spacing: 8) {
+                            Image(systemName: routingService.vehicleMode.icon)
+                                .font(.system(size: 16, weight: .bold))
+                            Text("Ride")
+                                .font(.system(size: 17, weight: .black, design: .rounded))
+                        }
+                        .foregroundColor(.black)
                     }
-                    .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 64)
+                    .frame(height: 60)
                     .background(
-                        LinearGradient(colors: [.cyan, Color(red: 0.0, green: 0.6, blue: 0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        LinearGradient(
+                            colors: [.cyan, Color(red: 0.0, green: 0.65, blue: 0.85)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .shadow(color: .cyan.opacity(0.4), radius: 10, x: 0, y: 4)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: .cyan.opacity(0.45), radius: 12, x: 0, y: 4)
                 }
             }
             .padding(.horizontal, 24)
@@ -177,13 +198,50 @@ struct RouteSelectionSheet: View {
         .onChange(of: routingService.availableRoutes.count) { count in
             if count > 0 && timer == nil { startTimer() }
         }
-        .onDisappear {
-            timer?.invalidate()
-        }
+        .onDisappear { timer?.invalidate() }
         .onChange(of: routingService.avoidSpeedCameras) { _ in recalculatePreferences() }
         .onChange(of: routingService.avoidHighways)     { _ in recalculatePreferences() }
         .onChange(of: routingService.avoidTolls)        { _ in recalculatePreferences() }
     }
+
+    // MARK: - States
+
+    private var routeLoadingState: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+                .tint(.cyan)
+                .scaleEffect(1.2)
+            Text("Calculating routes…")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+        .transition(.opacity)
+    }
+
+    private var routeErrorState: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Unable to calculate route")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.primary)
+                Text("Check your connection and try again")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Color.orange.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    // MARK: - Timer
 
     private func recalculatePreferences() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -212,47 +270,101 @@ struct RouteSelectionSheet: View {
     }
 }
 
-// MARK: - Active Mode Button (motorcycle / car)
+// MARK: - Camera Risk Strip
 
-private struct ModeButton: View {
-    let icon: String
-    let label: String
-    let isSelected: Bool
-    let action: () -> Void
+private struct CameraRiskStrip: View {
+    let routes: [TomTomRoute]
+    let selectedIndex: Int
+
+    var selectedRoute: TomTomRoute? {
+        guard selectedIndex < routes.count else { return nil }
+        return routes[selectedIndex]
+    }
+
+    var maxCameras: Int { routes.map(\.cameraCount).max() ?? 1 }
 
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: isSelected ? .bold : .regular))
-                    .foregroundColor(isSelected ? .white : .primary)
-                if isSelected {
-                    Text(label)
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.9))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                Text("CAMERA RISK ON SELECTED ROUTE")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .kerning(0.8)
+            }
+
+            if let route = selectedRoute {
+                if route.isZeroCameras {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.shield.fill")
+                            .foregroundColor(.green)
+                        Text("Zero speed cameras on this route")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.green)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.green.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.green.opacity(0.3), lineWidth: 1))
+                } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        // Visual risk bar
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(height: 8)
+
+                                Capsule()
+                                    .fill(LinearGradient(
+                                        colors: [.orange, .red],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ))
+                                    .frame(
+                                        width: maxCameras > 0
+                                            ? geo.size.width * Double(route.cameraCount) / Double(maxCameras)
+                                            : 0,
+                                        height: 8
+                                    )
+                                    .shadow(color: .orange.opacity(0.5), radius: 4)
+
+                                // Camera dots
+                                ForEach(0..<route.cameraCount, id: \.self) { i in
+                                    let position = maxCameras > 1
+                                        ? Double(i) / Double(max(1, route.cameraCount - 1))
+                                        : 0.5
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 6, height: 6)
+                                        .shadow(color: .red.opacity(0.8), radius: 3)
+                                        .offset(x: geo.size.width * position - 3)
+                                }
+                            }
+                        }
+                        .frame(height: 8)
+
+                        HStack {
+                            Image(systemName: "camera.badge.ellipsis")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.orange)
+                            Text("\(route.cameraCount) speed camera\(route.cameraCount == 1 ? "" : "s") · ~$\(route.savedFines) potential fines")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.orange.opacity(0.25), lineWidth: 1))
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(isSelected ? Color.blue : Color.clear)
-            .cornerRadius(10, corners: .allCorners)
-            .padding(2)
         }
-    }
-}
-
-// MARK: - Decorative (disabled) Mode Button
-
-private struct DecorativeModeButton: View {
-    let icon: String
-
-    var body: some View {
-        Image(systemName: icon)
-            .font(.body)
-            .foregroundColor(.primary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 15)
-            .opacity(0.2)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedIndex)
     }
 }
 
@@ -265,80 +377,105 @@ struct RouteListRow: View {
 
     var formattedTime: String {
         let minutes = route.summary.travelTimeInSeconds / 60
-        return "\(minutes) min"
+        let hours = minutes / 60
+        let mins = minutes % 60
+        return hours > 0 ? "\(hours)h \(mins)m" : "\(minutes) min"
     }
 
     var formattedDistance: String {
-        let miles = Double(route.summary.lengthInMeters) / 1609.34
-        return String(format: "%.1f mi", miles)
+        String(format: "%.1f mi", Double(route.summary.lengthInMeters) / 1609.34)
+    }
+
+    var routeAccentColor: Color {
+        if route.isZeroCameras { return .green }
+        if route.cameraCount > 0 { return .orange }
+        return .blue
     }
 
     var body: some View {
         Button(action: onSelect) {
-            HStack {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
+            HStack(spacing: 12) {
+                // Color indicator bar
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(routeAccentColor)
+                    .frame(width: 4, height: 44)
+                    .shadow(color: routeAccentColor.opacity(0.6), radius: 4)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 6) {
                         if route.isZeroCameras {
                             Label("Zero Cameras", systemImage: "checkmark.shield.fill")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.green)
                         } else if route.cameraCount > 0 {
-                            Label("\(route.cameraCount) Speed Cameras", systemImage: "camera.badge.ellipsis")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
+                            Label("\(route.cameraCount) Camera\(route.cameraCount == 1 ? "" : "s")", systemImage: "camera.fill")
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.orange)
                         } else if route.isLessTraffic {
-                            Text("Less Traffic")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
+                            Label("Less Traffic", systemImage: "car.2.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.blue)
                         } else {
-                            Text("Fastest Route")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(isSelected ? .blue : .primary)
+                            Label("Fastest", systemImage: "bolt.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.primary)
+                        }
+
+                        if route.isZeroCameras && isSelected {
+                            Text("ZEN ROUTE")
+                                .font(.system(size: 9, weight: .black))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.green)
+                                .clipShape(Capsule())
                         }
                     }
 
-                    if route.isZeroCameras {
-                        Text("Safest Choice")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                            .fontWeight(.medium)
-                    } else if route.cameraCount > 0 {
-                        Text("Risk: ~$\(route.savedFines) in potential fines")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .fontWeight(.medium)
-                    } else {
-                        Text("Standard Route")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    Text(route.isZeroCameras
+                         ? "Safest choice · camera-free"
+                         : route.cameraCount > 0
+                             ? "Risk: ~$\(route.savedFines) potential fines"
+                             : "Standard route")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: 3) {
                     Text(formattedTime)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(isSelected ? .green : .primary)
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundColor(isSelected ? routeAccentColor : .primary)
                     Text(formattedDistance)
-                        .font(.subheadline)
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(minHeight: 64)  // glove-friendly row height
-            .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
-            .background(.regularMaterial)
-            .cornerRadius(14, corners: .allCorners)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(minHeight: 64)
+            .background(
+                ZStack {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(routeAccentColor.opacity(0.08))
+                    }
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.regularMaterial)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+                    .strokeBorder(
+                        isSelected ? routeAccentColor.opacity(0.5) : Color.white.opacity(0.06),
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
+            )
+            .shadow(
+                color: isSelected ? routeAccentColor.opacity(0.15) : .clear,
+                radius: 8, x: 0, y: 3
             )
         }
     }

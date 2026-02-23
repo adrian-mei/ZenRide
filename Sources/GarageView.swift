@@ -221,7 +221,23 @@ private struct StatsMiniHUD: View {
     var body: some View {
         if driveStore.totalRideCount > 0 {
             HStack(spacing: 8) {
-                HStack(spacing: 4) {
+                // Streak flame
+                if driveStore.currentStreak > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.red)
+                        Text("\(driveStore.currentStreak)")
+                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+
+                    Rectangle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 1, height: 14)
+                }
+
+                HStack(spacing: 3) {
                     Image(systemName: "flag.fill")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.cyan)
@@ -231,10 +247,10 @@ private struct StatsMiniHUD: View {
                 }
 
                 Rectangle()
+                    .fill(Color.white.opacity(0.2))
                     .frame(width: 1, height: 14)
-                    .opacity(0.3)
 
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Image(systemName: "map.fill")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.orange)

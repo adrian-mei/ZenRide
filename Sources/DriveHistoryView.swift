@@ -11,12 +11,38 @@ struct DriveHistoryView: View {
                     EmptyHistoryView()
                 } else {
                     List {
-                        ForEach(driveStore.records.sorted(by: { $0.lastDrivenDate > $1.lastDrivenDate })) { record in
-                            Button(action: { selectedRecord = record }) {
-                                RouteRecordRow(record: record)
+                        // MARK: Streak + Stats Banner
+                        Section {
+                            RiderStatsBanner()
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .listRowSeparator(.hidden)
+
+                        // MARK: Achievements shelf
+                        Section {
+                            AchievementsShelf()
+                                .padding(.vertical, 4)
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowSeparator(.hidden)
+
+                        // MARK: Route Records
+                        Section {
+                            ForEach(driveStore.records.sorted(by: { $0.lastDrivenDate > $1.lastDrivenDate })) { record in
+                                Button(action: { selectedRecord = record }) {
+                                    RouteRecordRow(record: record)
+                                }
+                                .listRowBackground(Color(white: 0.1))
+                                .listRowSeparatorTint(Color.white.opacity(0.1))
                             }
-                            .listRowBackground(Color(white: 0.1))
-                            .listRowSeparatorTint(Color.white.opacity(0.1))
+                        } header: {
+                            Text("ROUTES")
+                                .font(.system(size: 11, weight: .black))
+                                .foregroundColor(.white.opacity(0.4))
+                                .kerning(1.5)
+                                .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 4, trailing: 16))
                         }
                     }
                     .listStyle(.plain)
@@ -32,6 +58,75 @@ struct DriveHistoryView: View {
         }
         .sheet(item: $selectedRecord) { record in
             DriveRecordDetailView(record: record)
+        }
+    }
+}
+
+// MARK: - Rider Stats Banner
+
+private struct RiderStatsBanner: View {
+    @EnvironmentObject var driveStore: DriveStore
+
+    var body: some View {
+        let streak = driveStore.currentStreak
+        HStack(spacing: 0) {
+            // Streak section
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(streak > 0 ? Color.red.opacity(0.2) : Color.white.opacity(0.06))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(streak > 0 ? .red : .white.opacity(0.2))
+                        .shadow(color: streak > 0 ? .red.opacity(0.5) : .clear, radius: 6)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(streak > 0 ? "\(streak) day streak" : "No streak yet")
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .foregroundColor(streak > 0 ? .white : .white.opacity(0.3))
+                    Text(streak > 0 ? "Keep it up!" : "Ride today to start one")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+            }
+
+            Spacer()
+
+            // Quick stats
+            HStack(spacing: 16) {
+                if driveStore.todayMiles > 0 {
+                    quickStat(value: String(format: "%.1f", driveStore.todayMiles), label: "mi today", color: .cyan)
+                }
+                if driveStore.avgZenScore > 0 {
+                    quickStat(value: "\(driveStore.avgZenScore)", label: "avg zen", color: .green)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.07, green: 0.07, blue: 0.14), Color(red: 0.04, green: 0.04, blue: 0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+    }
+
+    private func quickStat(value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 16, weight: .black, design: .rounded))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.white.opacity(0.4))
+                .kerning(0.5)
         }
     }
 }
