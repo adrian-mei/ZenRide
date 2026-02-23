@@ -71,10 +71,26 @@ struct DestinationSearchView: View {
             
             // Floating, frosted search bar on top
             VStack(spacing: 0) {
-                searchBar
-                    .padding(.top, 20)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
+                HStack(spacing: 0) {
+                    searchBar
+                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isSearchFocused)
+                    
+                    if isSearchFocused {
+                        Button("Cancel") {
+                            isSearchFocused = false
+                            searcher.searchQuery = ""
+                            searcher.searchResults = []
+                            searcher.isSearching = false
+                        }
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.cyan)
+                        .padding(.leading, 12)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
+                }
+                .padding(.top, 20)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
                 
                 Divider().opacity(0.3)
             }
@@ -92,6 +108,7 @@ struct DestinationSearchView: View {
 
     // MARK: - Search Bar
 
+    @ViewBuilder
     private var searchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
@@ -125,22 +142,24 @@ struct DestinationSearchView: View {
                     searcher.search(for: q, near: owlPolice.currentLocation?.coordinate)
                 }
 
-            if searcher.searchQuery.isEmpty {
+            if searcher.searchQuery.isEmpty && !isSearchFocused {
                 Image(systemName: "mic.fill")
                     .foregroundStyle(.secondary)
                     .frame(width: 36, height: 36)
             } else {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    searcher.searchQuery = ""
-                    searcher.searchResults = []
-                    searcher.isSearching = false
-                    // Keep focus — user wants to type something new
-                    isSearchFocused = true
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 36, height: 36)
+                if !searcher.searchQuery.isEmpty {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        searcher.searchQuery = ""
+                        searcher.searchResults = []
+                        searcher.isSearching = false
+                        // Keep focus — user wants to type something new
+                        isSearchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 36, height: 36)
+                    }
                 }
             }
         }
@@ -258,6 +277,7 @@ struct DestinationSearchView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
         .transition(.opacity)
     }
 
@@ -331,6 +351,7 @@ struct DestinationSearchView: View {
                     .padding(.top, 10)
                     .padding(.bottom, 20)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .transition(.opacity)
             }
         }

@@ -114,6 +114,9 @@ private struct RiderStatsBanner: View {
                 if driveStore.avgZenScore > 0 {
                     quickStat(value: "\(driveStore.avgZenScore)", label: "avg zen", color: .green)
                 }
+                if driveStore.totalSavedAllTime > 0 {
+                    quickStat(value: "$\(Int(driveStore.totalSavedAllTime))", label: "saved", color: .orange)
+                }
             }
         }
         .padding(.horizontal, 16)

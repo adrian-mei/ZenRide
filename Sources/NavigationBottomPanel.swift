@@ -112,30 +112,9 @@ struct NavigationBottomPanel: View {
 
                 Spacer()
 
-                // End Ride — single tap, no confirmation (per design plan)
-                Button {
-                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                    onEnd()
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 20, weight: .black))
-                        Text("END")
-                            .font(.system(size: 13, weight: .black, design: .rounded))
-                            .kerning(1.2)
-                    }
-                    .foregroundColor(.white)
-                    .frame(width: 80, height: 72)
-                    .background(
-                        LinearGradient(
-                            colors: [Color(red: 1.0, green: 0.2, blue: 0.2), Color(red: 0.6, green: 0.0, blue: 0.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .shadow(color: .red.opacity(0.6), radius: 12, x: 0, y: 6)
-                }
+                // End Ride — slide to end instead of tap
+                SlideToEndSlider(onEnd: onEnd)
+                    .frame(width: 140, height: 60)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, isArriving ? 0 : 10)
@@ -335,6 +314,87 @@ private struct LiveMetricTile: View {
                 )
                 .shadow(color: color.opacity(pulse ? 0.4 : 0.0), radius: 10)
         )
+    }
+}
+
+// MARK: - Slide to End Slider
+
+private struct SlideToEndSlider: View {
+    var onEnd: () -> Void
+
+    @State private var dragOffset: CGFloat = 0
+    private let trackWidth: CGFloat = 140
+    private let thumbSize: CGFloat = 52
+    
+    var progress: Double {
+        max(0, min(1, dragOffset / (trackWidth - thumbSize)))
+    }
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // Background track
+            Capsule()
+                .fill(Color(red: 0.1, green: 0.05, blue: 0.05))
+                .overlay(
+                    Capsule().strokeBorder(Color.red.opacity(0.3), lineWidth: 1.5)
+                )
+
+            // Text
+            Text("SLIDE TO END")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .kerning(0.8)
+                .foregroundColor(.red.opacity(0.8))
+                .frame(maxWidth: .infinity)
+                .padding(.leading, 24)
+                .opacity(1.0 - progress) // fade out as thumb moves
+
+            // Thumb
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 1.0, green: 0.2, blue: 0.2), Color(red: 0.6, green: 0.0, blue: 0.0)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: .red.opacity(0.6), radius: 6, x: 0, y: 3)
+                
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .black))
+                    .foregroundColor(.white)
+            }
+            .frame(width: thumbSize, height: thumbSize)
+            .padding(4)
+            .offset(x: dragOffset)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        // Only allow dragging to the right
+                        let x = max(0, value.translation.width)
+                        dragOffset = min(x, trackWidth - thumbSize)
+                    }
+                    .onEnded { value in
+                        if progress > 0.8 {
+                            // Complete
+                            withAnimation(.spring()) {
+                                dragOffset = trackWidth - thumbSize
+                            }
+                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                onEnd()
+                            }
+                        } else {
+                            // Snap back
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                dragOffset = 0
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                    }
+            )
+        }
+        .frame(width: trackWidth, height: 60)
     }
 }
 

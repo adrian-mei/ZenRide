@@ -34,6 +34,7 @@ struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var routingService: RoutingService
     @Binding var routeState: RouteState
+    @Binding var isTracking: Bool
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -280,6 +281,12 @@ struct ZenMapView: UIViewRepresentable {
             guard let coordinate = notification.object as? CLLocationCoordinate2D else { return }
             let hazard = HazardAnnotation(coordinate: coordinate)
             mapView?.addAnnotation(hazard)
+        }
+
+        func mapView(_ mapView: MKMapView, didChange mode: MKUserTrackingMode, animated: Bool) {
+            DispatchQueue.main.async {
+                self.parent.isTracking = (mode == .followWithHeading || mode == .follow)
+            }
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
