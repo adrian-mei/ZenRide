@@ -1,154 +1,138 @@
 import SwiftUI
 
-struct GarageView: View {
+// MARK: - Post-Ride Info
+
+struct PostRideInfo {
+    let distanceMiles: Double
+    let zenScore: Int
+    let moneySaved: Double
+}
+
+// MARK: - MapHomeView
+
+struct MapHomeView: View {
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var driveStore: DriveStore
-    var onRollOut: () -> Void
+    @EnvironmentObject var vehicleStore: VehicleStore
+    @EnvironmentObject var owlPolice: OwlPolice
 
-    @State private var topSuggestion: SavedRoute? = nil
+    var onRollOut: () -> Void
+    var postRideInfo: PostRideInfo?
+    var pendingMoodSave: ((String) -> Void)?
+
+    @State private var showGarage = false
     @State private var showHistory = false
+    @State private var showMoodCard = false
+    @State private var toastVisible = false
+    @State private var topSuggestion: SavedRoute? = nil
 
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 4..<12: return "Good morning."
+        case 4..<12:  return "Good morning."
         case 12..<17: return "Good afternoon."
         case 17..<20: return "Golden hour."
-        default: return "Good evening."
+        default:      return "Good evening."
         }
-    }
-
-    var lastMood: String {
-        journal.entries.first?.mood ?? "Peaceful"
     }
 
     var body: some View {
         ZStack {
-            // Live map in the background
+            // MARK: Full-screen interactive map
             ZenMapView(routeState: .constant(.search))
                 .edgesIgnoringSafeArea(.all)
+                // Interactive — no allowsHitTesting(false)
+
+            // MARK: HUD Overlays
+            VStack(spacing: 0) {
+                // Top row: vehicle button + stats pill
+                HStack(alignment: .top, spacing: 0) {
+                    // Left: Vehicle HUD button
+                    VehicleHUDButton(onTap: { showGarage = true })
+                        .padding(.leading, 16)
+
+                    Spacer()
+
+                    // Right: Stats mini-HUD
+                    StatsMiniHUD()
+                        .padding(.trailing, 16)
+                }
+                .padding(.top, 60)
+
+                // Floating search bar
+                FloatingSearchBarButton(onTap: onRollOut)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                Spacer()
+            }
+            .zIndex(10)
+            .allowsHitTesting(true)
+
+            // MARK: Bottom Quick Routes Panel
+            VStack {
+                Spacer()
+                QuickRoutesPanel(
+                    topSuggestion: topSuggestion,
+                    onRollOut: onRollOut,
+                    savedRoutes: savedRoutes,
+                    showHistory: $showHistory
+                )
+            }
+            .zIndex(8)
+
+            // MARK: Post-ride toast
+            if toastVisible, let info = postRideInfo {
+                VStack {
+                    PostRideToast(info: info)
+                        .padding(.top, 16)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    Spacer()
+                }
                 .allowsHitTesting(false)
-
-            // Heavy blur over the map
-            Color.black.opacity(0.4)
-                .background(.ultraThinMaterial)
-                .edgesIgnoringSafeArea(.all)
-
-            ScrollView {
-                VStack(spacing: 24) {
-                    Spacer(minLength: 60)
-
-                    // Identity
-                    VStack(spacing: 8) {
-                        Image(systemName: "shield.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.blue)
-                            .padding(.bottom, 10)
-
-                        Text("ZenRide")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-
-                        Text(greeting)
-                            .font(.title3)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white.opacity(0.85))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-
-                        if !journal.entries.isEmpty {
-                            Text("Your last ride was \(lastMood.lowercased()).")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding(.top, 4)
-                        }
+                .zIndex(50)
+            }
+        }
+        .onAppear {
+            refreshSuggestion()
+            // Show post-ride toast if info present
+            if postRideInfo != nil {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    toastVisible = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                    withAnimation(.easeOut(duration: 0.5)) { toastVisible = false }
+                }
+                // Show mood card after toast dismisses
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    if pendingMoodSave != nil {
+                        withAnimation { showMoodCard = true }
                     }
-
-                    // Suggestion chip — driven by @State, not computed inline
-                    if let top = topSuggestion {
-                        SuggestionChipView(route: top) {
-                            onRollOut()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                NotificationCenter.default.post(name: .zenRideNavigateTo, object: top)
-                            }
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .padding(.horizontal, 20)
-                    }
-
-                    // Stats card — enhanced when DriveStore has data
-                    if driveStore.totalRideCount > 0 {
-                        EnhancedStatsCard()
-                            .padding(.horizontal, 20)
-                    } else {
-                        StatsCardView()
-                            .padding(.horizontal, 20)
-                    }
-
-                    // Recent routes (only if history exists)
-                    let recent = savedRoutes.topRecent(limit: 3)
-                    if !recent.isEmpty {
-                        RecentRoutesView(routes: recent) { route in
-                            onRollOut()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                NotificationCenter.default.post(name: .zenRideNavigateTo, object: route)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-
-                    Spacer(minLength: 20)
-
-                    // Drive History button (shown once history exists)
-                    if driveStore.totalRideCount > 0 {
-                        Button(action: { showHistory = true }) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .font(.subheadline)
-                                Text("Drive History")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                Spacer()
-                                Text("\(driveStore.totalRideCount) rides")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.5))
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.bold())
-                                    .foregroundColor(.white.opacity(0.4))
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 14)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(14)
-                            .foregroundColor(.white)
-                        }
-                        .padding(.horizontal, 20)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-
-                    Button(action: onRollOut) {
-                        Text("Open Maps")
-                            .font(.title2)
-                            .fontWeight(.heavy)
-                            .foregroundColor(.white)
-                            .padding(.vertical, 24)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.blue)
-                            .clipShape(Capsule())
-                    }
-                    .padding(.horizontal, 40)
-                    .accessibilityLabel("Open navigation")
-                    .padding(.bottom, 40)
                 }
             }
         }
-        .onAppear { refreshSuggestion() }
         .onChange(of: savedRoutes.routes.count) { _ in refreshSuggestion() }
+        .sheet(isPresented: $showGarage) {
+            VehicleGarageView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
         .sheet(isPresented: $showHistory) {
             DriveHistoryView()
+        }
+        .sheet(isPresented: $showMoodCard) {
+            if let moodSave = pendingMoodSave {
+                MoodSelectionCard(onSelect: { mood in
+                    moodSave(mood)
+                    showMoodCard = false
+                }, onDismiss: {
+                    moodSave("")
+                    showMoodCard = false
+                })
+                .presentationDetents([.fraction(0.45)])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 
@@ -159,227 +143,409 @@ struct GarageView: View {
     }
 }
 
-// MARK: - Enhanced Stats Card (DriveStore-powered)
+// MARK: - Vehicle HUD Button
 
-struct EnhancedStatsCard: View {
+private struct VehicleHUDButton: View {
+    let onTap: () -> Void
+    @EnvironmentObject var vehicleStore: VehicleStore
+
+    @State private var glowPulse = false
+
+    var accentColor: Color {
+        Color(hex: vehicleStore.selectedVehicle?.colorHex ?? "007AFF")
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 8) {
+                Image(systemName: vehicleStore.selectedVehicle?.type.icon ?? "car.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(accentColor)
+
+                if let vehicle = vehicleStore.selectedVehicle {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(vehicle.name)
+                            .font(.system(size: 12, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        Text(vehicle.type.displayName)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(accentColor.opacity(0.8))
+                            .kerning(0.5)
+                    }
+                } else {
+                    Text("Garage")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                ZStack {
+                    Color(red: 0.08, green: 0.08, blue: 0.12)
+                    LinearGradient(
+                        colors: [accentColor.opacity(0.25), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [accentColor.opacity(glowPulse ? 0.8 : 0.4), accentColor.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
+            .shadow(color: accentColor.opacity(0.25), radius: 8, x: 0, y: 4)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                glowPulse = true
+            }
+        }
+    }
+}
+
+// MARK: - Stats Mini HUD
+
+private struct StatsMiniHUD: View {
     @EnvironmentObject var driveStore: DriveStore
 
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Ride Archive")
-                    .font(.headline)
-                    .foregroundColor(.white.opacity(0.8))
-                Spacer()
-                if driveStore.allTimeTopSpeedMph > 0 {
-                    Text("Top: \(Int(driveStore.allTimeTopSpeedMph)) mph")
-                        .font(.caption)
-                        .foregroundColor(.yellow.opacity(0.8))
-                }
-            }
-
-            HStack(spacing: 12) {
-                ArchiveStatBox(title: "Saved", value: "$\(Int(driveStore.totalSavedAllTime))", icon: "leaf.fill", color: .green)
-                ArchiveStatBox(title: "Rides", value: "\(driveStore.totalRideCount)", icon: "car.fill", color: .blue)
-                ArchiveStatBox(title: "Miles", value: String(format: "%.1f", driveStore.totalDistanceMiles), icon: "map.fill", color: .orange)
-            }
-
-            // Most driven route
-            if let top = driveStore.mostDrivenRecord, top.sessionCount > 1 {
-                Divider().opacity(0.3)
-                HStack(spacing: 8) {
-                    Image(systemName: "repeat")
-                        .font(.caption)
+        if driveStore.totalRideCount > 0 {
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.cyan)
-                    Text("Most driven: \(top.destinationName) ×\(top.sessionCount)")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                    Spacer()
+                    Text("\(driveStore.totalRideCount)")
+                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                }
+
+                Rectangle()
+                    .frame(width: 1, height: 14)
+                    .opacity(0.3)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.orange)
+                    Text(String(format: "%.0f mi", driveStore.totalDistanceMiles))
+                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Color(red: 0.08, green: 0.08, blue: 0.12)
+                    .overlay(Color.white.opacity(0.05))
+            )
+            .clipShape(Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+            .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
         }
-        .padding(24)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .environment(\.colorScheme, .dark)
     }
 }
 
-// MARK: - Suggestion Chip
+// MARK: - Floating Search Bar Button
 
-struct SuggestionChipView: View {
-    let route: SavedRoute
+private struct FloatingSearchBarButton: View {
     let onTap: () -> Void
 
-    @State private var appeared = false
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.secondary)
+                Text("Search destination")
+                    .font(.system(size: 17))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 15))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Quick Routes Panel
+
+private struct QuickRoutesPanel: View {
+    let topSuggestion: SavedRoute?
+    let onRollOut: () -> Void
+    let savedRoutes: SavedRoutesStore
+    @Binding var showHistory: Bool
+    @EnvironmentObject var driveStore: DriveStore
+
+    private var recentRoutes: [SavedRoute] { savedRoutes.topRecent(limit: 3) }
 
     var body: some View {
-        Button(action: {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            onTap()
-        }) {
-            HStack(spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.yellow)
+        VStack(alignment: .leading, spacing: 0) {
+            // Handle
+            Capsule()
+                .fill(Color.white.opacity(0.2))
+                .frame(width: 36, height: 4)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 10)
+                .padding(.bottom, 14)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(SmartSuggestionService.promptText(for: route))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-
-                    if let avgHour = route.typicalDepartureHours.sorted().dropFirst(route.typicalDepartureHours.count / 4).first {
-                        Text("Usually around \(formattedHour(avgHour))")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.6))
-                    }
-                }
+            // Header row
+            HStack {
+                Text("QUICK ROUTES")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundColor(.white.opacity(0.5))
+                    .kerning(1.5)
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.5))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(Color.yellow.opacity(0.4), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-        .scaleEffect(appeared ? 1 : 0.9)
-        .opacity(appeared ? 1 : 0)
-        .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                appeared = true
-            }
-        }
-    }
-
-    private func formattedHour(_ hour: Int) -> String {
-        let period = hour < 12 ? "am" : "pm"
-        let h = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)
-        return "\(h)\(period)"
-    }
-}
-
-// MARK: - Stats Card (legacy fallback)
-
-struct StatsCardView: View {
-    @EnvironmentObject var journal: RideJournal
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("Ride Archive")
-                .font(.headline)
-                .foregroundColor(.white.opacity(0.8))
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 12) {
-                ArchiveStatBox(title: "Saved", value: "$\(journal.totalSaved)", icon: "leaf.fill", color: .green)
-                ArchiveStatBox(title: "Rides", value: "\(journal.entries.count)", icon: "car.fill", color: .blue)
-                ArchiveStatBox(title: "Miles", value: String(format: "%.1f", journal.totalDistanceMiles), icon: "map.fill", color: .orange)
-            }
-        }
-        .padding(24)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .environment(\.colorScheme, .dark)
-    }
-}
-
-// MARK: - Recent Routes
-
-struct RecentRoutesView: View {
-    let routes: [SavedRoute]
-    let onTap: (SavedRoute) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Routes")
-                .font(.headline)
-                .foregroundColor(.white.opacity(0.8))
-
-            VStack(spacing: 0) {
-                ForEach(Array(routes.enumerated()), id: \.element.id) { index, route in
-                    Button(action: { onTap(route) }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.system(size: 22))
-                                .foregroundColor(.blue)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(route.destinationName)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white)
-                                Text(relativeDate(route.lastUsedDate))
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.bold())
-                                .foregroundColor(.white.opacity(0.3))
+                if driveStore.totalRideCount > 0 {
+                    Button {
+                        showHistory = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("History")
+                                .font(.system(size: 11, weight: .bold))
                         }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 16)
-                    }
-
-                    if index < routes.count - 1 {
-                        Divider().padding(.leading, 50)
+                        .foregroundColor(.cyan.opacity(0.8))
                     }
                 }
             }
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .environment(\.colorScheme, .dark)
-        }
-    }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
 
-    private func relativeDate(_ date: Date) -> String {
-        let calendar = Calendar.current
-        let now = Date()
-        let days = calendar.dateComponents([.day], from: date, to: now).day ?? 0
-        switch days {
-        case 0: return "Today"
-        case 1: return "Yesterday"
-        default: return "\(days) days ago"
+            // Suggestion chip
+            if let top = topSuggestion {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onRollOut()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        NotificationCenter.default.post(name: .zenRideNavigateTo, object: top)
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.yellow)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(SmartSuggestionService.promptText(for: top))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                            Text(top.destinationName)
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.yellow.opacity(0.7))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.yellow.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1))
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 10)
+            }
+
+            // Recent routes (horizontal chips)
+            if !recentRoutes.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(recentRoutes) { route in
+                            Button {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                onRollOut()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                    NotificationCenter.default.post(name: .zenRideNavigateTo, object: route)
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "mappin.circle.fill")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.blue)
+                                    Text(route.destinationName)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.white.opacity(0.08))
+                                .clipShape(Capsule())
+                                .overlay(Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 1))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .padding(.bottom, 12)
+            }
+
+            // Start Riding button
+            Button(action: onRollOut) {
+                HStack(spacing: 10) {
+                    Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                        .font(.system(size: 16, weight: .bold))
+                    Text("Start Riding")
+                        .font(.system(size: 17, weight: .black, design: .rounded))
+                }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.cyan)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: Color.cyan.opacity(0.3), radius: 10, x: 0, y: 4)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
+        .background(
+            ZStack {
+                Color(red: 0.06, green: 0.06, blue: 0.1)
+                LinearGradient(colors: [Color.white.opacity(0.08), .clear], startPoint: .top, endPoint: .bottom)
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: .black.opacity(0.4), radius: 24, x: 0, y: -8)
+        .padding(.horizontal, 0)
+        .ignoresSafeArea(edges: .bottom)
     }
 }
 
-// MARK: - Stat Box
+// MARK: - Post-Ride Toast
 
-struct ArchiveStatBox: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
+private struct PostRideToast: View {
+    let info: PostRideInfo
 
     var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .font(.system(size: 28, weight: .bold))
-            Text(value)
-                .font(.title2)
-                .fontWeight(.heavy)
-                .foregroundColor(.white)
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.white.opacity(0.7))
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.green)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Ride saved")
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundColor(.white)
+                HStack(spacing: 8) {
+                    Text(String(format: "%.1f mi", info.distanceMiles))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
+                    if info.zenScore > 0 {
+                        Text("· \(info.zenScore) Zen")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.cyan.opacity(0.8))
+                    }
+                    if info.moneySaved > 0 {
+                        Text("· $\(Int(info.moneySaved)) saved")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.green.opacity(0.8))
+                    }
+                }
+            }
+
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .background(Color(white: 0.2).opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            ZStack {
+                Color(red: 0.06, green: 0.12, blue: 0.1)
+                Color.green.opacity(0.12)
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.green.opacity(0.3), lineWidth: 1))
+        .shadow(color: Color.green.opacity(0.2), radius: 10, x: 0, y: 4)
+        .padding(.horizontal, 16)
+        .padding(.top, 50)
     }
 }
+
+// MARK: - Mood Selection Card
+
+struct MoodSelectionCard: View {
+    let onSelect: (String) -> Void
+    let onDismiss: () -> Void
+
+    private let moods: [(emoji: String, label: String, color: Color)] = [
+        ("😌", "Peaceful", .cyan),
+        ("⚡", "Energized", .yellow),
+        ("🧘", "Zen", .green),
+        ("🔥", "Intense", .orange),
+        ("😤", "Frustrated", .red),
+    ]
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Capsule()
+                .fill(Color.white.opacity(0.2))
+                .frame(width: 36, height: 4)
+                .padding(.top, 12)
+
+            Text("How was the ride?")
+                .font(.system(size: 20, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+
+            Text("Optional — swipe down to skip")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.4))
+
+            HStack(spacing: 12) {
+                ForEach(moods, id: \.label) { mood in
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onSelect(mood.label)
+                    } label: {
+                        VStack(spacing: 6) {
+                            Text(mood.emoji)
+                                .font(.system(size: 28))
+                            Text(mood.label)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(mood.color)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(mood.color.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(mood.color.opacity(0.3), lineWidth: 1))
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+
+            Button {
+                onDismiss()
+            } label: {
+                Text("Skip")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.4))
+            }
+            .padding(.bottom, 16)
+        }
+        .background(Color(red: 0.06, green: 0.06, blue: 0.1).ignoresSafeArea())
+        .preferredColorScheme(.dark)
+    }
+}
+

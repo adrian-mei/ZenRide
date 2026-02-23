@@ -2,6 +2,7 @@ import SwiftUI
 
 enum AppState {
     case onboarding
+    case vehicleSelect
     case garage
     case riding
     case windDown
@@ -21,6 +22,7 @@ struct ZenRideApp: App {
     @StateObject private var journal = RideJournal()
     @StateObject private var savedRoutes = SavedRoutesStore()
     @StateObject private var driveStore = DriveStore()
+    @StateObject private var vehicleStore = VehicleStore()
 
     var body: some Scene {
         WindowGroup {
@@ -31,6 +33,7 @@ struct ZenRideApp: App {
                 .environmentObject(journal)
                 .environmentObject(savedRoutes)
                 .environmentObject(driveStore)
+                .environmentObject(vehicleStore)
                 .preferredColorScheme(.dark)
                 .onAppear {
                     owlPolice.startPatrol(with: cameraStore.cameras)
@@ -40,32 +43,112 @@ struct ZenRideApp: App {
 }
 
 struct ContentView: View {
-    @State private var appState: AppState =
-        UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") ? .garage : .onboarding
+    @State private var appState: AppState = {
+        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return .onboarding }
+        return .garage
+    }()
+
     @State private var lastRideContext: RideContext? = nil
     @State private var pendingSession: PendingDriveSession? = nil
+    @State private var postRideInfo: PostRideInfo? = nil
+    @State private var pendingMoodSave: ((String) -> Void)? = nil
+
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var driveStore: DriveStore
+    @EnvironmentObject var vehicleStore: VehicleStore
+    @EnvironmentObject var routingService: RoutingService
 
     var body: some View {
         Group {
             switch appState {
+
             case .onboarding:
                 OnboardingView {
+                    // After onboarding, route based on whether user added a vehicle
+                    if vehicleStore.vehicles.isEmpty {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .vehicleSelect }
+                    } else {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
+                    }
+                }
+
+            case .vehicleSelect:
+                VehicleSelectView {
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
                 }
+
             case .garage:
-                GarageView(onRollOut: {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
-                })
+                MapHomeView(
+                    onRollOut: {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
+                    },
+                    postRideInfo: postRideInfo,
+                    pendingMoodSave: pendingMoodSave
+                )
+                .onAppear {
+                    // Sync vehicle mode from store on every garage visit
+                    routingService.vehicleMode = vehicleStore.selectedVehicleMode
+                }
+
             case .riding:
                 RideView(onStop: { context, pending in
                     lastRideContext = context
                     pendingSession = pending
-                    withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { appState = .windDown }
+
+                    // Build toast info from ride stats
+                    let distanceMiles = pending?.distanceMiles ?? 0
+                    let zenScore = pending?.zenScore ?? 0
+                    let moneySaved = Double((pending?.cameraZoneEvents ?? []).filter { $0.outcome == .saved }.count) * 100
+                    postRideInfo = PostRideInfo(distanceMiles: distanceMiles, zenScore: zenScore, moneySaved: moneySaved)
+
+                    // Save drive session immediately (no mood yet)
+                    if let p = pending {
+                        let session = p.toSession(mood: nil)
+                        driveStore.appendSession(
+                            originCoord: p.originCoord,
+                            destCoord: p.destCoord,
+                            destinationName: p.destinationName,
+                            session: session
+                        )
+                    }
+
+                    // Record route visit
+                    if let ctx = context {
+                        savedRoutes.recordVisit(
+                            destinationName: ctx.destinationName,
+                            coordinate: ctx.destinationCoordinate,
+                            durationSeconds: ctx.routeDurationSeconds,
+                            departureTime: ctx.departureTime
+                        )
+                    }
+
+                    // Mood save closure — called from MoodSelectionCard or on dismiss
+                    let capturedContext = context
+                    let capturedCamerasAvoided = owlPolice.camerasPassedThisRide
+                    pendingMoodSave = { mood in
+                        if !mood.isEmpty {
+                            journal.addEntry(
+                                mood: mood,
+                                ticketsAvoided: capturedCamerasAvoided,
+                                context: capturedContext
+                            )
+                        }
+                        owlPolice.resetRideStats()
+                        lastRideContext = nil
+                        pendingSession = nil
+                        postRideInfo = nil
+                        pendingMoodSave = nil
+                    }
+
+                    owlPolice.stopNavigationSession()
+
+                    // Immediately back to garage (background save already done above)
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { appState = .garage }
                 })
+
+            // WindDown kept for backward compatibility but not used in primary flow
             case .windDown:
                 WindDownView(
                     ticketsAvoided: owlPolice.camerasPassedThisRide,
@@ -73,10 +156,8 @@ struct ContentView: View {
                     rideContext: lastRideContext,
                     cameraZoneEvents: pendingSession?.cameraZoneEvents ?? []
                 ) { mood in
-                    // Save to legacy journal (backward compat)
                     journal.addEntry(mood: mood, ticketsAvoided: owlPolice.camerasPassedThisRide, context: lastRideContext)
 
-                    // Save to rich DriveStore (new system)
                     if let pending = pendingSession {
                         let session = pending.toSession(mood: mood)
                         driveStore.appendSession(
@@ -102,6 +183,10 @@ struct ContentView: View {
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
                 }
             }
+        }
+        // Sync vehicleMode whenever selected vehicle changes
+        .onChange(of: vehicleStore.selectedVehicleMode) { mode in
+            routingService.vehicleMode = mode
         }
     }
 }
@@ -282,8 +367,7 @@ struct RideView: View {
             }
             .zIndex(5)
 
-            // Muted status pill — always visible when controls are hidden so rider
-            // knows audio alerts are off without needing to show the sidebar
+            // Muted status pill — always visible when controls are hidden
             if routeState == .navigating && owlPolice.isMuted && !uiVisible {
                 VStack {
                     HStack {
@@ -368,7 +452,6 @@ struct RideView: View {
             .interactiveDismissDisabled()
         }
         .onChange(of: owlPolice.currentSpeedMPH) { speed in
-            // Auto-hide when moving; user must tap to restore controls
             if speed > 15.0 && uiVisible && routeState == .navigating {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
             }
@@ -449,12 +532,10 @@ struct RideView: View {
 
     private func reportHazard() {
         guard let location = owlPolice.currentLocation else { return }
-
         NotificationCenter.default.post(
             name: NSNotification.Name("DropHazardPin"),
             object: location.coordinate
         )
-
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
         generator.notificationOccurred(.success)
@@ -480,7 +561,6 @@ struct AlertOverlayView: View {
     var body: some View {
         if let camera = camera {
             HStack(spacing: 20) {
-                // Classic Speed Limit Sign Graphic
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.white)

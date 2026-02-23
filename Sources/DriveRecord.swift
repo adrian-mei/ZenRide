@@ -142,7 +142,7 @@ struct PendingDriveSession {
     let destinationName: String
     let routeDurationSeconds: Int  // TomTom ETA for delay calculation
 
-    func toSession(mood: String) -> DriveSession {
+    func toSession(mood: String? = nil) -> DriveSession {
         let hour = Calendar.current.component(.hour, from: departureTime)
         let moneySaved = Double(cameraZoneEvents.filter { $0.outcome == .saved }.count) * 100
         let trafficDelay = max(0, actualDurationSeconds - routeDurationSeconds)
