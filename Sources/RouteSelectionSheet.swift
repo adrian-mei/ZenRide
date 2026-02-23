@@ -79,10 +79,10 @@ struct RouteSelectionSheet: View {
                     ) { routingService.avoidSpeedCameras.toggle() }
 
                     RoutePreferenceChip(
-                        icon: "road.lanes",
-                        label: "No Highways",
+                        icon: "road.lanes.curved.right",
+                        label: "Curvy Roads",
                         isActive: routingService.avoidHighways,
-                        activeColor: .blue
+                        activeColor: .purple
                     ) { routingService.avoidHighways.toggle() }
 
                     RoutePreferenceChip(
@@ -158,15 +158,6 @@ struct RouteSelectionSheet: View {
                     onDrive()
                 }) {
                     ZStack {
-                        // Countdown arc (sweeps around perimeter)
-                        if !routingService.isCalculatingRoute && !routingService.availableRoutes.isEmpty {
-                            Circle()
-                                .trim(from: 0, to: Double(countdown) / 10.0)
-                                .stroke(Color.white.opacity(0.35), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                                .rotationEffect(.degrees(-90))
-                                .padding(3)
-                        }
-
                         HStack(spacing: 8) {
                             Image(systemName: routingService.vehicleMode.icon)
                                 .font(.system(size: 16, weight: .bold))
@@ -180,16 +171,25 @@ struct RouteSelectionSheet: View {
                             VStack {
                                 HStack {
                                     Spacer()
-                                    Text("\(countdown)")
-                                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                                        .foregroundColor(.white)
-                                        .frame(width: 22, height: 22)
-                                        .background(Color.black.opacity(0.3))
-                                        .clipShape(Circle())
-                                        .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1))
-                                        .padding(.top, 6)
-                                        .padding(.trailing, 8)
-                                        .contentTransition(.numericText())
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.black.opacity(0.3))
+                                            .frame(width: 26, height: 26)
+                                        
+                                        Circle()
+                                            .trim(from: 0, to: Double(countdown) / 10.0)
+                                            .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                                            .rotationEffect(.degrees(-90))
+                                            .frame(width: 26, height: 26)
+                                            .animation(.linear(duration: 1.0), value: countdown)
+                                        
+                                        Text("\(countdown)")
+                                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                                            .foregroundColor(.white)
+                                            .contentTransition(.numericText())
+                                    }
+                                    .padding(.top, 6)
+                                    .padding(.trailing, 8)
                                 }
                                 Spacer()
                             }
@@ -391,6 +391,7 @@ private struct CameraRiskStrip: View {
 // MARK: - Route List Row
 
 struct RouteListRow: View {
+    @EnvironmentObject var routingService: RoutingService
     let route: TomTomRoute
     let isSelected: Bool
     var onSelect: () -> Void
@@ -409,6 +410,7 @@ struct RouteListRow: View {
     var routeAccentColor: Color {
         if route.isZeroCameras { return .green }
         if route.cameraCount > 0 { return .orange }
+        if routingService.avoidHighways { return .purple }
         return .blue
     }
 
@@ -431,6 +433,10 @@ struct RouteListRow: View {
                             Label("\(route.cameraCount) Camera\(route.cameraCount == 1 ? "" : "s")", systemImage: "camera.fill")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.orange)
+                        } else if routingService.avoidHighways {
+                            Label("Curvy Route", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.purple)
                         } else if route.isLessTraffic {
                             Label("Less Traffic", systemImage: "car.2.fill")
                                 .font(.system(size: 14, weight: .bold))
@@ -456,7 +462,7 @@ struct RouteListRow: View {
                          ? "Safest choice · camera-free"
                          : route.cameraCount > 0
                              ? "Risk: ~$\(route.savedFines) potential fines"
-                             : "Standard route")
+                             : (routingService.avoidHighways ? "Scenic & curvy" : "Standard route"))
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }

@@ -87,6 +87,14 @@ struct MapHomeView: View {
                 )
                 .padding(.top, 50)
                 
+                // Weather / Conditions Pill (Appears after check in)
+                if hasCheckedIn {
+                    ConditionsPill()
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                
                 // Floating search bar (only show if checked in or as a secondary action)
                 if hasCheckedIn {
                     FloatingSearchBarButton(onTap: onRollOut)
@@ -295,6 +303,63 @@ private struct BasecampHeader: View {
                 endPoint: .bottom
             )
         )
+    }
+}
+
+// MARK: - Conditions Pill
+
+private struct ConditionsPill: View {
+    @State private var temperature: Int = 72
+    @State private var conditionText: String = "Clear skies"
+    @State private var windSpeed: Int = 8
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 4) {
+                Image(systemName: "thermometer")
+                    .foregroundColor(.orange)
+                Text("\(temperature)°")
+                    .font(.system(size: 13, weight: .bold))
+            }
+            
+            Divider()
+                .background(Color.white.opacity(0.3))
+                .frame(height: 12)
+            
+            HStack(spacing: 4) {
+                Image(systemName: "cloud.sun.fill")
+                    .foregroundColor(.cyan)
+                Text(conditionText)
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            
+            Divider()
+                .background(Color.white.opacity(0.3))
+                .frame(height: 12)
+            
+            HStack(spacing: 4) {
+                Image(systemName: "wind")
+                    .foregroundColor(.green)
+                Text("\(windSpeed) mph")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            
+            Spacer()
+        }
+        .foregroundColor(.white.opacity(0.9))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            Color(red: 0.1, green: 0.1, blue: 0.15)
+                .opacity(0.7)
+                .background(.ultraThinMaterial)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 3)
     }
 }
 

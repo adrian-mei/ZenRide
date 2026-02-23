@@ -204,11 +204,12 @@ struct RideView: View {
     @State private var searchSheetDetent: PresentationDetent = .fraction(0.35)
     @State private var departureTime: Date? = nil
     @State private var navigationStartTime: Date? = nil
+    @State private var isTracking: Bool = true
 
     var body: some View {
         ZStack(alignment: .top) {
-            ZenMapView(routeState: $routeState)
-                .edgesIgnoringSafeArea(.all)
+            ZenMapView(routeState: $routeState, isTracking: $isTracking)
+                .ignoresSafeArea(.all)
 
             if routeState == .navigating {
                 AmbientGlowView()
@@ -232,42 +233,35 @@ struct RideView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                // Controls row — shown in search mode always, in nav always (removed uiVisible hiding)
+                // Controls row — shown in search mode always, in nav always
                 if routeState == .search || routeState == .navigating {
                     HStack(alignment: .top) {
-                        if routeState == .navigating {
+                        // Always show the full Digital Dash Speedometer
+                        VStack(alignment: .leading, spacing: 20) {
                             DigitalDashSpeedometer(owlPolice: owlPolice)
-                                .padding(.leading, 16)
                                 .transition(.scale.combined(with: .opacity))
-                        } else {
-                            // Search mode speed limit sign
-                            VStack(spacing: 0) {
-                                Text("SPEED")
-                                    .font(.system(size: 9, weight: .black, design: .default))
-                                    .foregroundColor(.black)
-                                Text("LIMIT")
-                                    .font(.system(size: 9, weight: .black, design: .default))
-                                    .foregroundColor(.black)
-                                    .padding(.bottom, 2)
-                                Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)")
-                                    .font(.system(size: 32, weight: .heavy, design: .default))
-                                    .foregroundColor(.black)
+
+                            if routeState == .search {
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                                    withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                                        endRide()
+                                    }
+                                } label: {
+                                    Image(systemName: "stop.fill")
+                                        .font(.system(size: 24, weight: .bold))
+                                        .foregroundColor(.red)
+                                        .frame(width: 64, height: 64)
+                                        .background(Color.black.opacity(0.8))
+                                        .clipShape(Circle())
+                                        .overlay(Circle().strokeBorder(Color.red.opacity(0.5), lineWidth: 2))
+                                        .shadow(color: .red.opacity(0.4), radius: 6)
+                                }
+                                .transition(.move(edge: .leading).combined(with: .opacity))
                             }
-                            .frame(width: 64, height: 74)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .strokeBorder(Color.black, lineWidth: 2)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                    .strokeBorder(Color.black, lineWidth: 1)
-                                    .padding(2)
-                            )
-                            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-                            .padding(.leading, 16)
-                            .padding(.top, 16)
                         }
+                        .padding(.leading, 16)
+                        .padding(.top, 16)
 
                         Spacer()
 
@@ -287,59 +281,57 @@ struct RideView: View {
                             }
 
                             VStack(spacing: 0) {
-                                if routeState == .navigating {
-                                    Button {
-                                        owlPolice.isMuted.toggle()
-                                    } label: {
-                                        Image(systemName: owlPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                                            .font(.system(size: 22, weight: .bold))
-                                            .frame(width: 64, height: 64)
-                                    }
-                                    .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
-
-                                    Divider().padding(.horizontal, 10).opacity(0.3)
+                                Button {
+                                    owlPolice.isMuted.toggle()
+                                } label: {
+                                    Image(systemName: owlPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .frame(width: 64, height: 64)
+                                        .foregroundColor(owlPolice.isMuted ? .red : .white)
                                 }
+                                .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
+
+                                Divider().padding(.horizontal, 10).opacity(0.3)
 
                                 Button {
                                     NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
                                 } label: {
-                                    Image(systemName: "location.fill")
+                                    Image(systemName: isTracking ? "location.fill" : "location")
                                         .font(.system(size: 22, weight: .bold))
                                         .frame(width: 64, height: 64)
-                                        .foregroundColor(routeState == .navigating ? .cyan : .primary)
+                                        .foregroundColor(isTracking ? .cyan : .white)
                                 }
                                 .accessibilityLabel("Recenter map on your location")
 
-                                if routeState == .navigating {
-                                    Divider().padding(.horizontal, 8).opacity(0.3)
+                                Divider().padding(.horizontal, 10).opacity(0.3)
 
-                                    Button { reportHazard() } label: {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .font(.system(size: 26, weight: .black))
-                                            .frame(width: 64, height: 64)
-                                            .foregroundColor(.yellow)
-                                            .shadow(color: .orange.opacity(0.8), radius: 6)
-                                    }
-                                    .accessibilityLabel("Report Hazard")
+                                Button { reportHazard() } label: {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.system(size: 26, weight: .black))
+                                        .frame(width: 64, height: 64)
+                                        .foregroundColor(.yellow)
+                                        .shadow(color: .orange.opacity(0.8), radius: 6)
                                 }
+                                .accessibilityLabel("Report Hazard")
                             }
                             .frame(width: 64)
                             .foregroundColor(.white)
                             .background(
                                 ZStack {
-                                    Color(red: 0.1, green: 0.1, blue: 0.15)
+                                    Color(red: 0.05, green: 0.05, blue: 0.08).opacity(0.8)
                                     LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom)
                                 }
+                                .background(.ultraThinMaterial)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(routeState == .navigating ? Color.cyan.opacity(0.4) : Color.white.opacity(0.15), lineWidth: 1.5)
+                                    .stroke(Color.cyan.opacity(0.4), lineWidth: 1.5)
                             )
                             .shadow(color: .black.opacity(0.4), radius: 10, x: 0, y: 6)
                         }
                         .padding(.trailing, 16)
-                        .padding(.top, routeState == .search ? 16 : 0)
+                        .padding(.top, 16)
                     }
                     .transition(.opacity)
                 }
@@ -382,19 +374,32 @@ struct RideView: View {
                     searchSheetDetent = .medium
                 }
             })
-                .presentationDetents([.fraction(0.35), .medium, .large], selection: $searchSheetDetent)
+                .presentationDetents([.fraction(0.14), .fraction(0.35), .medium, .large], selection: $searchSheetDetent)
                 .presentationDragIndicator(.visible)
                 .presentationBackgroundInteraction(.enabled)
                 .interactiveDismissDisabled()
         }
         .onChange(of: searcher.searchQuery) { query in
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                searchSheetDetent = query.isEmpty ? .fraction(0.35) : .medium
+                if !query.isEmpty {
+                    searchSheetDetent = .medium
+                }
+                // Don't auto-collapse when clearing, let the user manually collapse
             }
         }
         .sheet(isPresented: Binding(
             get: { routeState == .reviewing },
-            set: { _ in }
+            set: { isPresented in
+                if !isPresented {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        routeState = .search
+                        destinationName = ""
+                        routingService.availableRoutes = []
+                        routingService.activeRoute = []
+                        routingService.activeAlternativeRoutes = []
+                    }
+                }
+            }
         )) {
             RouteSelectionSheet(destinationName: destinationName, onDrive: {
                 departureTime = Date()
@@ -423,7 +428,6 @@ struct RideView: View {
             })
             .presentationDetents([.medium, .fraction(0.3)])
             .presentationDragIndicator(.visible)
-            .interactiveDismissDisabled()
         }
         .onChange(of: owlPolice.currentSpeedMPH) { speed in
             // Speed-based auto-hide disabled per user request
