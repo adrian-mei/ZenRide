@@ -106,15 +106,16 @@ struct DigitalDashSpeedometer: View {
                 HStack(spacing: 4) {
                     Text("LIMIT")
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .foregroundColor(.black)
+                        .foregroundColor(dangerPulse ? .white : .black)
                     Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)")
                         .font(.system(size: 16, weight: .black, design: .monospaced))
-                        .foregroundColor(.black)
+                        .foregroundColor(dangerPulse ? .white : .black)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                .background(dangerPulse ? Color.red : Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.red, lineWidth: 2))
+                .animation(.easeInOut(duration: 0.5), value: dangerPulse)
 
                 // Speed delta vs. limit — "+8" in red or "−3" in green
                 if let delta = speedDelta {
