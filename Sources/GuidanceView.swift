@@ -4,6 +4,7 @@ struct GuidanceView: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var owlPolice: OwlPolice
     @State private var currentInstructionIndex: Int = 0
+    @State private var isApproachingTurn = false   // < 300ft to next turn
     private let haptic500 = UINotificationFeedbackGenerator()
     private let haptic100 = UIImpactFeedbackGenerator(style: .heavy)
 
@@ -16,9 +17,12 @@ struct GuidanceView: View {
                     HStack(spacing: 16) {
                     VStack(spacing: 6) {
                         Image(systemName: iconForInstruction(instruction.instructionType))
-                            .font(.system(size: 48, weight: .heavy)) // Larger arrow for driving
-                            .foregroundColor(.cyan) // Neon Arrow
-                            .shadow(color: .cyan.opacity(0.6), radius: 5)
+                            .font(.system(size: 48, weight: .heavy))
+                            .foregroundColor(.cyan)
+                            .shadow(color: .cyan.opacity(isApproachingTurn ? 0.95 : 0.6),
+                                    radius: isApproachingTurn ? 18 : 5)
+                            .scaleEffect(isApproachingTurn ? 1.14 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isApproachingTurn)
                             .frame(width: 80)
                         
                         Text(formatDistance(instruction: instruction))
@@ -125,9 +129,13 @@ struct GuidanceView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(Color.cyan.opacity(0.4), lineWidth: 1.5) // Neon outline matching the bike
+                        .strokeBorder(Color.cyan.opacity(isApproachingTurn ? 0.85 : 0.4),
+                              lineWidth: isApproachingTurn ? 2.5 : 1.5)
                 )
-                .shadow(color: .cyan.opacity(0.2), radius: 15, x: 0, y: 10)
+                .shadow(color: .cyan.opacity(isApproachingTurn ? 0.5 : 0.2),
+                        radius: isApproachingTurn ? 26 : 15, x: 0, y: 10)
+                .scaleEffect(isApproachingTurn ? 1.018 : 1.0)
+                .animation(.spring(response: 0.35, dampingFraction: 0.72), value: isApproachingTurn)
                 .padding(.horizontal, 12)
                 .id(currentInstructionIndex)
                 .transition(.asymmetric(
@@ -160,6 +168,7 @@ struct GuidanceView: View {
             if index >= 0 && index < routingService.instructions.count {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                     currentInstructionIndex = index
+                    isApproachingTurn = false   // reset surge on instruction change
                 }
                 if let message = routingService.instructions[index].message {
                     owlPolice.speak(message)
@@ -188,6 +197,14 @@ struct GuidanceView: View {
                 if distanceFeet < 110 && distanceFeet > 90 && !routingService.hasWarned100ft {
                     routingService.hasWarned100ft = true
                     haptic100.impactOccurred()
+                }
+
+                // Approach surge: card scales + glows when < 300ft to turn
+                let approaching = distanceFeet > 0 && distanceFeet < 300
+                if approaching != isApproachingTurn {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                        isApproachingTurn = approaching
+                    }
                 }
             }
         }

@@ -174,13 +174,30 @@ struct AchievementBadge: View {
                     .foregroundColor(achievement.isEarned ? achievement.color : .white.opacity(0.2))
                     .shadow(color: achievement.isEarned ? achievement.color.opacity(0.6) : .clear, radius: 4)
 
-                // Progress arc for unearned
+                // Progress arc — thicker, brighter, with % label
                 if !achievement.isEarned && achievement.progress > 0 {
+                    // Track
+                    Circle()
+                        .stroke(achievement.color.opacity(0.1), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: size - 4, height: size - 4)
+
+                    // Fill
                     Circle()
                         .trim(from: 0, to: achievement.progress)
-                        .stroke(achievement.color.opacity(0.4), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        .stroke(achievement.color.opacity(0.65), style: StrokeStyle(lineWidth: 3, lineCap: .round))
                         .frame(width: size - 4, height: size - 4)
                         .rotationEffect(.degrees(-90))
+                        .shadow(color: achievement.color.opacity(0.4), radius: 3)
+
+                    // Percentage label at bottom of circle
+                    VStack {
+                        Spacer()
+                        Text("\(Int(achievement.progress * 100))%")
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundColor(achievement.color.opacity(0.9))
+                            .padding(.bottom, 5)
+                    }
+                    .frame(width: size, height: size)
                 }
             }
 

@@ -238,9 +238,15 @@ struct DriveRecordDetailView: View {
 
                 // Sessions
                 Section(header: Text("Sessions").foregroundColor(.white.opacity(0.6))) {
+                    let bestId  = record.sessions.max(by: { $0.zenScore < $1.zenScore })?.id
+                    let worstId = record.sessions.count > 1
+                        ? record.sessions.min(by: { $0.zenScore < $1.zenScore })?.id
+                        : nil
                     ForEach(record.sessions) { session in
+                        let badge: String? = session.id == bestId ? "BEST"
+                            : session.id == worstId ? "LOW" : nil
                         Button(action: { selectedSession = session }) {
-                            SessionRow(session: session)
+                            SessionRow(session: session, sessionBadge: badge)
                         }
                         .listRowBackground(Color(white: 0.1))
                         .listRowSeparatorTint(Color.white.opacity(0.1))
@@ -303,6 +309,27 @@ private struct AggStat: View {
 
 private struct SessionRow: View {
     let session: DriveSession
+    var sessionBadge: String? = nil   // "BEST" | "LOW" | nil
+
+    private var timeColor: Color {
+        switch session.timeOfDayCategory.label.lowercased() {
+        case let s where s.contains("morning"):   return Color(red: 1.0, green: 0.75, blue: 0.2)
+        case let s where s.contains("afternoon"): return .yellow
+        case let s where s.contains("evening"):   return .orange
+        case let s where s.contains("night"):     return .purple
+        default:                                   return .blue
+        }
+    }
+
+    private var timeIcon: String {
+        switch session.timeOfDayCategory.label.lowercased() {
+        case let s where s.contains("morning"):   return "sunrise.fill"
+        case let s where s.contains("afternoon"): return "sun.max.fill"
+        case let s where s.contains("evening"):   return "sunset.fill"
+        case let s where s.contains("night"):     return "moon.stars.fill"
+        default:                                   return "clock.fill"
+        }
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -312,13 +339,31 @@ private struct SessionRow: View {
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
-                    Text(session.timeOfDayCategory.label)
-                        .font(.caption)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.3))
-                        .foregroundColor(.blue)
-                        .clipShape(Capsule())
+
+                    // Time-of-day badge with contextual icon + color
+                    HStack(spacing: 4) {
+                        Image(systemName: timeIcon)
+                            .font(.system(size: 9, weight: .bold))
+                        Text(session.timeOfDayCategory.label)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(timeColor.opacity(0.2))
+                    .foregroundColor(timeColor)
+                    .clipShape(Capsule())
+
+                    // Best / low badge
+                    if let badge = sessionBadge {
+                        Text(badge)
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(badge == "BEST" ? .green : Color(white: 0.55))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(badge == "BEST" ? Color.green.opacity(0.15) : Color.white.opacity(0.07))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(badge == "BEST" ? Color.green.opacity(0.35) : Color.white.opacity(0.12), lineWidth: 1))
+                    }
                 }
                 HStack(spacing: 12) {
                     Label("\(session.durationSeconds / 60) min", systemImage: "clock")
@@ -547,6 +592,41 @@ private struct SpeedChartView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     ))
+
+                    // Peak speed dot + label annotation
+                    if readings.count > 1 {
+                        let peakIdx = readings.indices.max(by: { readings[$0] < readings[$1] }) ?? 0
+                        let step = geo.size.width / CGFloat(readings.count - 1)
+                        let range = maxSpeed - minSpeed
+                        let px = CGFloat(peakIdx) * step
+                        let py = geo.size.height - CGFloat((readings[peakIdx] - minSpeed) / range) * geo.size.height
+
+                        // Outer glow ring
+                        Circle()
+                            .fill(Color.cyan.opacity(0.18))
+                            .frame(width: 18, height: 18)
+                            .position(x: px, y: py)
+
+                        // Solid dot
+                        Circle()
+                            .fill(Color.cyan)
+                            .frame(width: 7, height: 7)
+                            .shadow(color: .cyan.opacity(0.9), radius: 5)
+                            .position(x: px, y: py)
+
+                        // Speed label
+                        Text("\(Int(readings[peakIdx]))")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundColor(.cyan)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color(white: 0.14))
+                            .clipShape(Capsule())
+                            .position(
+                                x: min(max(px, 24), geo.size.width - 24),
+                                y: max(py - 16, 8)
+                            )
+                    }
                 }
             }
             .frame(height: 80)

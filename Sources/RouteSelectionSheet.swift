@@ -152,13 +152,13 @@ struct RouteSelectionSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
-                // Ride button with countdown arc
+                // Ride button with countdown arc + prominent countdown badge
                 Button(action: {
                     timer?.invalidate()
                     onDrive()
                 }) {
                     ZStack {
-                        // Countdown arc
+                        // Countdown arc (sweeps around perimeter)
                         if !routingService.isCalculatingRoute && !routingService.availableRoutes.isEmpty {
                             Circle()
                                 .trim(from: 0, to: Double(countdown) / 10.0)
@@ -174,6 +174,26 @@ struct RouteSelectionSheet: View {
                                 .font(.system(size: 17, weight: .black, design: .rounded))
                         }
                         .foregroundColor(.black)
+
+                        // Countdown number — visible in top-trailing corner
+                        if !routingService.isCalculatingRoute && !routingService.availableRoutes.isEmpty {
+                            VStack {
+                                HStack {
+                                    Spacer()
+                                    Text("\(countdown)")
+                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .foregroundColor(.white)
+                                        .frame(width: 22, height: 22)
+                                        .background(Color.black.opacity(0.3))
+                                        .clipShape(Circle())
+                                        .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1))
+                                        .padding(.top, 6)
+                                        .padding(.trailing, 8)
+                                        .contentTransition(.numericText())
+                                }
+                                Spacer()
+                            }
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 60)
