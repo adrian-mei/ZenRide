@@ -23,26 +23,59 @@ final class SpeechService: NSObject, ObservableObject {
         if let id = selectedVoiceId, let voice = AVSpeechSynthesisVoice(identifier: id) {
             return voice
         }
-        // Prefer first enhanced/premium English voice; fall back to en-US
-        return enhancedEnglishVoices.first
+        // Prefer Alex or Siri, then enhanced/premium, fall back to en-US
+        return preferredHumanVoice
+            ?? availableHumanVoices.first
             ?? AVSpeechSynthesisVoice(language: "en-US")
             ?? AVSpeechSynthesisVoice()
     }
 
-    /// All English voices sorted: premium → enhanced → standard, then alphabetically by name.
-    var availableEnglishVoices: [AVSpeechSynthesisVoice] {
-        AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix("en") }
-            .sorted { lhs, rhs in
-                if lhs.quality.rawValue != rhs.quality.rawValue {
-                    return lhs.quality.rawValue > rhs.quality.rawValue
-                }
-                return lhs.name < rhs.name
-            }
+    /// Try specifically for Alex or Siri which usually sound the most human.
+    private var preferredHumanVoice: AVSpeechSynthesisVoice? {
+        let voices = availableHumanVoices
+        // 1. Look for Alex (very human sounding)
+        if let alex = voices.first(where: { $0.identifier == AVSpeechSynthesisVoiceIdentifierAlex }) {
+            return alex
+        }
+        // 2. Look for Siri voices (if available/unlocked)
+        if let siri = voices.first(where: { $0.name.lowercased().contains("siri") || $0.identifier.lowercased().contains("siri") }) {
+            return siri
+        }
+        return nil
     }
 
-    private var enhancedEnglishVoices: [AVSpeechSynthesisVoice] {
-        availableEnglishVoices.filter { $0.quality != .default }
+    /// High-quality voices (English, Mandarin, Cantonese) excluding robotic defaults.
+    var availableHumanVoices: [AVSpeechSynthesisVoice] {
+        let allVoices = AVSpeechSynthesisVoice.speechVoices()
+        let supportedVoices = allVoices.filter { $0.language.hasPrefix("en") || $0.language.hasPrefix("zh") }
+        
+        var humanVoices = supportedVoices.filter { voice in
+            voice.quality != .default || 
+            voice.name.lowercased().contains("siri") || 
+            voice.identifier == AVSpeechSynthesisVoiceIdentifierAlex
+        }
+        
+        // Safety fallback: if no premium voices for a specific language group, add the standard ones back
+        // so the user has at least one option to select from.
+        if !humanVoices.contains(where: { $0.language.hasPrefix("en") }) {
+            humanVoices.append(contentsOf: supportedVoices.filter { $0.language.hasPrefix("en") })
+        }
+        if !humanVoices.contains(where: { $0.language == "zh-CN" || $0.language == "zh-TW" }) {
+            humanVoices.append(contentsOf: supportedVoices.filter { $0.language == "zh-CN" || $0.language == "zh-TW" })
+        }
+        if !humanVoices.contains(where: { $0.language == "zh-HK" }) {
+            humanVoices.append(contentsOf: supportedVoices.filter { $0.language == "zh-HK" })
+        }
+        
+        // Deduplicate in case of overlap
+        let uniqueDict = Dictionary(grouping: humanVoices, by: { $0.identifier }).compactMapValues { $0.first }
+        
+        return Array(uniqueDict.values).sorted { lhs, rhs in
+            if lhs.quality.rawValue != rhs.quality.rawValue {
+                return lhs.quality.rawValue > rhs.quality.rawValue
+            }
+            return lhs.name < rhs.name
+        }
     }
 
     // MARK: - Init
@@ -74,7 +107,7 @@ final class SpeechService: NSObject, ObservableObject {
 
     // MARK: - Speech
 
-    func speak(_ text: String, rate: Float = 0.45, pitch: Float = 1.1) {
+    func speak(_ text: String, rate: Float = 0.5, pitch: Float = 1.0) {
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = selectedVoice
         utterance.rate = rate
@@ -85,12 +118,20 @@ final class SpeechService: NSObject, ObservableObject {
     /// Plays a short sample phrase through the given voice so the user can preview it.
     func previewVoice(_ voice: AVSpeechSynthesisVoice) {
         synthesizer.stopSpeaking(at: .immediate)
-        let utterance = AVSpeechUtterance(string: "This is how your GPS guide will sound on the road.")
+        let sampleText: String
+        if voice.language.hasPrefix("zh-HK") {
+            sampleText = "這是您的 GPS 語音導航將在路上的聲音。"
+        } else if voice.language.hasPrefix("zh") {
+            sampleText = "这是您的 GPS 语音导航将在路上的声音。"
+        } else {
+            sampleText = "This is how your GPS guide will sound on the road."
+        }
+        
+        let utterance = AVSpeechUtterance(string: sampleText)
         utterance.voice = voice
-        utterance.rate = 0.45
-        utterance.pitchMultiplier = 1.1
+        utterance.rate = 0.5
+        utterance.pitchMultiplier = 1.0
         synthesizer.speak(utterance)
-        Log.info("SpeechService", "Previewing voice: \(voice.name)")
     }
 
     func stopSpeaking() {

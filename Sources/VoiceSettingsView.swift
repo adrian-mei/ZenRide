@@ -7,12 +7,16 @@ struct VoiceSettingsView: View {
     @ObservedObject private var speechService = SpeechService.shared
     @State private var previewingVoiceId: String? = nil
 
-    private var enhancedVoices: [AVSpeechSynthesisVoice] {
-        speechService.availableEnglishVoices.filter { $0.quality != .default }
+    private var englishVoices: [AVSpeechSynthesisVoice] {
+        speechService.availableHumanVoices.filter { $0.language.hasPrefix("en") }
     }
 
-    private var standardVoices: [AVSpeechSynthesisVoice] {
-        speechService.availableEnglishVoices.filter { $0.quality == .default }
+    private var mandarinVoices: [AVSpeechSynthesisVoice] {
+        speechService.availableHumanVoices.filter { $0.language == "zh-CN" || $0.language == "zh-TW" }
+    }
+
+    private var cantoneseVoices: [AVSpeechSynthesisVoice] {
+        speechService.availableHumanVoices.filter { $0.language == "zh-HK" }
     }
 
     var body: some View {
@@ -21,15 +25,15 @@ struct VoiceSettingsView: View {
                 // Info banner
                 Section {
                     HStack(spacing: 12) {
-                        Image(systemName: "speaker.wave.3.fill")
+                        Image(systemName: "person.wave.2.fill")
                             .font(.system(size: 22))
                             .foregroundColor(.cyan)
                             .frame(width: 32)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Music keeps playing")
+                            Text("Human Guides")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.white)
-                            Text("GPS announcements duck music volume, then restore it automatically.")
+                            Text("Only the highest quality, human-sounding voices (Premium & Siri).")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         }
@@ -38,10 +42,9 @@ struct VoiceSettingsView: View {
                     .listRowBackground(Color.cyan.opacity(0.08))
                 }
 
-                // Enhanced / premium voices
-                if !enhancedVoices.isEmpty {
+                if !englishVoices.isEmpty {
                     Section {
-                        ForEach(enhancedVoices, id: \.identifier) { voice in
+                        ForEach(englishVoices, id: \.identifier) { voice in
                             VoiceRow(
                                 voice: voice,
                                 isSelected: isSelected(voice),
@@ -51,19 +54,17 @@ struct VoiceSettingsView: View {
                             )
                         }
                     } header: {
-                        Label("Enhanced", systemImage: "star.fill")
+                        Text("English")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.yellow)
                     } footer: {
-                        Text("Higher-quality voices may need to be downloaded in Settings › Accessibility › Spoken Content.")
+                        Text("Missing voices? Download more in Settings › Accessibility › Spoken Content.")
                             .font(.caption2)
                     }
                 }
 
-                // Standard voices
-                if !standardVoices.isEmpty {
+                if !mandarinVoices.isEmpty {
                     Section {
-                        ForEach(standardVoices, id: \.identifier) { voice in
+                        ForEach(mandarinVoices, id: \.identifier) { voice in
                             VoiceRow(
                                 voice: voice,
                                 isSelected: isSelected(voice),
@@ -73,7 +74,24 @@ struct VoiceSettingsView: View {
                             )
                         }
                     } header: {
-                        Text("Standard")
+                        Text("Mandarin")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                }
+
+                if !cantoneseVoices.isEmpty {
+                    Section {
+                        ForEach(cantoneseVoices, id: \.identifier) { voice in
+                            VoiceRow(
+                                voice: voice,
+                                isSelected: isSelected(voice),
+                                isPreviewing: previewingVoiceId == voice.identifier,
+                                onSelect: { select(voice) },
+                                onPreview: { preview(voice) }
+                            )
+                        }
+                    } header: {
+                        Text("Cantonese")
                             .font(.system(size: 12, weight: .bold))
                     }
                 }
@@ -144,6 +162,14 @@ private struct VoiceRow: View {
         return parts.count > 1 ? String(parts[1]) : voice.language.uppercased()
     }
 
+    private var genderText: String? {
+        switch voice.gender {
+        case .female: return "Female"
+        case .male:   return "Male"
+        default:      return nil
+        }
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             // Selection circle
@@ -169,9 +195,15 @@ private struct VoiceRow: View {
                             .clipShape(Capsule())
                     }
                 }
-                Text(regionTag)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Text(regionTag)
+                    if let gender = genderText {
+                        Text("•")
+                        Text(gender)
+                    }
+                }
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.secondary)
             }
 
             Spacer()

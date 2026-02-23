@@ -369,7 +369,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
             #endif
         }
 
-        if !isMuted { speech.speak("Slow down! Camera ahead.", rate: 0.55, pitch: 1.2) }
+        if !isMuted { speech.speak("Slow down! Camera ahead.") }
     }
 
     private func triggerApproachWarning(for camera: SpeedCamera) {

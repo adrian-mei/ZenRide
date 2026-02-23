@@ -101,13 +101,50 @@ struct ZenMapView: UIViewRepresentable {
         // Dynamic 3D camera during navigation (for both real and simulated driving)
         if routeState == .navigating, let location = owlPolice.currentLocation {
             let bearing = location.course >= 0 ? location.course : 0
+            
+            let speedMph = max(0, owlPolice.currentSpeedMPH)
+            
+            // 1. DYNAMIC LOOK AHEAD: Look further ahead when driving fast
+            let lookAheadMeters = max(50.0, min(400.0, 50.0 + (speedMph * 5.0)))
             let lookAheadCoord = location.coordinate.coordinate(
-                offsetBy: 150,
+                offsetBy: lookAheadMeters,
                 bearingDegrees: bearing
             )
-            let speedMph = max(0, owlPolice.currentSpeedMPH)
-            let dynamicDistance = max(500, min(1800, 500 + (speedMph * 25)))
-            let dynamicPitch = max(45, min(75, 75 - (speedMph * 0.4)))
+            
+            // 2. DYNAMIC DISTANCE: Zoom out when driving fast, zoom in when slow
+            var dynamicDistance = max(200, min(2500, 300 + (speedMph * 35)))
+            
+            // 3. CINEMATIC PITCH: 
+            // - Stop/Slow (<15mph): Nearly top-down (20 deg) to see surrounding blocks
+            // - Highway (>50mph): Aggressive tilt (80 deg) to see the horizon and route far ahead
+            var dynamicPitch: Double
+            if speedMph < 15 {
+                dynamicPitch = 20.0 + (speedMph * 2.0) // 20 to 50 degrees
+            } else {
+                dynamicPitch = min(80.0, 50.0 + ((speedMph - 15) * 0.8))
+            }
+            
+            // --- NEW: THE JUNCTION ZOOM ---
+            // If the user is approaching a turn (within 500ft), override the speed-based camera 
+            // to zoom in tightly and look down, so they can clearly see the intersection.
+            if !routingService.instructions.isEmpty && routingService.currentInstructionIndex < routingService.instructions.count {
+                let currentInstruction = routingService.instructions[routingService.currentInstructionIndex]
+                let distToTurn = Double(currentInstruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
+                let distToTurnFt = distToTurn * 3.28084
+                
+                if distToTurnFt > 0 && distToTurnFt < 500 {
+                    // Smoothly interpolate the camera as they get closer to the turn
+                    let junctionZoomFactor = 1.0 - (distToTurnFt / 500.0) // 0.0 at 500ft, 1.0 at 0ft
+                    
+                    // Force distance down to 300 meters
+                    dynamicDistance = dynamicDistance - ((dynamicDistance - 300.0) * junctionZoomFactor)
+                    
+                    // Force pitch down to a tactical 30 degrees
+                    dynamicPitch = dynamicPitch - ((dynamicPitch - 30.0) * junctionZoomFactor)
+                }
+            }
+            // ------------------------------
+            
             let camera = MKMapCamera(
                 lookingAtCenter: lookAheadCoord,
                 fromDistance: dynamicDistance,
@@ -227,10 +264,22 @@ struct ZenMapView: UIViewRepresentable {
                 name: NSNotification.Name("RecenterMap"),
                 object: nil
             )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(dropHazard(_:)),
+                name: NSNotification.Name("DropHazardPin"),
+                object: nil
+            )
         }
 
         @objc func recenter() {
             mapView?.userTrackingMode = .followWithHeading
+        }
+        
+        @objc func dropHazard(_ notification: Notification) {
+            guard let coordinate = notification.object as? CLLocationCoordinate2D else { return }
+            let hazard = HazardAnnotation(coordinate: coordinate)
+            mapView?.addAnnotation(hazard)
         }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -278,6 +327,22 @@ struct ZenMapView: UIViewRepresentable {
                 return annotationView
             }
 
+            if annotation is HazardAnnotation {
+                let identifier = "Hazard"
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+                if annotationView == nil {
+                    annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                    annotationView?.canShowCallout = true
+                } else {
+                    annotationView?.annotation = annotation
+                }
+                annotationView?.glyphImage = UIImage(systemName: "exclamationmark.triangle.fill")
+                annotationView?.glyphTintColor = UIColor.black
+                annotationView?.markerTintColor = UIColor.systemOrange
+                annotationView?.displayPriority = .required
+                return annotationView
+            }
+
             return nil
         }
 
@@ -287,14 +352,16 @@ struct ZenMapView: UIViewRepresentable {
                 let isSelected = borderedPolyline.subtitle == "selected"
                 if isSelected {
                     if borderedPolyline.isBorder {
-                        renderer.strokeColor = UIColor(red: 0.05, green: 0.4, blue: 0.8, alpha: 0.8) // Inner Glow Base
-                        renderer.lineWidth = 14
+                        // Wide, semi-transparent glow effect
+                        renderer.strokeColor = UIColor.cyan.withAlphaComponent(0.3)
+                        renderer.lineWidth = 18
                     } else {
-                        renderer.strokeColor = UIColor.cyan // Neon Cyan Track
+                        // Sharp, bright core
+                        renderer.strokeColor = UIColor.cyan
                         renderer.lineWidth = 6
                     }
                 } else {
-                    renderer.strokeColor = UIColor.systemGray3.withAlphaComponent(0.4)
+                    renderer.strokeColor = UIColor.systemGray3.withAlphaComponent(0.3)
                     renderer.lineWidth = 6
                 }
                 renderer.lineCap = .round
@@ -349,6 +416,16 @@ class DestinationAnnotation: NSObject, MKAnnotation {
     init(coordinate: CLLocationCoordinate2D, title: String? = nil) {
         self.coordinate = coordinate
         self.title = title
+        super.init()
+    }
+}
+
+class HazardAnnotation: NSObject, MKAnnotation {
+    @objc dynamic var coordinate: CLLocationCoordinate2D
+    let title: String? = "Debris Reported"
+
+    init(coordinate: CLLocationCoordinate2D) {
+        self.coordinate = coordinate
         super.init()
     }
 }
