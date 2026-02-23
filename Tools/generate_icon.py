@@ -1,17 +1,26 @@
 #!/usr/bin/env python3
 """
-ZenRide App Icon Generator — v2
-Theme: Open road, forest horizon, dawn sun. No rider — you are the rider.
-Design principles (per iOS HIG + app icon UX research):
-  - Single focal point: vanishing-point road leading to the sun
-  - 3-color palette: amber sky / forest green / charcoal road
-  - Bold silhouette shapes that survive scaling to 60px
-  - High contrast between all regions
+ZenRide App Icon Generator — v3
+"The road of the year."
+
+Design intelligence applied (iOS HIG + 2025 icon research):
+  ∙ Distinctive burnt-amber dawn sky — unowned color territory in navigation
+  ∙ Cinematic dark-to-gold gradient: near-black burgundy → rich amber → bright gold
+  ∙ Sharp individual pine silhouettes — bold triangles, readable at 60px
+  ∙ Sun framed by treeline gap: trees occlude outer halo, bright core shines through
+  ∙ Horizontal horizon glow — luminous dawn ray sweeping the treeline
+  ∙ Road center reflection — sun glinting on dark asphalt
+  ∙ Subtle film grain — premium, AI-native texture signal
+  ∙ No rider — the road IS the metaphor. You are already on it.
+  ∙ No baked shadows — iOS 26 Liquid Glass compatible
+  ∙ Single focal point: road → horizon → sun
+
 Outputs: 1024×1024 PNG
 """
 
 import math
 import os
+import random
 from PIL import Image, ImageDraw, ImageFilter
 
 SIZE = 1024
@@ -20,26 +29,46 @@ OUTPUT_PATH = os.path.join(
     "../Resources/Assets.xcassets/AppIcon.appiconset/icon_1024.png"
 )
 
-# ── Horizon sits at 50% — equal sky and ground, strong bisection ──────────────
-HORIZON_Y = int(SIZE * 0.50)
+# Horizon sits at 47% — slightly above center, gives road a grander presence
+HORIZON_Y = int(SIZE * 0.47)
 
-# ── Color palette (3 families) ────────────────────────────────────────────────
-SKY_TOP    = (210,  80,  20)   # deep burnt-orange at top
-SKY_MID    = (240, 140,  40)   # warm amber
-SKY_HRZ    = (255, 200,  90)   # bright gold near horizon
+# ── Color palette ─────────────────────────────────────────────────────────────
+# Sky: near-black burgundy-amber at top → rich burnt amber → bright gold horizon
+SKY_TOP    = ( 22,   4,   0)   # near-black dark burgundy
+SKY_Q1     = ( 80,  18,   2)   # deep dark red-amber
+SKY_MID    = (170,  55,   8)   # rich burnt orange
+SKY_Q3     = (225, 110,  15)   # warm amber
+SKY_HRZ    = (255, 185,  50)   # bright gold at horizon
 
-GRD_TOP    = ( 38,  80,  38)   # forest green near horizon
-GRD_BOT    = ( 18,  42,  18)   # deep forest at bottom
+# Ground: very dark forest, near-black at bottom
+GRD_HRZ    = ( 22,  48,  18)   # dark forest at horizon
+GRD_MID    = ( 14,  32,  12)   # deeper forest
+GRD_BOT    = (  8,  18,   6)   # near-black forest at bottom
 
-ROAD_COLOR = ( 32,  32,  32)   # near-black charcoal
-ROAD_EDGE  = ( 55,  52,  42)   # shoulder warm tint
-DASH_COLOR = (240, 185,  80)   # golden amber dashes
+# Road
+ROAD_DARK  = ( 18,  18,  18)   # near-black asphalt
+ROAD_EDGE  = ( 42,  38,  28)   # warm shoulder strip
 
-TREE_COLOR = ( 12,  35,  12)   # very dark forest silhouette
+# Dashes
+DASH_COLOR = (220, 160,  45)   # golden amber
 
-SUN_CORE   = (255, 245, 180)   # near-white warm core
-SUN_MID    = (255, 210,  80)   # gold halo
-SUN_OUTER  = (250, 160,  40)   # amber outer glow
+# Trees
+TREE_COLOR = (  8,  22,   6)   # ultra-dark forest silhouette
+
+# Sun
+SUN_CORE   = (255, 252, 220)   # near-white warm core
+SUN_RING   = (255, 215,  70)   # gold ring
+SUN_AURA   = (245, 155,  30)   # amber aura
+
+# Horizon light
+HRZ_GLOW   = (255, 220,  90)   # bright gold horizon sweep
+
+random.seed(42)   # reproducible grain
+
+
+def lerp(a, b, t):
+    t = max(0.0, min(1.0, t))
+    return a + (b - a) * t
 
 
 def lerp_color(c1, c2, t):
@@ -50,13 +79,29 @@ def lerp_color(c1, c2, t):
 # ── Sky ───────────────────────────────────────────────────────────────────────
 
 def draw_sky(img):
+    """
+    4-stop gradient: near-black burgundy → deep amber → bright gold.
+    Darker sky = more cinematic, more contrast against the lit horizon.
+    """
     draw = ImageDraw.Draw(img)
+    stops = [
+        (0.00, SKY_TOP),
+        (0.30, SKY_Q1),
+        (0.60, SKY_MID),
+        (0.82, SKY_Q3),
+        (1.00, SKY_HRZ),
+    ]
     for y in range(HORIZON_Y):
         t = y / HORIZON_Y
-        if t < 0.55:
-            color = lerp_color(SKY_TOP, SKY_MID, t / 0.55)
-        else:
-            color = lerp_color(SKY_MID, SKY_HRZ, (t - 0.55) / 0.45)
+        # Find which segment we're in
+        color = stops[0][1]
+        for i in range(len(stops) - 1):
+            t0, c0 = stops[i]
+            t1, c1 = stops[i + 1]
+            if t0 <= t <= t1:
+                seg_t = (t - t0) / (t1 - t0)
+                color = lerp_color(c0, c1, seg_t)
+                break
         draw.line([(0, y), (SIZE, y)], fill=color)
 
 
@@ -67,117 +112,161 @@ def draw_ground(img):
     ground_h = SIZE - HORIZON_Y
     for y in range(ground_h):
         t = y / ground_h
-        color = lerp_color(GRD_TOP, GRD_BOT, t ** 0.7)
+        if t < 0.35:
+            color = lerp_color(GRD_HRZ, GRD_MID, t / 0.35)
+        else:
+            color = lerp_color(GRD_MID, GRD_BOT, (t - 0.35) / 0.65)
         draw.line([(0, HORIZON_Y + y), (SIZE, HORIZON_Y + y)], fill=color)
+
+
+# ── Horizon glow ──────────────────────────────────────────────────────────────
+
+def draw_horizon_glow(img):
+    """
+    A thin luminous band at the exact horizon — the precise moment of sunrise.
+    Sweeps across the full width. This is behind the treeline.
+    """
+    band_h = 80
+    band = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(band)
+
+    for i in range(band_h):
+        t = i / band_h
+        # Bell curve: fade in and out vertically
+        alpha = int(180 * math.sin(math.pi * t) ** 1.4)
+        y = HORIZON_Y - band_h // 2 + i
+        bd.line([(0, y), (SIZE, y)], fill=(*HRZ_GLOW, alpha))
+
+    blurred = band.filter(ImageFilter.GaussianBlur(radius=12))
+    img.paste(blurred, (0, 0), blurred)
 
 
 # ── Sun ───────────────────────────────────────────────────────────────────────
 
 def draw_sun(img):
-    """Bold sun disc centered at the vanishing point, sitting on the horizon."""
+    """
+    Bold sun disc at the vanishing point. Center ON the horizon line.
+    Disc radius extends beyond the road gap — treeline will frame the outer halo.
+    Road leads straight to the bright core. Compositional payoff.
+    """
     vp_x = SIZE // 2
     vp_y = HORIZON_Y
 
-    glow = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(glow)
+    # ── Soft aura (drawn first, behind everything) ────────────────────────
+    aura = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    ad = ImageDraw.Draw(aura)
 
-    # Soft outer glow bloom (drawn first, widest)
-    bloom_layers = [
-        (340, 200, (*SUN_OUTER, 18)),
-        (240, 150, (*SUN_OUTER, 35)),
-        (170, 110, (*SUN_MID,   60)),
-        (120,  80, (*SUN_MID,   90)),
+    aura_layers = [
+        (480, 260, (*SUN_AURA,  10)),
+        (360, 200, (*SUN_AURA,  20)),
+        (260, 148, (*SUN_AURA,  38)),
+        (185, 108, (*SUN_RING,  55)),
+        (130,  78, (*SUN_RING,  80)),
     ]
-    for rx, ry, color in bloom_layers:
-        gd.ellipse([vp_x - rx, vp_y - ry, vp_x + rx, vp_y + ry], fill=color)
+    for rx, ry, color in aura_layers:
+        ad.ellipse([vp_x - rx, vp_y - ry, vp_x + rx, vp_y + ry], fill=color)
 
-    blurred_glow = glow.filter(ImageFilter.GaussianBlur(radius=28))
-    img.paste(blurred_glow, (0, 0), blurred_glow)
+    aura_blur = aura.filter(ImageFilter.GaussianBlur(radius=32))
+    img.paste(aura_blur, (0, 0), aura_blur)
 
-    # Crisp sun disc — circle centered on horizon (half visible above, half behind treeline)
+    # ── Crisp disc ────────────────────────────────────────────────────────
     draw = ImageDraw.Draw(img)
-    sun_r = 82
-    # Full circle disc
+    sun_r = 78
+
+    # Outer ring
     draw.ellipse(
         [vp_x - sun_r, vp_y - sun_r, vp_x + sun_r, vp_y + sun_r],
-        fill=SUN_MID
+        fill=SUN_RING
     )
-    # Bright core
-    core_r = 52
+    # Mid ring
+    draw.ellipse(
+        [vp_x - int(sun_r * 0.74), vp_y - int(sun_r * 0.74),
+         vp_x + int(sun_r * 0.74), vp_y + int(sun_r * 0.74)],
+        fill=lerp_color(SUN_RING, SUN_CORE, 0.5)
+    )
+    # Core
+    core_r = int(sun_r * 0.50)
     draw.ellipse(
         [vp_x - core_r, vp_y - core_r, vp_x + core_r, vp_y + core_r],
         fill=SUN_CORE
     )
 
 
-# ── Forest treeline silhouette ─────────────────────────────────────────────────
+# ── Pine treeline ─────────────────────────────────────────────────────────────
 
 def draw_treeline(img):
     """
-    Two solid dark silhouette masses, one on each side, with a jagged pine-tip
-    profile. Drawn as single filled polygons — reads perfectly at 60px.
-    Trees are tallest at outer edges, shortest near the road opening.
+    Individual sharp triangular pines — a serrated silhouette that reads at 60px.
+    Trees are tallest at the outer edges, shortest near the road gap.
+    The sun's outer glow is partially behind the trees; its bright core shines
+    through the gap — the road leads to it.
     """
     draw = ImageDraw.Draw(img)
 
-    def pine_profile(cx, base_y, height, width):
-        """Returns the top-point of one pine triangle for profiling."""
-        return (cx, base_y - height), (cx - width, base_y), (cx + width, base_y)
-
-    # ── Left treeline ─────────────────────────────────────────────────────────
-    # Profile: start at left edge high, create jagged pine peaks, end at road edge
-    # Road left edge at horizon: vp_x - road_horizon_half_w
-    road_hw_horizon = 22
+    road_horizon_hw = 22
     vp_x = SIZE // 2
-    road_left_at_hz = vp_x - road_hw_horizon  # ~490
+    road_left  = vp_x - road_horizon_hw   # ≈ 490
+    road_right = vp_x + road_horizon_hw   # ≈ 534
 
-    # Pine peak positions (x, peak_y) from left edge inward
-    # Heights drop as we approach the center road gap
-    left_peaks = [
-        (  0,  HORIZON_Y - 310),   # left edge — very tall, partially clipped
-        ( 55,  HORIZON_Y - 265),
-        (115,  HORIZON_Y - 295),
-        (175,  HORIZON_Y - 240),
-        (235,  HORIZON_Y - 270),
-        (295,  HORIZON_Y - 215),
-        (355,  HORIZON_Y - 245),
-        (405,  HORIZON_Y - 180),
-        (445,  HORIZON_Y - 160),
-        (470,  HORIZON_Y - 120),
-        (490,  HORIZON_Y -  75),   # near road edge, short
+    def build_treeline(pines, left_x, right_x, side="left"):
+        """
+        Build a filled polygon for one side's treeline.
+        pines: list of (center_x, height, half_base_width) from outer edge inward.
+        Returns polygon points list.
+        """
+        poly = []
+        if side == "left":
+            poly.append((left_x, SIZE))
+            poly.append((left_x, HORIZON_Y))
+        else:
+            poly.append((right_x, SIZE))
+            poly.append((right_x, HORIZON_Y))
+
+        for (cx, h, bw) in pines:
+            poly.append((cx - bw, HORIZON_Y + 8))   # valley slightly below horizon
+            poly.append((cx, HORIZON_Y - h))          # pine tip
+            poly.append((cx + bw, HORIZON_Y + 8))    # valley
+
+        if side == "left":
+            poly.append((road_left, HORIZON_Y))
+            poly.append((road_left, SIZE))
+        else:
+            poly.append((road_right, HORIZON_Y))
+            poly.append((road_right, SIZE))
+
+        return poly
+
+    # Left pines — from x=0 inward. (cx, height, half_base_width)
+    # Sharp triangular: bw ≈ height × 0.30 (classic pine proportions)
+    left_pines = [
+        ( 22, 195, 52),   # partially clipped at left edge
+        ( 82, 218, 56),   # tallest visible
+        (152, 200, 52),
+        (225, 188, 50),
+        (300, 172, 46),
+        (368, 155, 42),
+        (425, 130, 35),
+        (464, 100, 26),
+        (485,  62, 18),   # small inner tree, right at road shoulder
     ]
 
-    # Build left polygon: trace the jagged top, then rectangle base
-    # Start: (0, SIZE) — bottom-left corner
-    left_poly = [(0, SIZE), (0, HORIZON_Y)]
-    for (px, py) in left_peaks:
-        left_poly.append((px, py))
-    # Close down to road edge at horizon, then fill down
-    left_poly.append((road_left_at_hz, HORIZON_Y))
-    left_poly.append((road_left_at_hz, SIZE))
-    draw.polygon(left_poly, fill=TREE_COLOR)
-
-    # ── Right treeline (mirror) ────────────────────────────────────────────────
-    right_peaks = [
-        (SIZE,       HORIZON_Y - 310),
-        (SIZE - 55,  HORIZON_Y - 265),
-        (SIZE - 115, HORIZON_Y - 295),
-        (SIZE - 175, HORIZON_Y - 240),
-        (SIZE - 235, HORIZON_Y - 270),
-        (SIZE - 295, HORIZON_Y - 215),
-        (SIZE - 355, HORIZON_Y - 245),
-        (SIZE - 405, HORIZON_Y - 180),
-        (SIZE - 445, HORIZON_Y - 160),
-        (SIZE - 470, HORIZON_Y - 120),
-        (SIZE - 490, HORIZON_Y -  75),
+    # Right pines — mirror from x=SIZE inward
+    right_pines = [
+        (SIZE - 22,  195, 52),
+        (SIZE - 82,  218, 56),
+        (SIZE - 152, 200, 52),
+        (SIZE - 225, 188, 50),
+        (SIZE - 300, 172, 46),
+        (SIZE - 368, 155, 42),
+        (SIZE - 425, 130, 35),
+        (SIZE - 464, 100, 26),
+        (SIZE - 485,  62, 18),
     ]
-    road_right_at_hz = vp_x + road_hw_horizon
 
-    right_poly = [(SIZE, SIZE), (SIZE, HORIZON_Y)]
-    for (px, py) in right_peaks:
-        right_poly.append((px, py))
-    right_poly.append((road_right_at_hz, HORIZON_Y))
-    right_poly.append((road_right_at_hz, SIZE))
+    left_poly  = build_treeline(left_pines,  0,    road_left,  "left")
+    right_poly = build_treeline(right_pines, road_right, SIZE, "right")
+
+    draw.polygon(left_poly,  fill=TREE_COLOR)
     draw.polygon(right_poly, fill=TREE_COLOR)
 
 
@@ -185,110 +274,160 @@ def draw_treeline(img):
 
 def draw_road(img):
     """
-    Perspective trapezoid road. Wide at bottom, narrow at vanishing point.
-    Strong dark charcoal — high contrast against forest green.
+    Perspective trapezoid — wide at bottom, converging to vanishing point.
+    Near-black asphalt, warm shoulder edges.
     """
     draw = ImageDraw.Draw(img)
     vp_x = SIZE // 2
     bottom_y = SIZE
+    road_bot_hw  = 308
+    road_hrz_hw  = 22
 
-    road_bottom_hw = 295   # half-width at very bottom edge
-    road_horizon_hw = 22   # half-width at horizon (matches treeline gap)
+    # Main asphalt
+    draw.polygon([
+        (vp_x - road_hrz_hw, HORIZON_Y),
+        (vp_x + road_hrz_hw, HORIZON_Y),
+        (vp_x + road_bot_hw,  bottom_y),
+        (vp_x - road_bot_hw,  bottom_y),
+    ], fill=ROAD_DARK)
 
-    road_pts = [
-        (vp_x - road_horizon_hw, HORIZON_Y),
-        (vp_x + road_horizon_hw, HORIZON_Y),
-        (vp_x + road_bottom_hw,  bottom_y),
-        (vp_x - road_bottom_hw,  bottom_y),
-    ]
-    draw.polygon(road_pts, fill=ROAD_COLOR)
+    # Warm shoulder strips
+    sh = 20
+    draw.polygon([
+        (vp_x - road_hrz_hw,      HORIZON_Y),
+        (vp_x - road_hrz_hw + 4,  HORIZON_Y),
+        (vp_x - road_bot_hw + sh, bottom_y),
+        (vp_x - road_bot_hw,      bottom_y),
+    ], fill=ROAD_EDGE)
+    draw.polygon([
+        (vp_x + road_hrz_hw - 4,  HORIZON_Y),
+        (vp_x + road_hrz_hw,      HORIZON_Y),
+        (vp_x + road_bot_hw,      bottom_y),
+        (vp_x + road_bot_hw - sh, bottom_y),
+    ], fill=ROAD_EDGE)
 
-    # Warm shoulder strips (subtle, just a few px)
-    shoulder_w = 22
-    left_sh = [
-        (vp_x - road_horizon_hw,                  HORIZON_Y),
-        (vp_x - road_horizon_hw + 4,               HORIZON_Y),
-        (vp_x - road_bottom_hw  + shoulder_w,      bottom_y),
-        (vp_x - road_bottom_hw,                    bottom_y),
-    ]
-    right_sh = [
-        (vp_x + road_horizon_hw - 4,               HORIZON_Y),
-        (vp_x + road_horizon_hw,                   HORIZON_Y),
-        (vp_x + road_bottom_hw,                    bottom_y),
-        (vp_x + road_bottom_hw  - shoulder_w,      bottom_y),
-    ]
-    draw.polygon(left_sh,  fill=ROAD_EDGE)
-    draw.polygon(right_sh, fill=ROAD_EDGE)
+
+# ── Road center reflection ─────────────────────────────────────────────────────
+
+def draw_road_reflection(img):
+    """
+    Narrow golden reflection in the center of the road — sun glinting on asphalt.
+    Fades out from the horizon downward. Premium depth cue.
+    """
+    vp_x   = SIZE // 2
+    bottom_y = SIZE
+    road_bot_hw  = 308
+    road_hrz_hw  = 22
+
+    ref_img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
+    rd = ImageDraw.Draw(ref_img)
+
+    # Reflection fades out over top 38% of road length
+    fade_end_y = HORIZON_Y + int((bottom_y - HORIZON_Y) * 0.42)
+    steps = fade_end_y - HORIZON_Y
+
+    for i in range(steps):
+        y = HORIZON_Y + i
+        t = i / steps
+        alpha = int(72 * (1 - t) ** 1.6)
+
+        # Width of the reflection strip scales with road width
+        road_t = i / (bottom_y - HORIZON_Y)
+        hw = road_hrz_hw + (road_bot_hw - road_hrz_hw) * road_t
+        rw = hw * 0.12   # reflection is 12% of road width
+
+        rd.line([(vp_x - rw, y), (vp_x + rw, y)],
+                fill=(*SUN_RING, alpha))
+
+    blurred = ref_img.filter(ImageFilter.GaussianBlur(radius=6))
+    img.paste(blurred, (0, 0), blurred)
 
 
 # ── Center dashes ─────────────────────────────────────────────────────────────
 
 def draw_dashes(img):
-    """
-    Perspective dashed center line. Fewer dashes, more spacing — cleaner.
-    Converge toward the sun at vanishing point.
-    """
+    """6 golden amber dashes in perspective — each one a trapezoid."""
     draw = ImageDraw.Draw(img)
     vp_x = SIZE // 2
     bottom_y = SIZE
+    road_bot_hw = 308
+    road_hrz_hw = 22
 
-    road_bottom_hw = 295
-    road_horizon_hw = 22
+    n = 6
+    dash_len = 0.40   # each dash takes 40% of its slot
 
-    num_dashes = 7
-    dash_fraction = 0.38   # each dash is 38% of its slot
-
-    for i in range(num_dashes):
-        t0 = (i + 0.1) / num_dashes
-        t1 = (i + 0.1 + dash_fraction) / num_dashes
-        if t1 > 1.0:
-            break
+    for i in range(n):
+        t0 = (i + 0.15) / n
+        t1 = t0 + dash_len / n
 
         y0 = HORIZON_Y + int((bottom_y - HORIZON_Y) * t0)
         y1 = HORIZON_Y + int((bottom_y - HORIZON_Y) * t1)
 
-        def hw_at(y):
-            t = (y - HORIZON_Y) / (bottom_y - HORIZON_Y)
-            return road_horizon_hw + (road_bottom_hw - road_horizon_hw) * t
+        def road_hw(y):
+            rt = (y - HORIZON_Y) / (bottom_y - HORIZON_Y)
+            return road_hrz_hw + (road_bot_hw - road_hrz_hw) * rt
 
-        # Dash is 5% of road width at that depth
-        dw0 = hw_at(y0) * 0.050
-        dw1 = hw_at(y1) * 0.050
+        dw0 = road_hw(y0) * 0.053
+        dw1 = road_hw(y1) * 0.053
 
-        pts = [
+        draw.polygon([
             (vp_x - dw0, y0), (vp_x + dw0, y0),
             (vp_x + dw1, y1), (vp_x - dw1, y1),
-        ]
-        draw.polygon(pts, fill=DASH_COLOR)
+        ], fill=DASH_COLOR)
+
+
+# ── Film grain ────────────────────────────────────────────────────────────────
+
+def apply_grain(img, strength=9):
+    """
+    Subtle film grain over the sky. Premium signal — used by top AI and
+    design apps (Perplexity, Midjourney, high-end photo apps) to add tactility.
+    Pure Python implementation: per-scanline noise, sky only.
+    """
+    img_data = img.load()
+    for y in range(HORIZON_Y):
+        # Grain fades out near horizon (less grain where horizon is bright)
+        t = y / HORIZON_Y
+        row_strength = int(strength * (0.4 + 0.6 * (1 - t) ** 0.6))
+        for x in range(SIZE):
+            r, g, b = img_data[x, y][:3]
+            n = random.randint(-row_strength, row_strength)
+            img_data[x, y] = (
+                max(0, min(255, r + n)),
+                max(0, min(255, g + n)),
+                max(0, min(255, b + n)),
+                255
+            )
 
 
 # ── Vignette ──────────────────────────────────────────────────────────────────
 
 def draw_vignette(img):
-    """Gentle dark vignette at edges to keep the eye centered on the road/sun."""
+    """Dark corner vignette — focuses the eye to the center road/sun."""
     vig = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
     vd = ImageDraw.Draw(vig)
 
-    steps = 20
+    steps = 22
     for i in range(steps):
         t = i / steps
-        alpha = int(95 * (t ** 2.2))
-        rx = int(SIZE * (0.5 - 0.48 * (1 - t)))
-        ry = int(SIZE * (0.5 - 0.48 * (1 - t)))
+        alpha = int(100 * (t ** 2.0))
+        rx = int(SIZE * (0.50 - 0.47 * (1 - t)))
+        ry = int(SIZE * (0.50 - 0.47 * (1 - t)))
         vd.ellipse(
             [SIZE // 2 - rx, SIZE // 2 - ry,
              SIZE // 2 + rx, SIZE // 2 + ry],
             outline=(0, 0, 0, alpha),
-            width=int(SIZE * 0.028)
+            width=int(SIZE * 0.030)
         )
 
-    vig_blur = vig.filter(ImageFilter.GaussianBlur(radius=36))
+    vig_blur = vig.filter(ImageFilter.GaussianBlur(radius=40))
     img.paste(vig_blur, (0, 0), vig_blur)
 
 
-# ── iOS rounded corners ───────────────────────────────────────────────────────
+# ── Rounded corners ───────────────────────────────────────────────────────────
 
 def apply_rounded_corners(img, radius_fraction=0.2236):
+    """iOS squircle approximation."""
     radius = int(SIZE * radius_fraction)
     mask = Image.new("L", (SIZE, SIZE), 0)
     ImageDraw.Draw(mask).rounded_rectangle(
@@ -303,33 +442,42 @@ def apply_rounded_corners(img, radius_fraction=0.2236):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    print("ZenRide Icon Generator v2 — Open Road")
+    print("ZenRide Icon Generator v3 — The Open Road")
     print(f"Output: {os.path.abspath(OUTPUT_PATH)}")
 
     img = Image.new("RGBA", (SIZE, SIZE), (*GRD_BOT, 255))
 
-    print("  Sky gradient...")
+    print("  [1/9] Sky gradient (cinematic burnt amber)...")
     draw_sky(img)
 
-    print("  Ground gradient...")
+    print("  [2/9] Ground gradient (deep forest)...")
     draw_ground(img)
 
-    print("  Sun glow + disc...")
+    print("  [3/9] Horizon glow (dawn light beam)...")
+    draw_horizon_glow(img)
+
+    print("  [4/9] Sun aura + disc...")
     draw_sun(img)
 
-    print("  Forest treeline silhouette...")
+    print("  [5/9] Pine treeline silhouettes...")
     draw_treeline(img)
 
-    print("  Road...")
+    print("  [6/9] Road...")
     draw_road(img)
 
-    print("  Center dashes...")
+    print("  [7/9] Road center reflection...")
+    draw_road_reflection(img)
+
+    print("  [8/9] Center dashes...")
     draw_dashes(img)
+
+    print("  Film grain (premium texture)...")
+    apply_grain(img, strength=9)
 
     print("  Vignette...")
     draw_vignette(img)
 
-    print("  Rounded corners...")
+    print("  [9/9] iOS rounded corners...")
     img = apply_rounded_corners(img)
 
     final = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
@@ -337,8 +485,8 @@ def main():
 
     os.makedirs(os.path.dirname(os.path.abspath(OUTPUT_PATH)), exist_ok=True)
     final.save(OUTPUT_PATH, "PNG", optimize=False)
-    print(f"  Done. {SIZE}×{SIZE} PNG written.")
-    print(f'\n  open "{os.path.abspath(OUTPUT_PATH)}"')
+    print(f"\n  Done. {SIZE}×{SIZE} PNG written.")
+    print(f'  open "{os.path.abspath(OUTPUT_PATH)}"')
 
 
 if __name__ == "__main__":
