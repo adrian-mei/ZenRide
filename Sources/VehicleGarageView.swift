@@ -208,7 +208,7 @@ struct VehicleGarageView: View {
                     .padding(.horizontal, 24)
 
                     // Maintenance Log
-                    MaintenanceLogSection(vehicle: vehicle) { updated in
+                    MaintenanceLogSection(vehicle: vehicle, currentMileage: vehicle.odometerMiles + driveStore.totalDistanceMiles) { updated in
                         vehicleStore.updateVehicle(updated)
                     }
                     .padding(.horizontal, 24)
@@ -510,8 +510,52 @@ private struct FullScreenPhotoView: View {
 
 // MARK: - Maintenance Log Section
 
+private struct ServiceReminderBanner: View {
+    let vehicle: Vehicle
+    let currentMileage: Double
+
+    private var intervalMiles: Double { vehicle.type == .motorcycle ? 3_000 : 5_000 }
+
+    private var lastOilChange: MaintenanceRecord? {
+        vehicle.maintenanceLog.first(where: { $0.type == "Oil Change" })
+    }
+
+    var body: some View {
+        if let last = lastOilChange {
+            let remaining = (last.mileageAtService + intervalMiles) - currentMileage
+            let isOverdue = remaining <= 0
+            let isDueSoon = remaining > 0 && remaining <= 500
+            let color: Color = isOverdue ? .red : (isDueSoon ? .orange : .green)
+            let icon = isOverdue
+                ? "exclamationmark.triangle.fill"
+                : (isDueSoon ? "clock.badge.exclamationmark.fill" : "checkmark.shield.fill")
+            let label: String = isOverdue
+                ? "Oil change overdue by \(Int(abs(remaining))) mi"
+                : (isDueSoon
+                    ? "Oil change due in \(Int(remaining)) mi"
+                    : "Oil change OK · \(Int(remaining)) mi to go")
+
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(color)
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(color)
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(color.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(color.opacity(0.3), lineWidth: 1))
+        }
+    }
+}
+
 private struct MaintenanceLogSection: View {
     var vehicle: Vehicle
+    let currentMileage: Double
     let onUpdate: (Vehicle) -> Void
 
     @State private var showAddRecord = false
@@ -538,6 +582,8 @@ private struct MaintenanceLogSection: View {
                     .overlay(Capsule().strokeBorder(Color.orange.opacity(0.3), lineWidth: 1))
                 }
             }
+
+            ServiceReminderBanner(vehicle: vehicle, currentMileage: currentMileage)
 
             if vehicle.maintenanceLog.isEmpty {
                 Text("No service records yet")

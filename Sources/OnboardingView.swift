@@ -33,14 +33,25 @@ struct OnboardingView: View {
 
 private struct WelcomePage: View {
     var onNext: () -> Void
+    @State private var appeared = false
 
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
 
-            Image(systemName: "shield.fill")
-                .font(.system(size: 72))
-                .foregroundColor(.blue)
+            ZStack {
+                Circle()
+                    .fill(Color.cyan.opacity(0.1))
+                    .frame(width: 140, height: 140)
+                    .blur(radius: 14)
+                Image(systemName: "shield.fill")
+                    .font(.system(size: 72, weight: .heavy))
+                    .foregroundColor(.cyan)
+                    .shadow(color: .cyan.opacity(0.7), radius: 22)
+            }
+            .scaleEffect(appeared ? 1 : 0.55)
+            .opacity(appeared ? 1 : 0)
+            .animation(.spring(response: 0.55, dampingFraction: 0.62), value: appeared)
 
             VStack(spacing: 12) {
                 Text("ZenRide")
@@ -52,6 +63,8 @@ private struct WelcomePage: View {
                     .font(.title3)
                     .foregroundColor(.gray)
             }
+            .opacity(appeared ? 1 : 0)
+            .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
 
             Spacer()
 
@@ -59,19 +72,23 @@ private struct WelcomePage: View {
                 Text("Get Started →")
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .padding(.vertical, 18)
                     .frame(maxWidth: .infinity)
-                    .background(Color.blue)
+                    .background(Color.cyan)
                     .clipShape(Capsule())
+                    .shadow(color: .cyan.opacity(0.4), radius: 16, x: 0, y: 8)
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 60)
+            .opacity(appeared ? 1 : 0)
+            .animation(.easeOut(duration: 0.4).delay(0.32), value: appeared)
         }
         .background(
             LinearGradient(colors: [.black, Color(white: 0.08)], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
         )
+        .onAppear { appeared = true }
     }
 }
 
@@ -90,15 +107,18 @@ private struct HowItWorksPage: View {
                 .foregroundColor(.white)
 
             VStack(spacing: 24) {
-                FeatureRow(icon: "shield.fill", color: .blue,
+                FeatureRow(icon: "shield.fill", color: .cyan,
                            title: "Camera Awareness",
-                           subtitle: "Live alerts before you reach a speed trap")
+                           subtitle: "Live alerts before you reach a speed trap",
+                           index: 0)
                 FeatureRow(icon: "map.fill", color: .green,
                            title: "Smarter Routes",
-                           subtitle: "Routes calculated to keep you safe")
+                           subtitle: "Routes calculated to keep you safe",
+                           index: 1)
                 FeatureRow(icon: "brain.head.profile", color: .purple,
                            title: "Learns Your Patterns",
-                           subtitle: "Suggests routes at the right time of day")
+                           subtitle: "Suggests routes at the right time of day",
+                           index: 2)
             }
             .padding(.horizontal, 32)
 
@@ -108,11 +128,12 @@ private struct HowItWorksPage: View {
                 Text("Next →")
                     .font(.title3)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .padding(.vertical, 18)
                     .frame(maxWidth: .infinity)
-                    .background(Color.blue)
+                    .background(Color.cyan)
                     .clipShape(Capsule())
+                    .shadow(color: .cyan.opacity(0.4), radius: 16, x: 0, y: 8)
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 60)
@@ -129,13 +150,21 @@ private struct FeatureRow: View {
     let color: Color
     let title: String
     let subtitle: String
+    let index: Int
+
+    @State private var appeared = false
 
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 28))
-                .foregroundColor(color)
-                .frame(width: 44)
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 52, height: 52)
+                    .shadow(color: color.opacity(0.35), radius: 10)
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(color)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -148,6 +177,10 @@ private struct FeatureRow: View {
 
             Spacer()
         }
+        .opacity(appeared ? 1 : 0)
+        .offset(x: appeared ? 0 : 30)
+        .animation(.spring(response: 0.45, dampingFraction: 0.72).delay(Double(index) * 0.12), value: appeared)
+        .onAppear { appeared = true }
     }
 }
 
@@ -174,6 +207,10 @@ private struct OnboardingVehiclePage: View {
     ]
 
     var isValid: Bool { !name.isEmpty && !make.isEmpty && !model.isEmpty && Int(yearText) != nil }
+
+    var selectedNeonColor: Color {
+        neonColors.first(where: { $0.hex == selectedColorHex })?.color ?? .cyan
+    }
 
     var body: some View {
         ScrollView {
@@ -226,6 +263,23 @@ private struct OnboardingVehiclePage: View {
                     }
                 }
                 .padding(.horizontal, 32)
+
+                // Live vehicle preview
+                ZStack {
+                    Circle()
+                        .fill(selectedNeonColor.opacity(0.1))
+                        .frame(width: 110, height: 110)
+                    Circle()
+                        .strokeBorder(selectedNeonColor.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 110, height: 110)
+                    Image(systemName: selectedType.icon)
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundColor(selectedNeonColor)
+                        .shadow(color: selectedNeonColor.opacity(0.65), radius: 12)
+                }
+                .shadow(color: selectedNeonColor.opacity(0.3), radius: 22, x: 0, y: 0)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: selectedColorHex)
+                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: selectedType)
 
                 // Quick details
                 VStack(spacing: 14) {

@@ -56,19 +56,30 @@ struct DestinationSearchView: View {
     @State private var cachedSuggestions: [SavedRoute] = []
 
     var body: some View {
-        VStack(spacing: 0) {
-            searchBar
-                .padding(.top, 20)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-
-            Divider().opacity(0.2)
-
-            if searcher.searchQuery.isEmpty {
-                idleList
-            } else {
-                searchResults
+        ZStack(alignment: .top) {
+            // Scrollable content underneath
+            VStack(spacing: 0) {
+                // Invisible spacer to push content below the search bar
+                Color.clear.frame(height: 90)
+                
+                if searcher.searchQuery.isEmpty {
+                    idleList
+                } else {
+                    searchResults
+                }
             }
+            
+            // Floating, frosted search bar on top
+            VStack(spacing: 0) {
+                searchBar
+                    .padding(.top, 20)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                
+                Divider().opacity(0.3)
+            }
+            .background(.regularMaterial) // This creates the dynamic frost effect
+            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
         .onChange(of: isSearchFocused) { if $0 { onSearchFocused?() } }
@@ -255,14 +266,15 @@ struct DestinationSearchView: View {
     private var searchResults: some View {
         Group {
             if searcher.isSearching {
-                VStack {
+                VStack(spacing: 12) {
                     Spacer()
                     ProgressView()
-                        .scaleEffect(1.2)
+                        .scaleEffect(1.4)
+                        .tint(.cyan)
                     Text("Searching…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 8)
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Color.cyan.opacity(0.8))
+                        .kerning(0.5)
                     Spacer()
                 }
                 .transition(.opacity)
@@ -284,9 +296,16 @@ struct DestinationSearchView: View {
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(searcher.searchResults.prefix(12).enumerated()), id: \.offset) { idx, item in
+                            let userLoc = owlPolice.currentLocation
+                            let distanceString: String? = {
+                                guard let userLoc, let placeLoc = item.placemark.location else { return nil }
+                                let miles = userLoc.distance(from: placeLoc) / 1609.34
+                                return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
+                            }()
                             SearchResultRow(
                                 item: item,
-                                isSaved: justSavedIndex == idx
+                                isSaved: justSavedIndex == idx,
+                                distanceString: distanceString
                             ) {
                                 routeTo(item: item)
                             } onSave: {
@@ -437,6 +456,7 @@ private struct SavedRouteRow: View {
 private struct SearchResultRow: View {
     let item: MKMapItem
     let isSaved: Bool
+    let distanceString: String?
     let action: () -> Void
     let onSave: () -> Void
 
@@ -459,10 +479,21 @@ private struct SearchResultRow: View {
                             .font(.system(size: 16))
                             .foregroundStyle(Color.primary)
                             .lineLimit(1)
-                        Text(item.placemark.locality ?? item.placemark.administrativeArea ?? "")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.secondary)
-                            .lineLimit(1)
+                        HStack(spacing: 6) {
+                            Text(item.placemark.locality ?? item.placemark.administrativeArea ?? "")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.secondary)
+                                .lineLimit(1)
+                            if let dist = distanceString {
+                                Text(dist)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color.cyan)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 2)
+                                    .background(Color.cyan.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                        }
                     }
                     Spacer()
                 }
