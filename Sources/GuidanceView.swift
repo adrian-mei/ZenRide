@@ -107,11 +107,11 @@ struct GuidanceView: View {
                 .background(
                     ZStack {
                         if instruction.instructionType == "ARRIVE" {
-                            Color(red: 0.8, green: 0.5, blue: 0.0).opacity(0.9)
+                            Color(red: 0.8, green: 0.5, blue: 0.0).opacity(0.95)
                         } else {
                             // "Night Rider" Deep Indigo-Cyan gradient
                             LinearGradient(
-                                colors: [Color(red: 0.0, green: 0.2, blue: 0.4), Color(red: 0.05, green: 0.05, blue: 0.15)],
+                                colors: [Color(red: 0.0, green: 0.2, blue: 0.4).opacity(0.95), Color(red: 0.05, green: 0.05, blue: 0.15).opacity(0.98)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -119,18 +119,18 @@ struct GuidanceView: View {
                         
                         // Subtle inner gloss for the HUD look
                         LinearGradient(
-                            colors: [.white.opacity(0.15), .clear],
+                            colors: [.white.opacity(0.2), .clear],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     }
                     .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous)) // Reverted VisorShape for better content fitting on all devices
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(Color.cyan.opacity(isApproachingTurn ? 0.85 : 0.4),
-                              lineWidth: isApproachingTurn ? 2.5 : 1.5)
+                        .strokeBorder(Color.cyan.opacity(isApproachingTurn ? 0.9 : 0.5),
+                              lineWidth: isApproachingTurn ? 3.0 : 2.0)
                 )
                 .shadow(color: .cyan.opacity(isApproachingTurn ? 0.5 : 0.2),
                         radius: isApproachingTurn ? 26 : 15, x: 0, y: 10)

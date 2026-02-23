@@ -201,7 +201,7 @@ struct RideView: View {
     @State private var destinationName: String = ""
     @State private var uiVisible = true
     @State private var showTapHint = false
-    @State private var searchSheetDetent: PresentationDetent = .fraction(0.15)
+    @State private var searchSheetDetent: PresentationDetent = .fraction(0.35)
     @State private var departureTime: Date? = nil
     @State private var navigationStartTime: Date? = nil
 
@@ -232,8 +232,8 @@ struct RideView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                // Controls row — shown in search mode always, in nav only when uiVisible
-                if routeState == .search || (routeState == .navigating && uiVisible) {
+                // Controls row — shown in search mode always, in nav always (removed uiVisible hiding)
+                if routeState == .search || routeState == .navigating {
                     HStack(alignment: .top) {
                         if routeState == .navigating {
                             DigitalDashSpeedometer(owlPolice: owlPolice)
@@ -243,17 +243,17 @@ struct RideView: View {
                             // Search mode speed limit sign
                             VStack(spacing: 0) {
                                 Text("SPEED")
-                                    .font(.system(size: 8, weight: .bold, design: .default))
+                                    .font(.system(size: 9, weight: .black, design: .default))
                                     .foregroundColor(.black)
                                 Text("LIMIT")
-                                    .font(.system(size: 8, weight: .bold, design: .default))
+                                    .font(.system(size: 9, weight: .black, design: .default))
                                     .foregroundColor(.black)
                                     .padding(.bottom, 2)
                                 Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)")
-                                    .font(.system(size: 26, weight: .bold, design: .default))
+                                    .font(.system(size: 32, weight: .heavy, design: .default))
                                     .foregroundColor(.black)
                             }
-                            .frame(width: 54, height: 64)
+                            .frame(width: 64, height: 74)
                             .background(Color.white, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -292,20 +292,20 @@ struct RideView: View {
                                         owlPolice.isMuted.toggle()
                                     } label: {
                                         Image(systemName: owlPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                                            .font(.title3)
-                                            .frame(width: 60, height: 60)
+                                            .font(.system(size: 22, weight: .bold))
+                                            .frame(width: 64, height: 64)
                                     }
                                     .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
 
-                                    Divider().padding(.horizontal, 8).opacity(0.3)
+                                    Divider().padding(.horizontal, 10).opacity(0.3)
                                 }
 
                                 Button {
                                     NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
                                 } label: {
                                     Image(systemName: "location.fill")
-                                        .font(.title3)
-                                        .frame(width: 60, height: 60)
+                                        .font(.system(size: 22, weight: .bold))
+                                        .frame(width: 64, height: 64)
                                         .foregroundColor(routeState == .navigating ? .cyan : .primary)
                                 }
                                 .accessibilityLabel("Recenter map on your location")
@@ -315,27 +315,28 @@ struct RideView: View {
 
                                     Button { reportHazard() } label: {
                                         Image(systemName: "exclamationmark.triangle.fill")
-                                            .font(.title3)
-                                            .frame(width: 60, height: 60)
-                                            .foregroundColor(.orange)
+                                            .font(.system(size: 26, weight: .black))
+                                            .frame(width: 64, height: 64)
+                                            .foregroundColor(.yellow)
+                                            .shadow(color: .orange.opacity(0.8), radius: 6)
                                     }
                                     .accessibilityLabel("Report Hazard")
                                 }
                             }
-                            .frame(width: 60)
+                            .frame(width: 64)
                             .foregroundColor(.white)
                             .background(
                                 ZStack {
                                     Color(red: 0.1, green: 0.1, blue: 0.15)
-                                    LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .top, endPoint: .bottom)
+                                    LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom)
                                 }
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(routeState == .navigating ? Color.cyan.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(routeState == .navigating ? Color.cyan.opacity(0.4) : Color.white.opacity(0.15), lineWidth: 1.5)
                             )
-                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .shadow(color: .black.opacity(0.4), radius: 10, x: 0, y: 6)
                         }
                         .padding(.trailing, 16)
                         .padding(.top, routeState == .search ? 16 : 0)
@@ -346,58 +347,31 @@ struct RideView: View {
                 Spacer()
 
                 // Bottom navigation panel
-                if routeState == .navigating && uiVisible {
+                if routeState == .navigating {
                     NavigationBottomPanel(onEnd: { endRide() })
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .edgesIgnoringSafeArea(.bottom)
                 }
 
-                // "Tap to show controls" hint — appears for 3s when navigation starts
-                if routeState == .navigating && showTapHint {
-                    Text("Tap to show controls")
-                        .font(.caption.bold())
-                        .foregroundColor(.white.opacity(0.85))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.55), in: Capsule())
-                        .padding(.bottom, 16)
-                        .allowsHitTesting(false)
-                        .transition(.opacity)
-                }
+                // "Tap to show controls" hint — disabled
+                // if routeState == .navigating && showTapHint {
+                //     ...
+                // }
             }
             .zIndex(5)
 
-            // Muted status pill — always visible when controls are hidden
-            if routeState == .navigating && owlPolice.isMuted && !uiVisible {
-                VStack {
-                    HStack {
-                        Spacer()
-                        HStack(spacing: 6) {
-                            Image(systemName: "speaker.slash.fill")
-                            Text("MUTED").font(.caption.bold())
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.red.opacity(0.8), in: Capsule())
-                        .foregroundColor(.white)
-                        .shadow(radius: 4)
-                        .padding(.trailing, 16)
-                        .padding(.top, 16)
-                    }
-                    Spacer()
-                }
-                .allowsHitTesting(false)
-                .zIndex(20)
-                .transition(.scale(scale: 0.85).combined(with: .opacity))
-            }
+            // Muted status pill no longer needed since controls are always visible
+            // if routeState == .navigating && owlPolice.isMuted && !uiVisible {
+            // ...
+            // }
         }
-        .onTapGesture {
-            guard routeState == .navigating else { return }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                uiVisible.toggle()
-                if uiVisible { showTapHint = false }
-            }
-        }
+        // .onTapGesture {
+        //     guard routeState == .navigating else { return }
+        //     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+        //         uiVisible.toggle()
+        //         if uiVisible { showTapHint = false }
+        //     }
+        // }
         .sheet(isPresented: Binding(
             get: { routeState == .search },
             set: { _ in }
@@ -408,14 +382,14 @@ struct RideView: View {
                     searchSheetDetent = .medium
                 }
             })
-                .presentationDetents([.fraction(0.15), .medium, .large], selection: $searchSheetDetent)
+                .presentationDetents([.fraction(0.35), .medium, .large], selection: $searchSheetDetent)
                 .presentationDragIndicator(.visible)
                 .presentationBackgroundInteraction(.enabled)
                 .interactiveDismissDisabled()
         }
         .onChange(of: searcher.searchQuery) { query in
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                searchSheetDetent = query.isEmpty ? .fraction(0.15) : .medium
+                searchSheetDetent = query.isEmpty ? .fraction(0.35) : .medium
             }
         }
         .sheet(isPresented: Binding(
@@ -452,18 +426,20 @@ struct RideView: View {
             .interactiveDismissDisabled()
         }
         .onChange(of: owlPolice.currentSpeedMPH) { speed in
-            if speed > 15.0 && uiVisible && routeState == .navigating {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
-            }
+            // Speed-based auto-hide disabled per user request
+            // if speed > 15.0 && uiVisible && routeState == .navigating {
+            //     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
+            // }
         }
         .onChange(of: routeState) { state in
             if state == .navigating {
                 UIApplication.shared.isIdleTimerDisabled = true
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
-                showTapHint = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    withAnimation(.easeOut(duration: 0.6)) { showTapHint = false }
-                }
+                // Auto-hide disabled per user request
+                // withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
+                // showTapHint = true
+                // DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                //     withAnimation(.easeOut(duration: 0.6)) { showTapHint = false }
+                // }
             } else {
                 UIApplication.shared.isIdleTimerDisabled = false
                 withAnimation { uiVisible = true }

@@ -69,10 +69,10 @@ struct DigitalDashSpeedometer: View {
                 .rotationEffect(.degrees(135))
                 .padding(4)
 
-            // Outer border ring
+            // Outer border ring (thicker and stylized)
             Circle()
-                .stroke(Color.gray.opacity(0.25), lineWidth: 4)
-                .padding(4)
+                .stroke(Color.gray.opacity(0.35), lineWidth: 8)
+                .padding(2)
 
             // Gradient speed ring
             Circle()
@@ -86,32 +86,34 @@ struct DigitalDashSpeedometer: View {
                 )
                 .scaleEffect(isPerfectPace ? pulseScale : 1.0)
 
-            // Center readout
-            VStack(spacing: -4) {
+            // Center readout (Larger, more aggressive font for speed)
+            VStack(spacing: -8) {
                 Text("\(Int(owlPolice.currentSpeedMPH))")
-                    .font(.system(size: 42, weight: .black, design: .monospaced))
+                    .font(.system(size: 56, weight: .heavy, design: .monospaced)) // INCREASED
                     .monospacedDigit()
                     .foregroundColor(currentSpeedColor)
                     .contentTransition(.numericText())
                     .animation(.snappy, value: Int(owlPolice.currentSpeedMPH))
+                    .shadow(color: currentSpeedColor.opacity(0.8), radius: 6)
 
                 Text("MPH")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundColor(.gray)
-                    .padding(.bottom, 2)
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(.bottom, 6)
 
-                // Speed limit badge
-                HStack(spacing: 2) {
+                // Speed limit badge (tactical styling)
+                HStack(spacing: 4) {
                     Text("LIMIT")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.gray)
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .foregroundColor(.black)
                     Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)")
-                        .font(.system(size: 14, weight: .heavy, design: .monospaced))
-                        .foregroundColor(.white)
+                        .font(.system(size: 16, weight: .black, design: .monospaced))
+                        .foregroundColor(.black)
                 }
                 .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Color.red.opacity(0.8), in: Capsule())
+                .padding(.vertical, 3)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.red, lineWidth: 2))
 
                 // Speed delta vs. limit — "+8" in red or "−3" in green
                 if let delta = speedDelta {
@@ -142,7 +144,7 @@ struct DigitalDashSpeedometer: View {
                 }
             }
         }
-        .frame(width: 120, height: 120)
+        .frame(width: 150, height: 150)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: owlPolice.currentSpeedMPH)
         .animation(.easeInOut(duration: 0.35), value: isDanger)
         .onChange(of: isPerfectPace) { isPerfect in

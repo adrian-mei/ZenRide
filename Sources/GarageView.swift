@@ -28,13 +28,35 @@ struct MapHomeView: View {
     @State private var toastVisible = false
     @State private var topSuggestion: SavedRoute? = nil
 
-    var greeting: String {
+    @State private var hasCheckedIn = false
+    
+    var timeOfDayGreeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 4..<12:  return "Good morning."
-        case 12..<17: return "Good afternoon."
-        case 17..<20: return "Golden hour."
-        default:      return "Good evening."
+        case 4..<12:  return "Morning light is breaking."
+        case 12..<17: return "The afternoon sun is warm."
+        case 17..<20: return "Golden hour on the asphalt."
+        default:      return "The night is quiet and cool."
+        }
+    }
+    
+    var timeOfDayIcon: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 4..<12:  return "sunrise.fill"
+        case 12..<17: return "sun.max.fill"
+        case 17..<20: return "sunset.fill"
+        default:      return "moon.stars.fill"
+        }
+    }
+    
+    var timeOfDayColor: Color {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 4..<12:  return .yellow
+        case 12..<17: return .orange
+        case 17..<20: return Color(red: 1.0, green: 0.4, blue: 0.2) // Deep orange/red
+        default:      return .cyan
         }
     }
 
@@ -47,43 +69,30 @@ struct MapHomeView: View {
 
             // MARK: HUD Overlays
             VStack(spacing: 0) {
-                // Top row: vehicle button + stats pill
-                HStack(alignment: .top, spacing: 0) {
-                    // Left: Vehicle HUD button
-                    VehicleHUDButton(onTap: { showGarage = true })
-                        .padding(.leading, 16)
-
-                    Spacer()
-
-                    // Right: Stats mini-HUD + settings gear
-                    HStack(spacing: 8) {
-                        StatsMiniHUD()
-
-                        Button {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            showVoiceSettings = true
-                        } label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding(10)
-                                .background(
-                                    Color(red: 0.08, green: 0.08, blue: 0.12)
-                                        .overlay(Color.white.opacity(0.05))
-                                )
-                                .clipShape(Circle())
-                                .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-                                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                // Top row: Basecamp Header
+                BasecampHeader(
+                    greeting: timeOfDayGreeting,
+                    icon: timeOfDayIcon,
+                    iconColor: timeOfDayColor,
+                    hasCheckedIn: hasCheckedIn,
+                    onCheckIn: {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            hasCheckedIn = true
                         }
-                    }
-                    .padding(.trailing, 16)
+                    },
+                    onOpenGarage: { showGarage = true },
+                    onOpenSettings: { showVoiceSettings = true }
+                )
+                .padding(.top, 50)
+                
+                // Floating search bar (only show if checked in or as a secondary action)
+                if hasCheckedIn {
+                    FloatingSearchBarButton(onTap: onRollOut)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                .padding(.top, 60)
-
-                // Floating search bar
-                FloatingSearchBarButton(onTap: onRollOut)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
 
                 Spacer()
             }
@@ -91,16 +100,19 @@ struct MapHomeView: View {
             .allowsHitTesting(true)
 
             // MARK: Bottom Quick Routes Panel
-            VStack {
-                Spacer()
-                QuickRoutesPanel(
-                    topSuggestion: topSuggestion,
-                    onRollOut: onRollOut,
-                    savedRoutes: savedRoutes,
-                    showHistory: $showHistory
-                )
+            if hasCheckedIn {
+                VStack {
+                    Spacer()
+                    QuickRoutesPanel(
+                        topSuggestion: topSuggestion,
+                        onRollOut: onRollOut,
+                        savedRoutes: savedRoutes,
+                        showHistory: $showHistory
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .zIndex(8)
             }
-            .zIndex(8)
 
             // MARK: Post-ride toast
             if toastVisible, let info = postRideInfo {
@@ -165,6 +177,125 @@ struct MapHomeView: View {
         let hour = Calendar.current.component(.hour, from: Date())
         guard hour >= 5 && hour <= 23 else { topSuggestion = nil; return }
         topSuggestion = SmartSuggestionService.suggestions(from: savedRoutes).first
+    }
+}
+
+// MARK: - Basecamp Header
+
+private struct BasecampHeader: View {
+    let greeting: String
+    let icon: String
+    let iconColor: Color
+    let hasCheckedIn: Bool
+    let onCheckIn: () -> Void
+    let onOpenGarage: () -> Void
+    let onOpenSettings: () -> Void
+    
+    @EnvironmentObject var vehicleStore: VehicleStore
+    @EnvironmentObject var driveStore: DriveStore
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: icon)
+                            .foregroundColor(iconColor)
+                            .font(.system(size: 14, weight: .bold))
+                        Text("Camp Today")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.8))
+                            .textCase(.uppercase)
+                    }
+                    
+                    Text(hasCheckedIn ? "Ready to roll." : greeting)
+                        .font(.system(size: 22, weight: .black, design: .serif))
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 8) {
+                    if hasCheckedIn {
+                        Button(action: onOpenSettings) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white.opacity(0.8))
+                                .frame(width: 36, height: 36)
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                    }
+                    
+                    Button(action: onOpenGarage) {
+                        Image(systemName: vehicleStore.selectedVehicle?.type.icon ?? "car.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Color(hex: vehicleStore.selectedVehicle?.colorHex ?? "007AFF"))
+                            .frame(width: 36, height: 36)
+                            .background(Color.white.opacity(0.1))
+                            .clipShape(Circle())
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 16)
+            
+            if !hasCheckedIn {
+                Button(action: onCheckIn) {
+                    HStack {
+                        Image(systemName: "sun.max.fill")
+                            .foregroundColor(.yellow)
+                        Text("Good Morning, Camp")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color(white: 0.15))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                    )
+                }
+                .padding(.horizontal, 20)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            } else {
+                // The Owl Guide appears after check in
+                HStack(spacing: 12) {
+                    Text("🦉")
+                        .font(.system(size: 24))
+                        .padding(8)
+                        .background(Color.orange.opacity(0.2))
+                        .clipShape(Circle())
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Officer Owl")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.orange)
+                        Text("Tire pressure checked? The road awaits.")
+                            .font(.system(size: 14, weight: .medium, design: .serif))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .padding(.vertical, 16)
+        .background(
+            LinearGradient(
+                colors: [Color.black.opacity(0.8), Color.black.opacity(0.0)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
 }
 
@@ -532,60 +663,69 @@ struct MoodSelectionCard: View {
 
     private let moods: [(emoji: String, label: String, color: Color)] = [
         ("😌", "Peaceful", .cyan),
-        ("⚡", "Energized", .yellow),
-        ("🧘", "Zen", .green),
-        ("🔥", "Intense", .orange),
-        ("😤", "Frustrated", .red),
+        ("🏕️", "Adventurous", .orange),
+        ("🥱", "Tiring", .gray)
     ]
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             Capsule()
                 .fill(Color.white.opacity(0.2))
                 .frame(width: 36, height: 4)
                 .padding(.top, 12)
 
-            Text("How was the ride?")
-                .font(.system(size: 20, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-
-            Text("Optional — swipe down to skip")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.4))
-
             HStack(spacing: 12) {
+                Text("🦉")
+                    .font(.system(size: 32))
+                    .padding(10)
+                    .background(Color.orange.opacity(0.15))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Officer Owl")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.orange)
+                    Text("How did today feel?")
+                        .font(.system(size: 18, weight: .black, design: .serif))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+
+            HStack(spacing: 16) {
                 ForEach(moods, id: \.label) { mood in
                     Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         onSelect(mood.label)
                     } label: {
-                        VStack(spacing: 6) {
+                        VStack(spacing: 8) {
                             Text(mood.emoji)
-                                .font(.system(size: 28))
+                                .font(.system(size: 32))
                             Text(mood.label)
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(mood.color)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 18)
                         .background(mood.color.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(mood.color.opacity(0.3), lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(mood.color.opacity(0.3), lineWidth: 1))
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 24)
 
             Button {
                 onDismiss()
             } label: {
-                Text("Skip")
-                    .font(.subheadline)
+                Text("Skip for now")
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.4))
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 20)
         }
-        .background(Color(red: 0.06, green: 0.06, blue: 0.1).ignoresSafeArea())
+        .background(Color(red: 0.08, green: 0.09, blue: 0.1).ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 }

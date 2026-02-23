@@ -33,95 +33,95 @@ struct AchievementEngine {
 
         return [
             Achievement(
-                id: "road_warrior",
-                title: "Road Warrior",
+                id: "rides_10",
+                title: "Camp Regular",
                 subtitle: "Complete 10 rides",
-                icon: "flag.checkered",
+                icon: "tent.fill",
                 color: .yellow,
                 isEarned: totalRides >= 10,
-                progress: min(1, Double(totalRides) / 10)
+                progress: min(1.0, Double(totalRides) / 10.0)
             ),
             Achievement(
-                id: "zen_master",
-                title: "Zen Master",
+                id: "zen_80",
+                title: "Gentle Breeze",
                 subtitle: "Avg Zen Score ≥ 80 over 10 rides",
                 icon: "leaf.fill",
                 color: .green,
                 isEarned: avgZen >= 80 && totalRides >= 10,
-                progress: totalRides < 10 ? min(1, Double(totalRides) / 10) : min(1, Double(avgZen) / 80)
+                progress: totalRides == 0 ? 0 : min(1.0, Double(avgZen) / 80.0)
             ),
             Achievement(
-                id: "night_rider",
-                title: "Night Rider",
+                id: "night_5",
+                title: "Midnight Owl",
                 subtitle: "5 night rides",
                 icon: "moon.stars.fill",
                 color: .purple,
                 isEarned: nightRides >= 5,
-                progress: min(1, Double(nightRides) / 5)
+                progress: min(1.0, Double(nightRides) / 5.0)
             ),
             Achievement(
-                id: "camera_dodger",
-                title: "Camera Dodger",
+                id: "safe_10",
+                title: "Smooth Glider",
                 subtitle: "Avoid 10 speed cameras",
-                icon: "shield.fill",
+                icon: "wind",
                 color: .cyan,
                 isEarned: savedCameras >= 10,
-                progress: min(1, Double(savedCameras) / 10)
+                progress: min(1.0, Double(savedCameras) / 10.0)
             ),
             Achievement(
-                id: "speed_demon",
-                title: "Speed Demon",
-                subtitle: "Record a top speed > 80 mph",
-                icon: "bolt.fill",
+                id: "speed_80",
+                title: "Tailwind Chaser",
+                subtitle: "Experience a brisk ride over 80 mph",
+                icon: "hare.fill",
                 color: .orange,
                 isEarned: topSpeed > 80,
-                progress: min(1, topSpeed / 80)
+                progress: min(1.0, topSpeed / 80.0)
             ),
             Achievement(
-                id: "explorer",
-                title: "Explorer",
+                id: "miles_100",
+                title: "Wilderness Explorer",
                 subtitle: "Ride 100+ miles total",
                 icon: "map.fill",
                 color: .blue,
                 isEarned: totalMiles >= 100,
-                progress: min(1, totalMiles / 100)
+                progress: min(1.0, totalMiles / 100.0)
             ),
             Achievement(
-                id: "early_bird",
-                title: "Early Bird",
-                subtitle: "5 morning commute rides",
+                id: "morning_5",
+                title: "Morning Dew",
+                subtitle: "5 early morning rides",
                 icon: "sunrise.fill",
                 color: Color(red: 1, green: 0.7, blue: 0.2),
                 isEarned: morningRides >= 5,
-                progress: min(1, Double(morningRides) / 5)
+                progress: min(1.0, Double(morningRides) / 5.0)
             ),
             Achievement(
-                id: "ghost_rider",
-                title: "Ghost Rider",
+                id: "perfect_5",
+                title: "Silent Shadow",
                 subtitle: "5 rides with zero camera incidents",
-                icon: "eye.slash.fill",
+                icon: "moon.fill",
                 color: Color(red: 0.5, green: 0.1, blue: 0.9),
                 isEarned: perfectRideCount >= 5,
-                progress: min(1, Double(perfectRideCount) / 5)
+                progress: min(1.0, Double(perfectRideCount) / 5.0)
             ),
             Achievement(
-                id: "on_a_streak",
-                title: "On a Streak",
-                subtitle: "Ride 3 days in a row",
+                id: "streak_3",
+                title: "Warm Hearth",
+                subtitle: "Keep the camp lit 3 days in a row",
                 icon: "flame.fill",
                 color: .red,
                 isEarned: streak >= 3,
-                progress: min(1, Double(streak) / 3)
+                progress: min(1.0, Double(streak) / 3.0)
             ),
             Achievement(
-                id: "money_saver",
-                title: "Money Saver",
+                id: "save_500",
+                title: "Wise Forager",
                 subtitle: "Save $500+ in potential fines",
-                icon: "banknote.fill",
+                icon: "leaf.circle.fill",
                 color: Color(red: 0.1, green: 0.8, blue: 0.4),
                 isEarned: store.totalSavedAllTime >= 500,
-                progress: min(1, store.totalSavedAllTime / 500)
-            ),
+                progress: min(1.0, store.totalSavedAllTime / 500.0)
+            )
         ]
     }
 
@@ -235,7 +235,7 @@ struct AchievementUnlockToast: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Achievement Unlocked!")
+                Text("New Memento Collected!")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(achievement.color)
                     .kerning(0.5)
@@ -249,7 +249,7 @@ struct AchievementUnlockToast: View {
 
             Spacer()
 
-            Image(systemName: "star.fill")
+            Image(systemName: "leaf.fill")
                 .font(.system(size: 16))
                 .foregroundColor(achievement.color)
         }
@@ -292,27 +292,27 @@ struct AchievementsShelf: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("ACHIEVEMENTS")
+                    Text("MEMENTOS")
                         .font(.system(size: 11, weight: .black))
                         .foregroundColor(.white.opacity(0.5))
                         .kerning(1.5)
-                    Text("\(earnedCount) of \(achievements.count) earned")
+                    Text("\(earnedCount) of \(achievements.count) collected")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white.opacity(0.4))
                 }
                 Spacer()
 
-                // XP bar
+                // Progress bar (No XP)
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(earnedCount * 100) XP")
-                        .font(.system(size: 12, weight: .black, design: .rounded))
-                        .foregroundColor(.yellow)
+                    Text("Collection")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.green.opacity(0.8))
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.white.opacity(0.1)).frame(height: 4)
                             Capsule()
-                                .fill(LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing))
-                                .frame(width: geo.size.width * Double(earnedCount) / Double(achievements.count), height: 4)
+                                .fill(LinearGradient(colors: [.green, .cyan], startPoint: .leading, endPoint: .trailing))
+                                .frame(width: geo.size.width * Double(earnedCount) / Double(max(achievements.count, 1)), height: 4)
                         }
                     }
                     .frame(width: 80, height: 4)

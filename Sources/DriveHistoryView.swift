@@ -19,10 +19,23 @@ struct DriveHistoryView: View {
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                         .listRowSeparator(.hidden)
 
-                        // MARK: Achievements shelf
+                        // MARK: Scrapbook Mementos
                         Section {
-                            AchievementsShelf()
-                                .padding(.vertical, 4)
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Image(systemName: "leaf.fill")
+                                        .foregroundColor(.green)
+                                    Text("Scrapbook Mementos")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16)
+                                
+                                AchievementsShelf()
+                                    .padding(.bottom, 8)
+                            }
+                            .background(Color(white: 0.1).cornerRadius(16))
                         }
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -38,8 +51,8 @@ struct DriveHistoryView: View {
                                 .listRowSeparatorTint(Color.white.opacity(0.1))
                             }
                         } header: {
-                            Text("ROUTES")
-                                .font(.system(size: 11, weight: .black))
+                            Text("PAST RIDES & DISCOVERIES")
+                                .font(.system(size: 11, weight: .black, design: .rounded))
                                 .foregroundColor(.white.opacity(0.4))
                                 .kerning(1.5)
                                 .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 4, trailing: 16))
@@ -50,7 +63,7 @@ struct DriveHistoryView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .navigationTitle("Drive History")
+            .navigationTitle("Your Nature Archive")
             .navigationBarTitleDisplayMode(.large)
             .background(Color.black.ignoresSafeArea())
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -74,18 +87,18 @@ private struct RiderStatsBanner: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(streak > 0 ? Color.red.opacity(0.2) : Color.white.opacity(0.06))
+                        .fill(streak > 0 ? Color.orange.opacity(0.2) : Color.white.opacity(0.06))
                         .frame(width: 44, height: 44)
-                    Image(systemName: "flame.fill")
+                    Image(systemName: streak > 0 ? "lantern.fill" : "lantern")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(streak > 0 ? .red : .white.opacity(0.2))
-                        .shadow(color: streak > 0 ? .red.opacity(0.5) : .clear, radius: 6)
+                        .foregroundColor(streak > 0 ? .orange : .white.opacity(0.2))
+                        .shadow(color: streak > 0 ? .orange.opacity(0.5) : .clear, radius: 6)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(streak > 0 ? "\(streak) day streak" : "No streak yet")
+                    Text(streak > 0 ? "\(streak) day journey" : "Lantern unlit")
                         .font(.system(size: 15, weight: .black, design: .rounded))
                         .foregroundColor(streak > 0 ? .white : .white.opacity(0.3))
-                    Text(streak > 0 ? "Keep it up!" : "Ride today to start one")
+                    Text(streak > 0 ? "The camp is warm" : "Ride today to light it")
                         .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.4))
                 }
@@ -107,7 +120,7 @@ private struct RiderStatsBanner: View {
         .padding(.vertical, 14)
         .background(
             LinearGradient(
-                colors: [Color(red: 0.07, green: 0.07, blue: 0.14), Color(red: 0.04, green: 0.04, blue: 0.08)],
+                colors: [Color(red: 0.1, green: 0.08, blue: 0.05), Color(red: 0.05, green: 0.06, blue: 0.08)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -136,17 +149,18 @@ private struct RiderStatsBanner: View {
 private struct EmptyHistoryView: View {
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "road.lanes")
+            Image(systemName: "leaf.circle.fill")
                 .font(.system(size: 60))
-                .foregroundColor(.white.opacity(0.3))
-            Text("No rides recorded yet")
+                .foregroundColor(.green.opacity(0.4))
+            Text("Your Archive is empty")
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(.white.opacity(0.6))
-            Text("Complete a ride to see your history here.")
+            Text("Complete a ride to start building your collection of memories.")
                 .font(.subheadline)
                 .foregroundColor(.white.opacity(0.4))
                 .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
         }
         .padding()
     }

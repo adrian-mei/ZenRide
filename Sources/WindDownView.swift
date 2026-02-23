@@ -82,22 +82,37 @@ struct WindDownView: View {
                 }
 
                 VStack(spacing: 20) {
-                    Text("How did the cruise feel?")
-                        .font(.headline)
-                        .foregroundColor(.white.opacity(0.9))
+                    HStack(spacing: 12) {
+                        Text("🦉")
+                            .font(.system(size: 24))
+                            .padding(8)
+                            .background(Color.orange.opacity(0.15))
+                            .clipShape(Circle())
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Officer Owl")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(.orange)
+                            Text("How did today feel?")
+                                .font(.headline)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal)
 
                     HStack(spacing: 16) {
-                        MoodButton(symbol: "wind", color: .cyan, title: "Breezy") {
+                        MoodButton(symbol: "leaf.fill", color: .cyan, title: "Peaceful") {
                             timer?.invalidate()
-                            onComplete("Breezy")
+                            onComplete("Peaceful")
                         }
-                        MoodButton(symbol: "eye.fill", color: .orange, title: "Focused") {
+                        MoodButton(symbol: "flame.fill", color: .orange, title: "Adventurous") {
                             timer?.invalidate()
-                            onComplete("Focused")
+                            onComplete("Adventurous")
                         }
-                        MoodButton(symbol: "cloud.heavyrain.fill", color: .blue, title: "Heavy") {
+                        MoodButton(symbol: "moon.zzz.fill", color: .gray, title: "Tiring") {
                             timer?.invalidate()
-                            onComplete("Heavy")
+                            onComplete("Tiring")
                         }
                     }
                     .padding(.horizontal)

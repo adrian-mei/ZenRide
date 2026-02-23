@@ -467,30 +467,30 @@ private struct SearchResultRow: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.blue.opacity(0.1))
-                            .frame(width: 38, height: 38)
+                            .fill(Color.blue.opacity(0.15))
+                            .frame(width: 42, height: 42)
                         Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 19))
+                            .font(.system(size: 22))
                             .foregroundStyle(Color.blue)
                     }
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(item.name ?? "Unknown")
-                            .font(.system(size: 16))
+                            .font(.system(size: 17, weight: .bold))
                             .foregroundStyle(Color.primary)
                             .lineLimit(1)
                         HStack(spacing: 6) {
-                            Text(item.placemark.locality ?? item.placemark.administrativeArea ?? "")
-                                .font(.system(size: 13))
+                            Text(formatAddress(placemark: item.placemark))
+                                .font(.system(size: 14))
                                 .foregroundStyle(Color.secondary)
                                 .lineLimit(1)
                             if let dist = distanceString {
                                 Text(dist)
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.system(size: 11, weight: .bold))
                                     .foregroundStyle(Color.cyan)
                                     .padding(.horizontal, 7)
                                     .padding(.vertical, 2)
-                                    .background(Color.cyan.opacity(0.12))
+                                    .background(Color.cyan.opacity(0.15))
                                     .clipShape(Capsule())
                             }
                         }
@@ -505,24 +505,49 @@ private struct SearchResultRow: View {
             Button(action: onSave) {
                 ZStack {
                     Image(systemName: "bookmark.fill")
-                        .font(.system(size: 18))
+                        .font(.system(size: 20))
                         .foregroundStyle(Color.blue)
                         .scaleEffect(isSaved ? 1 : 0.01)
                         .opacity(isSaved ? 1 : 0)
 
                     Image(systemName: "bookmark")
-                        .font(.system(size: 18))
+                        .font(.system(size: 20))
                         .foregroundStyle(Color.secondary)
                         .scaleEffect(isSaved ? 0.01 : 1)
                         .opacity(isSaved ? 0 : 1)
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: 50, height: 50)
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSaved)
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+    }
+    
+    private func formatAddress(placemark: MKPlacemark) -> String {
+        // Build detailed street address (e.g. "123 Main St, San Francisco")
+        var components: [String] = []
+        
+        var street = ""
+        if let subThoroughfare = placemark.subThoroughfare {
+            street += subThoroughfare + " "
+        }
+        if let thoroughfare = placemark.thoroughfare {
+            street += thoroughfare
+        }
+        
+        if !street.isEmpty {
+            components.append(street)
+        }
+        
+        if let city = placemark.locality {
+            components.append(city)
+        } else if let area = placemark.administrativeArea {
+            components.append(area)
+        }
+        
+        return components.isEmpty ? "Unknown Address" : components.joined(separator: ", ")
     }
 }
 

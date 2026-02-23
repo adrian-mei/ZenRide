@@ -77,33 +77,35 @@ struct NavigationBottomPanel: View {
                             .foregroundColor(.green)
                             .opacity(arrivingPulse ? 1.0 : 0.55)
                     } else {
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(arrivalTime)
-                                .font(.system(size: 32, weight: .heavy, design: .monospaced))
+                                .font(.system(size: 38, weight: .heavy, design: .monospaced)) // Bolder, larger
                                 .foregroundColor(.white)
+                                .shadow(color: .cyan.opacity(0.4), radius: 6)
                                 .contentTransition(.numericText())
                             Text("ETA")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .font(.system(size: 14, weight: .black, design: .rounded))
                                 .foregroundColor(.cyan)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.cyan.opacity(0.15))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.cyan.opacity(0.2))
                                 .clipShape(Capsule())
                         }
                     }
 
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         if !isArriving {
                             Text(formattedTime)
-                                .font(.system(size: 18, weight: .bold, design: .monospaced))
-                                .foregroundColor(.white.opacity(0.85))
+                                .font(.system(size: 20, weight: .heavy, design: .monospaced))
+                                .foregroundColor(Color(red: 0.8, green: 0.9, blue: 1.0))
                                 .contentTransition(.numericText())
-                            Text("·")
-                                .foregroundColor(.white.opacity(0.3))
+                            Text("•")
+                                .font(.system(size: 20, weight: .black))
+                                .foregroundColor(.cyan.opacity(0.5))
                         }
                         Text(formattedDistance)
-                            .font(.system(size: 18, weight: .medium, design: .monospaced))
-                            .foregroundColor(isArriving ? .green : .white.opacity(0.55))
+                            .font(.system(size: 20, weight: .heavy, design: .monospaced))
+                            .foregroundColor(isArriving ? .green : Color(red: 0.7, green: 0.75, blue: 0.8))
                             .contentTransition(.numericText())
                     }
                 }
@@ -116,23 +118,23 @@ struct NavigationBottomPanel: View {
                     onEnd()
                 } label: {
                     VStack(spacing: 3) {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 18, weight: .bold))
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .black))
                         Text("END")
-                            .font(.system(size: 11, weight: .black))
-                            .kerning(1)
+                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .kerning(1.2)
                     }
                     .foregroundColor(.white)
-                    .frame(width: 72, height: 64)
+                    .frame(width: 80, height: 72)
                     .background(
                         LinearGradient(
-                            colors: [Color(red: 0.9, green: 0.15, blue: 0.15), Color(red: 0.7, green: 0.1, blue: 0.1)],
+                            colors: [Color(red: 1.0, green: 0.2, blue: 0.2), Color(red: 0.6, green: 0.0, blue: 0.0)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .shadow(color: .red.opacity(0.5), radius: 10, x: 0, y: 4)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .shadow(color: .red.opacity(0.6), radius: 12, x: 0, y: 6)
                 }
             }
             .padding(.horizontal, 24)
@@ -187,24 +189,25 @@ struct NavigationBottomPanel: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(Color(red: 0.05, green: 0.05, blue: 0.08).opacity(0.85)) // Darker, sleeker motorcycle dash look
+                .background(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 32, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    isArriving ? Color.green.opacity(0.7) : Color.cyan.opacity(0.5),
-                                    .clear
+                                    isArriving ? Color.green.opacity(0.8) : Color.cyan.opacity(0.6),
+                                    Color.white.opacity(0.1)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 1.5
+                            lineWidth: 2.0
                         )
                 )
                 .shadow(
-                    color: isArriving ? Color.green.opacity(0.2) : Color.cyan.opacity(0.12),
-                    radius: 24, x: 0, y: -6
+                    color: isArriving ? Color.green.opacity(0.3) : Color.cyan.opacity(0.15),
+                    radius: 30, x: 0, y: -10
                 )
         )
         .ignoresSafeArea(edges: .bottom)
@@ -306,25 +309,31 @@ private struct LiveMetricTile: View {
     var pulse: Bool = false
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 14, weight: .black))
                 .foregroundColor(color)
+                .shadow(color: color.opacity(0.8), radius: 5)
             Text(value)
-                .font(.system(size: 16, weight: .black, design: .rounded))
+                .font(.system(size: 18, weight: .heavy, design: .monospaced))
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
-                .scaleEffect(pulse ? 1.15 : 1)
+                .scaleEffect(pulse ? 1.25 : 1)
             Text(label)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundColor(.white.opacity(0.4))
-                .kerning(1)
+                .font(.system(size: 10, weight: .black, design: .rounded))
+                .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.7))
+                .kerning(1.5)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(color.opacity(pulse ? 0.15 : 0.06))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.1, green: 0.1, blue: 0.15).opacity(0.9))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(color.opacity(pulse ? 0.8 : 0.2), lineWidth: 1.5)
+                )
+                .shadow(color: color.opacity(pulse ? 0.4 : 0.0), radius: 10)
         )
     }
 }
@@ -351,15 +360,15 @@ struct PitStopButton: View {
             VStack(spacing: 7) {
                 ZStack {
                     Circle()
-                        .fill(color.opacity(tapped ? 0.3 : 0.12))
-                        .frame(width: 64, height: 64)
-                        .overlay(Circle().strokeBorder(color.opacity(tapped ? 0.9 : 0.4), lineWidth: 1.5))
-                        .shadow(color: color.opacity(tapped ? 0.5 : 0.0), radius: 8)
+                        .fill(Color.black.opacity(0.4))
+                        .frame(width: 68, height: 68)
+                        .overlay(Circle().strokeBorder(color.opacity(tapped ? 1.0 : 0.6), lineWidth: tapped ? 3.0 : 1.5))
+                        .shadow(color: color.opacity(tapped ? 0.8 : 0.3), radius: 10)
 
                     Image(systemName: icon)
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(size: 26, weight: .bold))
                         .foregroundColor(color)
-                        .shadow(color: color.opacity(0.7), radius: tapped ? 8 : 4)
+                        .shadow(color: color.opacity(0.9), radius: tapped ? 12 : 6)
                 }
                 .scaleEffect(tapped ? 0.9 : 1.0)
 

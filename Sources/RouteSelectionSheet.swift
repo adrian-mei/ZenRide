@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct RouteSelectionSheet: View {
     let destinationName: String
@@ -18,21 +17,22 @@ struct RouteSelectionSheet: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ROUTE TO")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 11, weight: .black, design: .rounded))
+                            .foregroundColor(.cyan)
                             .kerning(1.5)
                         Text(destinationName.isEmpty ? "Destination" : destinationName)
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.primary)
+                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
 
                     Spacer()
 
                     Button(action: onCancel) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 28))
+                            .foregroundColor(.white.opacity(0.5))
                             .frame(width: 44, height: 44)
                     }
                 }
