@@ -25,3 +25,4 @@ targets:
           - UIInterfaceOrientationLandscapeRight
     settings:
       CODE_SIGN_STYLE: Automatic
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
