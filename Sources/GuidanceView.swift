@@ -4,6 +4,8 @@ struct GuidanceView: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var owlPolice: OwlPolice
     @State private var currentInstructionIndex: Int = 0
+    private let haptic500 = UINotificationFeedbackGenerator()
+    private let haptic100 = UIImpactFeedbackGenerator(style: .heavy)
 
     var body: some View {
         VStack {
@@ -22,17 +24,18 @@ struct GuidanceView: View {
                         Text(formatDistance(instruction: instruction))
                             .font(.system(size: 24, weight: .black, design: .monospaced)) // Thicker, digital distance
                             .foregroundColor(.white)
+                            .contentTransition(.numericText())
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text(instruction.message ?? "Continue")
-                            .font(.system(size: 20, weight: .bold)) // Larger instruction message
-                            .foregroundColor(.cyan.opacity(0.85)) // Tinted instruction text
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.cyan.opacity(0.85))
                             .lineLimit(1)
-                        
+
                         if let street = instruction.street, !street.isEmpty {
                             Text(street)
-                                .font(.system(size: 34, weight: .black)) // Massive street name
+                                .font(.system(size: 34, weight: .black))
                                 .foregroundColor(.white)
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.7)
@@ -42,7 +45,19 @@ struct GuidanceView: View {
                                 .foregroundColor(.white)
                         }
                     }
+
                     Spacer()
+
+                    // Vehicle mode badge (top-right of card)
+                    VStack {
+                        Image(systemName: routingService.vehicleMode.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.5))
+                            .padding(8)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Circle())
+                        Spacer()
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -72,6 +87,17 @@ struct GuidanceView: View {
                     }
                 }
                 // -----------------------------
+                
+                // --- NEON LANE GUIDANCE ---
+                if let type = instruction.instructionType, type.contains("TURN") || type.contains("KEEP") {
+                    let distanceToTurn = Double(instruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
+                    if distanceToTurn < 1000 && distanceToTurn > 100 {
+                        NeonLaneGuidanceView(instructionType: type)
+                            .padding(.bottom, 16)
+                            .transition(.scale(scale: 0.9).combined(with: .opacity))
+                    }
+                }
+                // --------------------------
                 
                 } // End of inner VStack
                 .background(
@@ -110,6 +136,10 @@ struct GuidanceView: View {
                 ))
             }
         }
+        .onAppear {
+            haptic500.prepare()
+            haptic100.prepare()
+        }
         // Advance instructions based on our simulation point index.
         // We look for the first instruction whose pointIndex is strictly greater than our current simulation point.
         .onChange(of: owlPolice.currentSimulationIndex) { newIndex in
@@ -140,6 +170,25 @@ struct GuidanceView: View {
             if isSimulating {
                 currentInstructionIndex = 0
                 routingService.currentInstructionIndex = 0
+            }
+        }
+        .onChange(of: owlPolice.distanceTraveledInSimulationMeters) { dist in
+            if !routingService.instructions.isEmpty, currentInstructionIndex < routingService.instructions.count {
+                let instruction = routingService.instructions[currentInstructionIndex]
+                let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - dist
+                let distanceFeet = max(0, nextInstructionDistanceMeters * 3.28084)
+                
+                // Haptic at 500ft
+                if distanceFeet < 510 && distanceFeet > 490 && !routingService.hasWarned500ft {
+                    routingService.hasWarned500ft = true
+                    haptic500.notificationOccurred(.warning)
+                }
+
+                // Haptic at 100ft
+                if distanceFeet < 110 && distanceFeet > 90 && !routingService.hasWarned100ft {
+                    routingService.hasWarned100ft = true
+                    haptic100.impactOccurred()
+                }
             }
         }
     }

@@ -261,19 +261,23 @@ struct MoodButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 12) {
+            VStack(spacing: 14) {
                 Image(systemName: symbol)
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.system(size: 40, weight: .semibold))
                     .foregroundColor(color)
+                    .shadow(color: color.opacity(0.5), radius: 6)
                 Text(title)
-                    .font(.headline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
+            .frame(minHeight: 100) // glove-friendly minimum height
             .background(.regularMaterial)
-            .cornerRadius(20)
+            .cornerRadius(22)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22)
+                    .strokeBorder(color.opacity(0.3), lineWidth: 1)
+            )
         }
     }
 }

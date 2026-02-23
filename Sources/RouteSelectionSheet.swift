@@ -6,7 +6,7 @@ struct RouteSelectionSheet: View {
     var onDrive: () -> Void
     var onSimulate: () -> Void
     var onCancel: () -> Void
-    
+
     @EnvironmentObject var routingService: RoutingService
     @State private var countdown = 10
     @State private var timer: Timer? = nil
@@ -14,7 +14,7 @@ struct RouteSelectionSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text(destinationName.isEmpty ? "Destination" : destinationName)
                         .font(.title2)
@@ -27,20 +27,32 @@ struct RouteSelectionSheet: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
                             .foregroundColor(.secondary)
+                            .frame(width: 44, height: 44) // glove-sized hit area
                     }
                 }
 
-                // Transportation Mode Picker Placeholder
+                // Mode picker — motorcycle + car both active, others decorative
                 HStack(spacing: 0) {
-                    ModeButton(icon: "car.fill", isSelected: false)
-                    ModeButton(icon: "figure.motorcycle", isSelected: true)
-                    ModeButton(icon: "figure.walk", isSelected: false)
-                    ModeButton(icon: "bus.fill", isSelected: false)
-                    ModeButton(icon: "bicycle", isSelected: false)
+                    ForEach(VehicleMode.allCases, id: \.rawValue) { mode in
+                        ModeButton(
+                            icon: mode.icon,
+                            label: mode.displayName,
+                            isSelected: routingService.vehicleMode == mode
+                        ) {
+                            if routingService.vehicleMode != mode {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                routingService.vehicleMode = mode
+                            }
+                        }
+                    }
+
+                    // Decorative only — walk, bus, bike
+                    DecorativeModeButton(icon: "figure.walk")
+                    DecorativeModeButton(icon: "bus.fill")
+                    DecorativeModeButton(icon: "bicycle")
                 }
                 .background(.regularMaterial)
-                .cornerRadius(10, corners: .allCorners)
-                .padding(.top, 8)
+                .cornerRadius(12, corners: .allCorners)
 
                 // Route preference toggles
                 HStack(spacing: 8) {
@@ -65,18 +77,27 @@ struct RouteSelectionSheet: View {
                         activeColor: .orange
                     ) { routingService.avoidTolls.toggle() }
                 }
-                .padding(.top, 4)
             }
             .padding(.top, 24)
             .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+            .padding(.bottom, 16)
 
             // Route Options List
             VStack(spacing: 12) {
                 if routingService.isCalculatingRoute {
-                    HStack { Spacer(); ProgressView("Calculating routes..."); Spacer() }
-                        .padding(.vertical, 24)
-                        .transition(.opacity)
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            ProgressView()
+                                .scaleEffect(1.1)
+                            Text("Calculating routes…")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 24)
+                    .transition(.opacity)
                 } else if routingService.availableRoutes.isEmpty {
                     HStack {
                         Image(systemName: "exclamationmark.triangle")
@@ -106,54 +127,55 @@ struct RouteSelectionSheet: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.isCalculatingRoute)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.availableRoutes.count)
             .padding(.horizontal, 24)
-            .padding(.bottom, 24)
-            
-            // Actions
-            HStack(spacing: 16) {
+            .padding(.bottom, 20)
+
+            // Actions — large glove-friendly buttons
+            HStack(spacing: 14) {
                 Button(action: {
                     timer?.invalidate()
                     onSimulate()
                 }) {
                     Text("Simulate")
-                        .font(.headline)
+                        .font(.title3)
+                        .fontWeight(.semibold)
                         .foregroundColor(.primary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .frame(height: 64)
                         .background(.regularMaterial)
-                        .clipShape(Capsule())
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
-                
+
                 Button(action: {
                     timer?.invalidate()
                     onDrive()
                 }) {
-                    Text(countdown > 0 ? "Ride (\(countdown)s)" : "Ride")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .contentTransition(.numericText())
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(colors: [.cyan, Color(red: 0.0, green: 0.6, blue: 0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                        .clipShape(Capsule())
-                        .shadow(color: .cyan.opacity(0.4), radius: 8, x: 0, y: 4)
+                    HStack(spacing: 8) {
+                        Image(systemName: routingService.vehicleMode.icon)
+                            .font(.title3.weight(.bold))
+                        Text(countdown > 0 ? "Ride (\(countdown)s)" : "Ride")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .contentTransition(.numericText())
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 64)
+                    .background(
+                        LinearGradient(colors: [.cyan, Color(red: 0.0, green: 0.6, blue: 0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .shadow(color: .cyan.opacity(0.4), radius: 10, x: 0, y: 4)
                 }
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 24)
+            .padding(.bottom, 28)
         }
         .presentationDragIndicator(.visible)
         .onAppear {
-            if !routingService.availableRoutes.isEmpty {
-                startTimer()
-            }
+            if !routingService.availableRoutes.isEmpty { startTimer() }
         }
         .onChange(of: routingService.availableRoutes.count) { count in
-            if count > 0 && timer == nil {
-                startTimer()
-            }
+            if count > 0 && timer == nil { startTimer() }
         }
         .onDisappear {
             timer?.invalidate()
@@ -169,7 +191,7 @@ struct RouteSelectionSheet: View {
         countdown = 10
         Task { await routingService.recalculate() }
     }
-    
+
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -183,28 +205,74 @@ struct RouteSelectionSheet: View {
             }
         }
     }
-    
+
     private func resetTimer() {
         countdown = 10
         startTimer()
     }
 }
 
+// MARK: - Active Mode Button (motorcycle / car)
+
+private struct ModeButton: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: isSelected ? .bold : .regular))
+                    .foregroundColor(isSelected ? .white : .primary)
+                if isSelected {
+                    Text(label)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(isSelected ? Color.blue : Color.clear)
+            .cornerRadius(10, corners: .allCorners)
+            .padding(2)
+        }
+    }
+}
+
+// MARK: - Decorative (disabled) Mode Button
+
+private struct DecorativeModeButton: View {
+    let icon: String
+
+    var body: some View {
+        Image(systemName: icon)
+            .font(.body)
+            .foregroundColor(.primary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 15)
+            .opacity(0.2)
+    }
+}
+
+// MARK: - Route List Row
+
 struct RouteListRow: View {
     let route: TomTomRoute
     let isSelected: Bool
     var onSelect: () -> Void
-    
+
     var formattedTime: String {
         let minutes = route.summary.travelTimeInSeconds / 60
         return "\(minutes) min"
     }
-    
+
     var formattedDistance: String {
         let miles = Double(route.summary.lengthInMeters) / 1609.34
         return String(format: "%.1f mi", miles)
     }
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack {
@@ -232,7 +300,7 @@ struct RouteListRow: View {
                                 .foregroundColor(isSelected ? .blue : .primary)
                         }
                     }
-                    
+
                     if route.isZeroCameras {
                         Text("Safest Choice")
                             .font(.caption)
@@ -249,46 +317,30 @@ struct RouteListRow: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(formattedTime)
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(isSelected ? .green : .primary)
-                    
                     Text(formattedDistance)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(minHeight: 64)  // glove-friendly row height
             .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
             .background(.regularMaterial)
-            .cornerRadius(12, corners: .allCorners)
+            .cornerRadius(14, corners: .allCorners)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 14)
                     .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
             )
         }
-    }
-}
-
-// Helper to round specific corners
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape( RoundedCorner(radius: radius, corners: corners) )
-    }
-}
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
     }
 }
 
@@ -305,18 +357,14 @@ struct RoutePreferenceChip: View {
         Button(action: onTap) {
             HStack(spacing: 5) {
                 Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
             .foregroundColor(isActive ? activeColor : .secondary)
-            .background(
-                isActive
-                    ? activeColor.opacity(0.15)
-                    : Color(.systemGray5)
-            )
+            .background(isActive ? activeColor.opacity(0.15) : Color(.systemGray5))
             .clipShape(Capsule())
             .overlay(
                 Capsule()
@@ -327,22 +375,20 @@ struct RoutePreferenceChip: View {
     }
 }
 
-struct ModeButton: View {
-    let icon: String
-    let isSelected: Bool
-    
-    var body: some View {
-        Button(action: {}) {
-            Image(systemName: icon)
-                .font(.body.weight(isSelected ? .bold : .regular))
-                .foregroundColor(isSelected ? .white : .primary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(isSelected ? Color.blue : Color.clear)
-                .cornerRadius(8, corners: .allCorners)
-                .padding(2)
-                .opacity(isSelected ? 1.0 : 0.3) // Visually indicate they are inactive/coming soon
-        }
-        .disabled(!isSelected) // Actually disable them
+// MARK: - Helpers
+
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
     }
 }

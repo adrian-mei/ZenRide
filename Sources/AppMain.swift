@@ -224,7 +224,7 @@ struct RideView: View {
                                     }) {
                                         Image(systemName: owlPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                                             .font(.title3)
-                                            .frame(width: 48, height: 48)
+                                            .frame(width: 60, height: 60)
                                     }
                                     .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
 
@@ -236,7 +236,7 @@ struct RideView: View {
                                 }) {
                                     Image(systemName: "location.fill")
                                         .font(.title3)
-                                        .frame(width: 48, height: 48)
+                                        .frame(width: 60, height: 60)
                                         .foregroundColor(routeState == .navigating ? .cyan : .primary)
                                 }
                                 .accessibilityLabel("Recenter map on your location")
@@ -249,13 +249,13 @@ struct RideView: View {
                                     }) {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .font(.title3)
-                                            .frame(width: 48, height: 48)
+                                            .frame(width: 60, height: 60)
                                             .foregroundColor(.orange)
                                     }
                                     .accessibilityLabel("Report Hazard")
                                 }
                             }
-                            .frame(width: 48)
+                            .frame(width: 60)
                             .foregroundColor(.white)
                             .background(
                                 ZStack {

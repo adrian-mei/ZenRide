@@ -1,6 +1,28 @@
 import Foundation
 import CoreLocation
 
+enum VehicleMode: String, CaseIterable {
+    case motorcycle
+    case car
+
+    var icon: String {
+        switch self {
+        case .motorcycle: return "figure.motorcycle"
+        case .car:        return "car.fill"
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .motorcycle: return "Motorcycle"
+        case .car:        return "Car"
+        }
+    }
+
+    /// Camera avoidance default for this mode
+    var defaultAvoidCameras: Bool { self == .motorcycle }
+}
+
 enum RoutingError: Error {
     case invalidURL
     case noData
@@ -82,6 +104,17 @@ class RoutingService: ObservableObject {
         }
     }
     @Published var isCalculatingRoute = false
+
+    // MARK: - Vehicle Mode
+
+    @Published var vehicleMode: VehicleMode = .motorcycle {
+        didSet {
+            guard vehicleMode != oldValue else { return }
+            // Apply mode defaults without overriding explicit user toggles
+            avoidSpeedCameras = vehicleMode.defaultAvoidCameras
+            Task { await recalculate() }
+        }
+    }
 
     // MARK: - Route Preferences
 
