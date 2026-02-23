@@ -24,6 +24,7 @@ struct MapHomeView: View {
     @State private var showGarage = false
     @State private var showHistory = false
     @State private var showMoodCard = false
+    @State private var showVoiceSettings = false
     @State private var toastVisible = false
     @State private var topSuggestion: SavedRoute? = nil
 
@@ -54,9 +55,28 @@ struct MapHomeView: View {
 
                     Spacer()
 
-                    // Right: Stats mini-HUD
-                    StatsMiniHUD()
-                        .padding(.trailing, 16)
+                    // Right: Stats mini-HUD + settings gear
+                    HStack(spacing: 8) {
+                        StatsMiniHUD()
+
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            showVoiceSettings = true
+                        } label: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding(10)
+                                .background(
+                                    Color(red: 0.08, green: 0.08, blue: 0.12)
+                                        .overlay(Color.white.opacity(0.05))
+                                )
+                                .clipShape(Circle())
+                                .overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                        }
+                    }
+                    .padding(.trailing, 16)
                 }
                 .padding(.top, 60)
 
@@ -115,6 +135,11 @@ struct MapHomeView: View {
         .onChange(of: savedRoutes.routes.count) { _ in refreshSuggestion() }
         .sheet(isPresented: $showGarage) {
             VehicleGarageView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showVoiceSettings) {
+            VoiceSettingsView()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }

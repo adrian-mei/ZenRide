@@ -11,7 +11,7 @@ enum ZoneStatus {
 
 class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
     let locationManager = CLLocationManager()
-    private let synthesizer = AVSpeechSynthesizer()
+    private let speech = SpeechService.shared
 
     // MARK: - Published State
 
@@ -73,12 +73,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         locationManager.requestWhenInUseAuthorization()
 
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .mixWithOthers])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            Log.error("OwlPolice", "Failed to set audio session: \(error)")
-        }
+        // Audio session is owned by SpeechService.shared — configured on first access.
     }
 
     func startPatrol(with cameras: [SpeedCamera]) {
@@ -374,11 +369,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
             #endif
         }
 
-        let utterance = AVSpeechUtterance(string: "Slow down! Camera ahead.")
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.55
-        utterance.pitchMultiplier = 1.2
-        if !isMuted { synthesizer.speak(utterance) }
+        if !isMuted { speech.speak("Slow down! Camera ahead.", rate: 0.55, pitch: 1.2) }
     }
 
     private func triggerApproachWarning(for camera: SpeedCamera) {
@@ -408,10 +399,6 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
 
     public func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.45
-        utterance.pitchMultiplier = 1.1
-        if !isMuted { synthesizer.speak(utterance) }
+        if !isMuted { speech.speak(text) }
     }
 }
