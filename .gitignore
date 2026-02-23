@@ -19,6 +19,7 @@ DerivedData
 
 # SwiftPM
 .build/
+.swiftpm/
 
 # CocoaPods
 Pods/
@@ -29,3 +30,33 @@ ZenRide.xcodeproj/
 
 # Secrets
 Sources/Secrets.swift
+
+# Environment Variables
+.env
+.env.*
+*.env
+
+# Build Artifacts
+*.dSYM
+*.dSYM.zip
+
+# Crash Reports
+*.crash
+
+# OS Generated
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# Python (for the scripts)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
