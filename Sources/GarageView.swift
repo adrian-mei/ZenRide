@@ -92,6 +92,7 @@ struct GarageView: View {
                             }
                         }
                         .padding(.horizontal, 20)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
                     Spacer(minLength: 20)
@@ -123,7 +124,10 @@ struct SuggestionChipView: View {
     @State private var appeared = false
 
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onTap()
+        }) {
             HStack(spacing: 12) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 16, weight: .semibold))

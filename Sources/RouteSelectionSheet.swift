@@ -50,6 +50,7 @@ struct RouteSelectionSheet: View {
                 if routingService.isCalculatingRoute {
                     HStack { Spacer(); ProgressView("Calculating routes..."); Spacer() }
                         .padding(.vertical, 24)
+                        .transition(.opacity)
                 } else if routingService.availableRoutes.isEmpty {
                     HStack {
                         Image(systemName: "exclamationmark.triangle")
@@ -60,6 +61,7 @@ struct RouteSelectionSheet: View {
                         Spacer()
                     }
                     .padding()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 } else {
                     ForEach(Array(routingService.availableRoutes.enumerated()), id: \.element.id) { index, route in
                         RouteListRow(
@@ -71,9 +73,12 @@ struct RouteSelectionSheet: View {
                                 resetTimer()
                             }
                         )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.isCalculatingRoute)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.availableRoutes.count)
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
             
@@ -99,6 +104,7 @@ struct RouteSelectionSheet: View {
                     Text(countdown > 0 ? "Drive (\(countdown)s)" : "Drive")
                         .font(.title3)
                         .fontWeight(.bold)
+                        .contentTransition(.numericText())
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -257,7 +263,7 @@ struct ModeButton: View {
                 .font(.body.weight(isSelected ? .bold : .regular))
                 .foregroundColor(isSelected ? .white : .primary)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 13)
                 .background(isSelected ? Color.blue : Color.clear)
                 .cornerRadius(8)
                 .padding(2)

@@ -67,6 +67,7 @@ struct GuidanceView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 16)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
                 // -----------------------------

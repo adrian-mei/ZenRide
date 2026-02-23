@@ -59,7 +59,7 @@ struct ContentView: View {
             case .riding:
                 RideView(onStop: { context in
                     lastRideContext = context
-                    withAnimation(.easeInOut(duration: 0.6)) { appState = .windDown }
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { appState = .windDown }
                 })
             case .windDown:
                 WindDownView(ticketsAvoided: owlPolice.camerasPassedThisRide,
@@ -114,6 +114,7 @@ struct RideView: View {
             if routeState == .navigating {
                 AmbientGlowView()
                     .zIndex(1)
+                    .transition(.opacity)
             }
 
             if routeState == .navigating && (owlPolice.currentZone == .approach || owlPolice.currentZone == .danger) {
@@ -225,6 +226,7 @@ struct RideView: View {
                                 .background(Color.red.opacity(0.8), in: Capsule())
                                 .foregroundColor(.white)
                                 .shadow(radius: 4)
+                                .transition(.scale(scale: 0.85).combined(with: .opacity))
                             }
                             if routeState == .search && owlPolice.camerasPassedThisRide > 0 {
                                 HStack(spacing: 4) {
@@ -337,9 +339,9 @@ struct RideView: View {
         }
         .onChange(of: owlPolice.currentSpeedMPH) { speed in
             if speed > 15.0 && controlsVisible {
-                withAnimation(.easeInOut(duration: 0.5)) { controlsVisible = false }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { controlsVisible = false }
             } else if speed < 12.0 && !controlsVisible {
-                withAnimation(.easeInOut(duration: 0.3)) { controlsVisible = true }
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { controlsVisible = true }
             }
         }
         .onChange(of: routeState) { state in

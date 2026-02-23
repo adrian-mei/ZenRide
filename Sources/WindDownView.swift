@@ -79,23 +79,26 @@ struct WindDownView: View {
 
             Spacer()
 
-            if dismissCountdown > 0 {
-                Text("Skipping in \(dismissCountdown)s...")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding(.bottom, 20)
-            } else {
-                Text("Tap a mood to save your ride")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding(.bottom, 20)
+            Group {
+                if dismissCountdown > 0 {
+                    Text("Skipping in \(dismissCountdown)s...")
+                        .transition(.opacity)
+                } else {
+                    Text("Tap a mood to save your ride")
+                        .transition(.opacity)
+                }
             }
+            .font(.subheadline)
+            .foregroundColor(.gray)
+            .padding(.bottom, 20)
+            .animation(.easeInOut(duration: 0.25), value: dismissCountdown == 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             timer?.invalidate()
-            dismissCountdown = 0
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { dismissCountdown = 0 }
         }
         .onAppear {
             startTimer()
