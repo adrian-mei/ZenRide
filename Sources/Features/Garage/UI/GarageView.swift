@@ -1,4 +1,6 @@
 import SwiftUI
+import MapKit
+import CoreLocation
 
 // MARK: - Post-Ride Info
 
@@ -19,6 +21,7 @@ struct MapHomeView: View {
     @EnvironmentObject var locationProvider: LocationProvider
 
     var onRollOut: () -> Void
+    var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
     var postRideInfo: PostRideInfo?
     var pendingMoodSave: ((String) -> Void)?
 
@@ -30,7 +33,6 @@ struct MapHomeView: View {
 
     @State private var isTracking = true
     @State private var bottomSheetDetent: PresentationDetent = .fraction(0.35)
-    @State private var searchText = ""
 
     var body: some View {
         ZStack {
@@ -45,16 +47,16 @@ struct MapHomeView: View {
                     MapRoundButton(icon: "view.3d", action: {
                         // Action for 3D view
                     })
-                    MapRoundButton(icon: vehicleStore.selectedVehicle?.type.icon ?? "car.fill", action: { 
-                        showGarage = true 
+                    MapRoundButton(icon: vehicleStore.selectedVehicle?.type.icon ?? "car.fill", action: {
+                        showGarage = true
                     })
-                    MapRoundButton(icon: isTracking ? "location.fill" : "location", action: { 
+                    MapRoundButton(icon: isTracking ? "location.fill" : "location", action: {
                         isTracking = true
                         NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
                     })
                 }
                 .padding(.trailing, 16)
-                .padding(.bottom, UIScreen.main.bounds.height * 0.15 + 20) 
+                .padding(.bottom, UIScreen.main.bounds.height * 0.15 + 20)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
 
@@ -72,10 +74,13 @@ struct MapHomeView: View {
         }
         .sheet(isPresented: .constant(true)) {
             HomeBottomSheet(
-                searchText: $searchText,
                 onProfileTap: { showProfile = true },
-                onSearchTap: onRollOut,
-                savedRoutes: savedRoutes
+                onDestinationSelected: onDestinationSelected,
+                onSearchFocused: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        bottomSheetDetent = .large
+                    }
+                }
             )
             .presentationDetents([.fraction(0.15), .fraction(0.35), .large], selection: $bottomSheetDetent)
             .presentationBackgroundInteraction(.enabled(upThrough: .large))
@@ -132,7 +137,7 @@ struct MapHomeView: View {
 struct MapRoundButton: View {
     let icon: String
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
@@ -150,11 +155,22 @@ struct MapRoundButton: View {
 // MARK: - Home Bottom Sheet
 
 struct HomeBottomSheet: View {
-    @Binding var searchText: String
     var onProfileTap: () -> Void
-    var onSearchTap: () -> Void
-    @ObservedObject var savedRoutes: SavedRoutesStore
-    
+    var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
+    var onSearchFocused: (() -> Void)? = nil
+
+    @EnvironmentObject var locationProvider: LocationProvider
+    @EnvironmentObject var routingService: RoutingService
+    @EnvironmentObject var cameraStore: CameraStore
+    @EnvironmentObject var savedRoutes: SavedRoutesStore
+    @EnvironmentObject var parkingStore: ParkingStore
+
+    @StateObject private var searcher = DestinationSearcher()
+    @FocusState private var isSearchFocused: Bool
+    @State private var searchTask: Task<Void, Never>?
+    @State private var justSavedIndex: Int? = nil
+    @State private var nearbyParking: [ParkingSpot] = []
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -165,116 +181,323 @@ struct HomeBottomSheet: View {
                         .frame(width: 40, height: 5)
                         .padding(.top, 8)
                 }
-                
-                // Search Bar + Profile
+
+                // Search Bar + Profile / Cancel
                 HStack(spacing: 12) {
-                    Button(action: onSearchTap) {
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
-                            Text(searchText.isEmpty ? "Search Destinations" : searchText)
-                                .foregroundColor(searchText.isEmpty ? .secondary : .primary)
-                            Spacer()
-                            Image(systemName: "mic.fill")
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(12)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button(action: onProfileTap) {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .frame(width: 36, height: 36)
-                            .foregroundColor(.cyan)
-                    }
-                }
-                .padding(.horizontal)
-                
-                // Places
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Places")
-                            .font(.title3.bold())
-                        Image(systemName: "chevron.right")
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
                             .foregroundColor(.secondary)
-                            .font(.caption.bold())
-                    }
-                    .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            PlaceIcon(icon: "fuelpump.fill", color: .green, title: "Gas Station")
-                            PlaceIcon(icon: "cup.and.saucer.fill", color: .orange, title: "Coffee")
-                            PlaceIcon(icon: "parkingsign.circle.fill", color: .blue, title: "Parking")
-                            PlaceIcon(icon: "wrench.and.screwdriver.fill", color: .gray, title: "Mechanic")
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-                
-                // Recents
-                if !savedRoutes.routes.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Recents")
-                                .font(.title3.bold())
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                                .font(.caption.bold())
-                        }
-                        .padding(.horizontal)
-                        
-                        VStack(spacing: 0) {
-                            ForEach(Array(savedRoutes.topRecent(limit: 3).enumerated()), id: \.element.id) { index, route in
-                                RecentRow(icon: "arrow.turn.up.right", title: route.destinationName, subtitle: "From My Location")
-                                if index < min(savedRoutes.routes.count, 3) - 1 {
-                                    Divider().padding(.leading, 50)
+                            .font(.system(size: 16, weight: .medium))
+
+                        TextField("Search Destinations", text: $searcher.searchQuery)
+                            .focused($isSearchFocused)
+                            .submitLabel(.search)
+                            .autocorrectionDisabled()
+                            .font(.system(size: 17))
+                            .onChange(of: searcher.searchQuery) { query in
+                                searchTask?.cancel()
+                                if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    searcher.searchResults = []
+                                    searcher.isSearching = false
+                                    return
+                                }
+                                searcher.isSearching = true
+                                searchTask = Task {
+                                    try? await Task.sleep(nanoseconds: 180_000_000)
+                                    guard !Task.isCancelled else { return }
+                                    searcher.search(for: query, near: locationProvider.currentLocation?.coordinate)
                                 }
                             }
+                            .onSubmit {
+                                searchTask?.cancel()
+                                let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
+                                guard !q.isEmpty else { return }
+                                searcher.isSearching = true
+                                searcher.search(for: q, near: locationProvider.currentLocation?.coordinate)
+                            }
+
+                        if !searcher.searchQuery.isEmpty {
+                            Button {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                searcher.searchQuery = ""
+                                searcher.searchResults = []
+                                searcher.isSearching = false
+                                isSearchFocused = true
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 36, height: 36)
+                            }
+                        } else if !isSearchFocused {
+                            Image(systemName: "mic.fill")
+                                .foregroundColor(.secondary)
+                                .frame(width: 36, height: 36)
                         }
-                        .background(Color(.systemGray6))
-                        .cornerRadius(16)
-                        .padding(.horizontal)
                     }
-                }
-                
-                // Guides
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Your Guides")
-                            .font(.title3.bold())
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(.caption.bold())
-                    }
-                    .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            GuideCard(title: "Bay Area Twisties", count: 12, icon: "mountain.2.fill", bgGradient: [.blue, .purple])
-                            GuideCard(title: "Favorites", count: 5, icon: "star.fill", bgGradient: [.orange, .yellow])
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+
+                    if isSearchFocused {
+                        Button("Cancel") {
+                            isSearchFocused = false
+                            searcher.searchQuery = ""
+                            searcher.searchResults = []
+                            searcher.isSearching = false
                         }
-                        .padding(.horizontal)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.cyan)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    } else {
+                        Button(action: onProfileTap) {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .frame(width: 36, height: 36)
+                                .foregroundColor(.cyan)
+                        }
                     }
-                }
-                
-                // Actions
-                VStack(spacing: 12) {
-                    ActionButton(icon: "square.and.arrow.up", title: "Share My Location")
-                    ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location")
-                    ActionButton(icon: "exclamationmark.bubble", title: "Report an Issue")
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 40)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isSearchFocused)
+
+                // Content: search results or idle
+                if !searcher.searchQuery.isEmpty {
+                    searchResultsContent
+                        .padding(.horizontal)
+                } else {
+                    idleContent
+                }
             }
         }
         .background(Color(.systemBackground))
         .preferredColorScheme(.dark)
+        .scrollDismissesKeyboard(.interactively)
+        .onAppear { refreshNearbyParking() }
+        .onChange(of: isSearchFocused) { focused in
+            if focused { onSearchFocused?() }
+        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
+    }
+
+    // MARK: - Idle Content
+
+    private var idleContent: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            // Places
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Places")
+                        .font(.title3.bold())
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption.bold())
+                }
+                .padding(.horizontal)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        placeChip(icon: "fuelpump.fill", color: .green, title: "Gas Station", query: "Gas Stations")
+                        placeChip(icon: "cup.and.saucer.fill", color: .orange, title: "Coffee", query: "Coffee")
+                        placeChip(icon: "parkingsign.circle.fill", color: .blue, title: "Parking", query: "Parking")
+                        placeChip(icon: "wrench.and.screwdriver.fill", color: .gray, title: "Mechanic", query: "Motorcycle Repair")
+                    }
+                    .padding(.horizontal)
+                }
+            }
+
+            // Recents
+            let recents = savedRoutes.topRecent(limit: 3)
+            if !recents.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Recents")
+                            .font(.title3.bold())
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption.bold())
+                    }
+                    .padding(.horizontal)
+
+                    VStack(spacing: 0) {
+                        ForEach(Array(recents.enumerated()), id: \.element.id) { index, route in
+                            let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
+                            RecentRow(
+                                icon: "arrow.turn.up.right",
+                                title: route.destinationName,
+                                subtitle: relativeDate(route.lastUsedDate)
+                            ) {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                let origin = locationProvider.currentLocation?.coordinate
+                                    ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+                                Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+                                onDestinationSelected(route.destinationName, coord)
+                            }
+                            if index < recents.count - 1 {
+                                Divider().padding(.leading, 50)
+                            }
+                        }
+                    }
+                    .background(Color(.systemGray6))
+                    .cornerRadius(16)
+                    .padding(.horizontal)
+                }
+            }
+
+            // Guides
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Your Guides")
+                        .font(.title3.bold())
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(.caption.bold())
+                }
+                .padding(.horizontal)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        GuideCard(title: "Bay Area Twisties", count: 12, icon: "mountain.2.fill", bgGradient: [.blue, .purple])
+                        GuideCard(title: "Favorites", count: 5, icon: "star.fill", bgGradient: [.orange, .yellow])
+                    }
+                    .padding(.horizontal)
+                }
+            }
+
+            // Actions
+            VStack(spacing: 12) {
+                ActionButton(icon: "square.and.arrow.up", title: "Share My Location")
+                ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location")
+                ActionButton(icon: "exclamationmark.bubble", title: "Report an Issue")
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Search Results
+
+    @ViewBuilder
+    private var searchResultsContent: some View {
+        if searcher.isSearching {
+            VStack(spacing: 12) {
+                ProgressView()
+                    .scaleEffect(1.4)
+                    .tint(.cyan)
+                Text("Searching…")
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Color.cyan.opacity(0.8))
+                    .kerning(0.5)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+            .transition(.opacity)
+        } else if searcher.searchResults.isEmpty {
+            VStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.tertiary)
+                Text("No results for \"\(searcher.searchQuery)\"")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+            .transition(.opacity)
+        } else {
+            VStack(spacing: 0) {
+                ForEach(Array(searcher.searchResults.prefix(12).enumerated()), id: \.offset) { idx, item in
+                    let userLoc = locationProvider.currentLocation
+                    let distanceString: String? = {
+                        guard let userLoc, let placeLoc = item.placemark.location else { return nil }
+                        let miles = userLoc.distance(from: placeLoc) / 1609.34
+                        return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
+                    }()
+                    SearchResultRow(
+                        item: item,
+                        isSaved: justSavedIndex == idx,
+                        distanceString: distanceString
+                    ) {
+                        routeTo(item: item)
+                    } onSave: {
+                        guard let coord = item.placemark.location?.coordinate else { return }
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            justSavedIndex = idx
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                            withAnimation { justSavedIndex = nil }
+                        }
+                    }
+
+                    if idx < min(searcher.searchResults.count, 12) - 1 {
+                        Divider().padding(.leading, 66)
+                    }
+                }
+            }
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(.bottom, 20)
+            .transition(.opacity)
+        }
+    }
+
+    // MARK: - Helpers
+
+    @ViewBuilder
+    private func placeChip(icon: String, color: Color, title: String, query: String) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            searcher.searchQuery = query
+            isSearchFocused = true
+        } label: {
+            PlaceIcon(icon: icon, color: color, title: title)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func routeTo(item: MKMapItem) {
+        guard let coord = item.placemark.location?.coordinate else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let name = item.name ?? "Destination"
+        savedRoutes.addRecentSearch(
+            name: name,
+            subtitle: item.placemark.zenFormattedAddress,
+            coordinate: coord
+        )
+        let origin = locationProvider.currentLocation?.coordinate
+            ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+        searcher.searchResults = []
+        searcher.searchQuery = ""
+        isSearchFocused = false
+        onDestinationSelected(name, coord)
+    }
+
+    private func refreshNearbyParking() {
+        let refLat = locationProvider.currentLocation?.coordinate.latitude ?? 37.7749
+        let refLng = locationProvider.currentLocation?.coordinate.longitude ?? -122.4194
+        let sorted = parkingStore.spots.sorted {
+            let d0 = ($0.latitude - refLat) * ($0.latitude - refLat) + ($0.longitude - refLng) * ($0.longitude - refLng)
+            let d1 = ($1.latitude - refLat) * ($1.latitude - refLat) + ($1.longitude - refLng) * ($1.longitude - refLng)
+            return d0 < d1
+        }
+        nearbyParking = Array(sorted.prefix(5))
+    }
+
+    private func relativeDate(_ date: Date) -> String {
+        let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        switch days {
+        case 0: return "Today"
+        case 1: return "Yesterday"
+        default: return "\(days) days ago"
+        }
     }
 }
+
+// MARK: - Supporting Views
 
 struct CenterView<Content: View>: View {
     @ViewBuilder let content: () -> Content
@@ -291,7 +514,7 @@ struct PlaceIcon: View {
     let icon: String
     let color: Color
     let title: String
-    
+
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
@@ -313,32 +536,37 @@ struct RecentRow: View {
     let icon: String
     let title: String
     let subtitle: String
-    
+    var action: () -> Void = {}
+
     var body: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color(.systemGray4))
-                    .frame(width: 36, height: 36)
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
-            }
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.body.bold())
-                    .foregroundColor(.primary)
-                Text(subtitle)
-                    .font(.subheadline)
+        Button(action: action) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color(.systemGray4))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.body.bold())
+                        .foregroundColor(.primary)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                Image(systemName: "ellipsis")
                     .foregroundColor(.secondary)
             }
-            Spacer()
-            Image(systemName: "ellipsis")
-                .foregroundColor(.secondary)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .buttonStyle(.plain)
     }
 }
 
@@ -347,13 +575,13 @@ struct GuideCard: View {
     let count: Int
     let icon: String
     let bgGradient: [Color]
-    
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 16)
                 .fill(LinearGradient(colors: bgGradient, startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 140, height: 180)
-            
+
             VStack {
                 HStack {
                     Spacer()
@@ -364,13 +592,13 @@ struct GuideCard: View {
                 }
                 Spacer()
             }
-            
+
             CenterView {
                 Image(systemName: icon)
                     .font(.system(size: 60))
                     .foregroundColor(.white.opacity(0.8))
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline.bold())
@@ -389,7 +617,7 @@ struct GuideCard: View {
 struct ActionButton: View {
     let icon: String
     let title: String
-    
+
     var body: some View {
         Button(action: {}) {
             HStack(spacing: 12) {

@@ -9,6 +9,7 @@ struct ContentView: View {
         return .garage
     }()
 
+    @State private var initialDestinationName: String = ""
     @State private var lastRideContext: RideContext? = nil
     @State private var pendingSession: PendingDriveSession? = nil
     @State private var postRideInfo: PostRideInfo? = nil
@@ -36,6 +37,10 @@ struct ContentView: View {
                     onRollOut: {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
                     },
+                    onDestinationSelected: { name, _ in
+                        initialDestinationName = name
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
+                    },
                     postRideInfo: postRideInfo,
                     pendingMoodSave: pendingMoodSave
                 )
@@ -45,7 +50,8 @@ struct ContentView: View {
                 }
 
             case .riding:
-                RideView(onStop: { context, pending in
+                RideView(initialDestinationName: initialDestinationName, onStop: { context, pending in
+                    initialDestinationName = ""
                     lastRideContext = context
                     pendingSession = pending
 
