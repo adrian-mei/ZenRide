@@ -146,6 +146,16 @@ class RoutingService: ObservableObject {
     private var lastDestination: CLLocationCoordinate2D?
     private var lastCameras: [SpeedCamera]?
 
+    // Cumulative distance (meters) to each route point — index matches activeRoute
+    private(set) var coordinateDistances: [Double] = []
+
+    /// Distance traveled along the route based on the current progress segment.
+    /// Used by guidance views during real GPS navigation (non-simulation).
+    var distanceTraveledMeters: Double {
+        guard !coordinateDistances.isEmpty else { return 0 }
+        return coordinateDistances[min(routeProgressIndex, coordinateDistances.count - 1)]
+    }
+
     // Haptic state tracking
     var hasWarned500ft = false
     var hasWarned100ft = false
@@ -212,7 +222,7 @@ class RoutingService: ObservableObject {
         let route = availableRoutes[index]
 
         var totalCalculatedDistance = 0.0
-        var coordinateDistances: [Double] = [0.0]
+        coordinateDistances = [0.0]
 
         if let firstLeg = route.legs.first {
             let coordinates = firstLeg.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }

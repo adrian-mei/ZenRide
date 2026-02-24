@@ -74,7 +74,8 @@ struct GuidanceView: View {
                 .padding(.bottom, (instruction.instructionType?.contains("TURN") == true || instruction.instructionType?.contains("KEEP") == true) ? 4 : 20)
                 
                 // --- NEW: Next Turn Preview ---
-                let currentDist = Double(instruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
+                let traveled = owlPolice.isSimulating ? owlPolice.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+                let currentDist = Double(instruction.routeOffsetInMeters) - traveled
                 if currentDist > 1600 && currentInstructionIndex + 1 < routingService.instructions.count {
                     let nextInst = routingService.instructions[currentInstructionIndex + 1]
                     if nextInst.instructionType != "ARRIVE" {
@@ -100,7 +101,8 @@ struct GuidanceView: View {
                 
                 // --- NEON LANE GUIDANCE ---
                 if let type = instruction.instructionType, type.contains("TURN") || type.contains("KEEP") {
-                    let distanceToTurn = Double(instruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
+                    let traveled2 = owlPolice.isSimulating ? owlPolice.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+                    let distanceToTurn = Double(instruction.routeOffsetInMeters) - traveled2
                     if distanceToTurn < 1000 && distanceToTurn > 100 {
                         NeonLaneGuidanceView(instructionType: type)
                             .padding(.bottom, 16)
@@ -187,31 +189,48 @@ struct GuidanceView: View {
                 routingService.currentInstructionIndex = 0
             }
         }
+        // Simulation: 60fps distance updates drive haptics + approach surge
         .onChange(of: owlPolice.distanceTraveledInSimulationMeters) { dist in
-            if !routingService.instructions.isEmpty, currentInstructionIndex < routingService.instructions.count {
-                let instruction = routingService.instructions[currentInstructionIndex]
-                let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - dist
-                let distanceFeet = max(0, nextInstructionDistanceMeters * 3.28084)
-                
-                // Haptic at 500ft
-                if distanceFeet < 510 && distanceFeet > 490 && !routingService.hasWarned500ft {
-                    routingService.hasWarned500ft = true
-                    haptic500.notificationOccurred(.warning)
+            guard owlPolice.isSimulating else { return }
+            updateApproachState(distanceTraveled: dist)
+        }
+        // Real GPS: instruction advancement + approach driven by route progress segment
+        .onChange(of: routingService.routeProgressIndex) { progressIndex in
+            guard !owlPolice.isSimulating else { return }
+            // Advance to the next instruction whose point is still ahead of us
+            if let nextIdx = routingService.instructions.firstIndex(where: { $0.pointIndex > progressIndex }) {
+                if routingService.currentInstructionIndex != nextIdx {
+                    routingService.currentInstructionIndex = nextIdx
                 }
+            } else if !routingService.instructions.isEmpty {
+                let lastIdx = routingService.instructions.count - 1
+                if routingService.currentInstructionIndex != lastIdx {
+                    routingService.currentInstructionIndex = lastIdx
+                }
+            }
+            updateApproachState(distanceTraveled: routingService.distanceTraveledMeters)
+        }
+    }
 
-                // Haptic at 100ft
-                if distanceFeet < 110 && distanceFeet > 90 && !routingService.hasWarned100ft {
-                    routingService.hasWarned100ft = true
-                    haptic100.impactOccurred()
-                }
+    private func updateApproachState(distanceTraveled: Double) {
+        guard !routingService.instructions.isEmpty,
+              currentInstructionIndex < routingService.instructions.count else { return }
+        let instruction = routingService.instructions[currentInstructionIndex]
+        let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - distanceTraveled
+        let distanceFeet = max(0, nextInstructionDistanceMeters * 3.28084)
 
-                // Approach surge: card scales + glows when < 300ft to turn
-                let approaching = distanceFeet > 0 && distanceFeet < 300
-                if approaching != isApproachingTurn {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                        isApproachingTurn = approaching
-                    }
-                }
+        if distanceFeet < 510 && distanceFeet > 490 && !routingService.hasWarned500ft {
+            routingService.hasWarned500ft = true
+            haptic500.notificationOccurred(.warning)
+        }
+        if distanceFeet < 110 && distanceFeet > 90 && !routingService.hasWarned100ft {
+            routingService.hasWarned100ft = true
+            haptic100.impactOccurred()
+        }
+        let approaching = distanceFeet > 0 && distanceFeet < 300
+        if approaching != isApproachingTurn {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                isApproachingTurn = approaching
             }
         }
     }
@@ -262,7 +281,10 @@ struct GuidanceView: View {
 
 extension GuidanceView {
     private func formatDistance(instruction: TomTomInstruction) -> String {
-        let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
+        let traveled = owlPolice.isSimulating
+            ? owlPolice.distanceTraveledInSimulationMeters
+            : routingService.distanceTraveledMeters
+        let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - traveled
         let distanceFeet = max(0, nextInstructionDistanceMeters * 3.28084)
         let distanceMiles = distanceFeet / 5280
         

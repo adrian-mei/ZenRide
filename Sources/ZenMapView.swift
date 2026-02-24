@@ -130,7 +130,8 @@ struct ZenMapView: UIViewRepresentable {
             // to zoom in tightly and look down, so they can clearly see the intersection.
             if !routingService.instructions.isEmpty && routingService.currentInstructionIndex < routingService.instructions.count {
                 let currentInstruction = routingService.instructions[routingService.currentInstructionIndex]
-                let distToTurn = Double(currentInstruction.routeOffsetInMeters) - owlPolice.distanceTraveledInSimulationMeters
+                let traveledForZoom = owlPolice.isSimulating ? owlPolice.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+                let distToTurn = Double(currentInstruction.routeOffsetInMeters) - traveledForZoom
                 let distToTurnFt = distToTurn * 3.28084
                 
                 if distToTurnFt > 0 && distToTurnFt < 500 {
