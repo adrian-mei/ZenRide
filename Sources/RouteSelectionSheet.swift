@@ -241,23 +241,39 @@ struct RouteSelectionSheet: View {
     }
 
     private var routeErrorState: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
-                .font(.title3)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Unable to calculate route")
-                    .font(.subheadline.bold())
-                    .foregroundColor(.primary)
-                Text("Check your connection and try again")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Unable to calculate route")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.primary)
+                    Text("Check your connection and try again")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
             }
-            Spacer()
+            .padding(14)
+            .background(Color.orange.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Task { await routingService.recalculate() }
+            } label: {
+                Label("Try Again", systemImage: "arrow.clockwise")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.cyan)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.cyan.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cyan.opacity(0.3), lineWidth: 1))
+            }
         }
-        .padding(14)
-        .background(Color.orange.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
 

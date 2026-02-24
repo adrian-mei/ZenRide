@@ -391,6 +391,10 @@ struct RideView: View {
             }
         )) {
             RouteSelectionSheet(destinationName: destinationName, onDrive: {
+                guard !routingService.activeRoute.isEmpty else {
+                    Log.warn("Navigation", "onDrive called with empty activeRoute — aborting")
+                    return
+                }
                 departureTime = Date()
                 navigationStartTime = Date()
                 owlPolice.startNavigationSession()
@@ -399,6 +403,10 @@ struct RideView: View {
                     owlPolice.isSimulating = false
                 }
             }, onSimulate: {
+                guard !routingService.activeRoute.isEmpty else {
+                    Log.warn("Navigation", "onSimulate called with empty activeRoute — aborting")
+                    return
+                }
                 departureTime = Date()
                 navigationStartTime = Date()
                 owlPolice.startNavigationSession()

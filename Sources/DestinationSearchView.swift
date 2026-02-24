@@ -397,7 +397,9 @@ struct DestinationSearchView: View {
         let origin = owlPolice.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         destinationName = route.destinationName
         Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { routeState = .reviewing }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            routeState = .reviewing
+        }
     }
 
     private func routeTo(item: MKMapItem) {
@@ -408,7 +410,10 @@ struct DestinationSearchView: View {
         Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
         searcher.searchResults = []
         searcher.searchQuery = ""
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { routeState = .reviewing }
+        isSearchFocused = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            routeState = .reviewing
+        }
     }
 
     private func refreshSuggestions() {
