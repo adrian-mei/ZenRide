@@ -31,6 +31,7 @@ private let carChevronImage: UIImage = {
 
 struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var cameraStore: CameraStore
+    @EnvironmentObject var parkingStore: ParkingStore
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var routingService: RoutingService
     @Binding var routeState: RouteState
@@ -177,6 +178,18 @@ struct ZenMapView: UIViewRepresentable {
             .map { CameraAnnotation(camera: $0) }
         if !newAnnotations.isEmpty {
             uiView.addAnnotations(newAnnotations)
+        }
+
+        // Show parking pins in search mode only
+        if routeState == .search {
+            let existingParkingIds = Set(uiView.annotations.compactMap { ($0 as? ParkingAnnotation)?.spot.id })
+            let newParking = parkingStore.spots
+                .filter { !existingParkingIds.contains($0.id) }
+                .map { ParkingAnnotation(spot: $0) }
+            if !newParking.isEmpty { uiView.addAnnotations(newParking) }
+        } else {
+            let parkingPins = uiView.annotations.filter { $0 is ParkingAnnotation }
+            if !parkingPins.isEmpty { uiView.removeAnnotations(parkingPins) }
         }
 
         // Update destination annotation in-place to avoid flicker
@@ -351,7 +364,43 @@ struct ZenMapView: UIViewRepresentable {
                 return annotationView
             }
 
+            if annotation is ParkingAnnotation {
+                let identifier = "Parking"
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+                if annotationView == nil {
+                    annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                    annotationView?.canShowCallout = true
+                    let routeBtn = UIButton(type: .system)
+                    routeBtn.setTitle("Route", for: .normal)
+                    routeBtn.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+                    routeBtn.sizeToFit()
+                    annotationView?.rightCalloutAccessoryView = routeBtn
+                } else {
+                    annotationView?.annotation = annotation
+                }
+                annotationView?.glyphImage = UIImage(systemName: "parkingsign")
+                annotationView?.glyphTintColor = UIColor.white
+                annotationView?.markerTintColor = UIColor.systemPurple
+                annotationView?.displayPriority = .defaultLow
+                return annotationView
+            }
+
             return nil
+        }
+
+        func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView,
+                     calloutAccessoryControlTapped control: UIControl) {
+            guard let parking = view.annotation as? ParkingAnnotation else { return }
+            NotificationCenter.default.post(
+                name: .zenRideParkingRoute,
+                object: nil,
+                userInfo: [
+                    "lat": parking.spot.latitude,
+                    "lng": parking.spot.longitude,
+                    "name": parking.spot.street
+                ]
+            )
+            mapView.deselectAnnotation(view.annotation, animated: true)
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
@@ -434,6 +483,26 @@ class HazardAnnotation: NSObject, MKAnnotation {
 
     init(coordinate: CLLocationCoordinate2D) {
         self.coordinate = coordinate
+        super.init()
+    }
+}
+
+class ParkingAnnotation: NSObject, MKAnnotation {
+    let spot: ParkingSpot
+    let coordinate: CLLocationCoordinate2D
+    let title: String?
+    let subtitle: String?
+
+    init(spot: ParkingSpot) {
+        self.spot = spot
+        self.coordinate = CLLocationCoordinate2D(latitude: spot.latitude, longitude: spot.longitude)
+        self.title = "Motorcycle Parking"
+        let meterLabel = spot.isMetered ? "Metered" : "Unmetered"
+        if spot.spacesCount > 1 {
+            self.subtitle = "\(spot.spacesCount) spaces • \(meterLabel)"
+        } else {
+            self.subtitle = meterLabel
+        }
         super.init()
     }
 }

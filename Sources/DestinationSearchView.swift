@@ -46,6 +46,7 @@ struct DestinationSearchView: View {
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var driveStore: DriveStore
+    @EnvironmentObject var parkingStore: ParkingStore
 
     @Binding var routeState: RouteState
     @Binding var destinationName: String
@@ -108,6 +109,12 @@ struct DestinationSearchView: View {
         .onChange(of: savedRoutes.routes.count) { _ in refreshSuggestions() }
         .onReceive(NotificationCenter.default.publisher(for: .zenRideNavigateTo)) { note in
             if let route = note.object as? SavedRoute { navigate(to: route) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zenRideParkingRoute)) { note in
+            guard let lat = note.userInfo?["lat"] as? Double,
+                  let lng = note.userInfo?["lng"] as? Double,
+                  let name = note.userInfo?["name"] as? String else { return }
+            routeToParking(coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng), name: name)
         }
     }
 
@@ -422,6 +429,15 @@ struct DestinationSearchView: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private func routeToParking(coordinate: CLLocationCoordinate2D, name: String) {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let origin = owlPolice.currentLocation?.coordinate
+            ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        destinationName = "\(name) Parking"
+        Task { await routingService.calculateSafeRoute(from: origin, to: coordinate, avoiding: cameraStore.cameras) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { routeState = .reviewing }
     }
 
     private func navigate(to route: SavedRoute) {

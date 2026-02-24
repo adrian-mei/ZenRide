@@ -16,6 +16,7 @@ enum RouteState {
 @main
 struct ZenRideApp: App {
     @StateObject private var cameraStore = CameraStore()
+    @StateObject private var parkingStore = ParkingStore()
     @StateObject private var owlPolice = OwlPolice()
     @StateObject private var routingService = RoutingService()
     @StateObject private var journal = RideJournal()
@@ -27,6 +28,7 @@ struct ZenRideApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(cameraStore)
+                .environmentObject(parkingStore)
                 .environmentObject(owlPolice)
                 .environmentObject(routingService)
                 .environmentObject(journal)
