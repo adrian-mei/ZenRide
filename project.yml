@@ -37,3 +37,4 @@ targets:
     - target: ZenRide
     settings:
       CODE_SIGN_STYLE: Automatic
+      GENERATE_INFOPLIST_FILE: YES

@@ -43,6 +43,7 @@ struct DestinationSearchView: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var cameraStore: CameraStore
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var driveStore: DriveStore
@@ -147,7 +148,7 @@ struct DestinationSearchView: View {
                     searchTask = Task {
                         try? await Task.sleep(nanoseconds: 180_000_000)
                         guard !Task.isCancelled else { return }
-                        searcher.search(for: query, near: owlPolice.currentLocation?.coordinate)
+                        searcher.search(for: query, near: locationProvider.currentLocation?.coordinate)
                     }
                 }
                 .onSubmit {
@@ -155,7 +156,7 @@ struct DestinationSearchView: View {
                     let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
                     guard !q.isEmpty else { return }
                     searcher.isSearching = true
-                    searcher.search(for: q, near: owlPolice.currentLocation?.coordinate)
+                    searcher.search(for: q, near: locationProvider.currentLocation?.coordinate)
                 }
 
             if searcher.searchQuery.isEmpty && !isSearchFocused {
@@ -272,7 +273,7 @@ struct DestinationSearchView: View {
                             subtitle: relativeDate(record.lastDrivenDate)
                         ) {
                             let coord = record.destinationCoordinate
-                            let origin = owlPolice.currentLocation?.coordinate
+                            let origin = locationProvider.currentLocation?.coordinate
                                 ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
                             destinationName = record.destinationName
                             Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
@@ -400,7 +401,7 @@ struct DestinationSearchView: View {
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(searcher.searchResults.prefix(12).enumerated()), id: \.offset) { idx, item in
-                            let userLoc = owlPolice.currentLocation
+                            let userLoc = locationProvider.currentLocation
                             let distanceString: String? = {
                                 guard let userLoc, let placeLoc = item.placemark.location else { return nil }
                                 let miles = userLoc.distance(from: placeLoc) / 1609.34
@@ -477,7 +478,7 @@ struct DestinationSearchView: View {
 
     private func routeToParking(coordinate: CLLocationCoordinate2D, name: String) {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        let origin = owlPolice.currentLocation?.coordinate
+        let origin = locationProvider.currentLocation?.coordinate
             ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         destinationName = "\(name) Parking"
         Task { await routingService.calculateSafeRoute(from: origin, to: coordinate, avoiding: cameraStore.cameras) }
@@ -487,7 +488,7 @@ struct DestinationSearchView: View {
     private func navigate(to route: SavedRoute) {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
-        let origin = owlPolice.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        let origin = locationProvider.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         destinationName = route.destinationName
         Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
@@ -498,7 +499,7 @@ struct DestinationSearchView: View {
     private func routeTo(item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate else { return }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        let origin = owlPolice.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        let origin = locationProvider.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         destinationName = item.name ?? "Destination"
         Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
         searcher.searchResults = []
@@ -510,8 +511,8 @@ struct DestinationSearchView: View {
     }
 
     private func refreshNearbyParking() {
-        let refLat = owlPolice.currentLocation?.coordinate.latitude ?? 37.7749
-        let refLng = owlPolice.currentLocation?.coordinate.longitude ?? -122.4194
+        let refLat = locationProvider.currentLocation?.coordinate.latitude ?? 37.7749
+        let refLng = locationProvider.currentLocation?.coordinate.longitude ?? -122.4194
         // Use squared delta (no sqrt needed) for fast approximate distance sort
         let sorted = parkingStore.spots.sorted {
             let d0 = ($0.latitude - refLat) * ($0.latitude - refLat) + ($0.longitude - refLng) * ($0.longitude - refLng)

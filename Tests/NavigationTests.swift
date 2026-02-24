@@ -333,50 +333,50 @@ struct SimulationStateTests {
 
     // simulationCompletedNaturally must start false so a fresh ride doesn't auto-end.
     @Test func simulationCompletedNaturallyStartsFalse() {
-        let owl = OwlPolice()
-        #expect(owl.simulationCompletedNaturally == false)
+        let provider = LocationProvider()
+        #expect(provider.simulationCompletedNaturally == false)
     }
 
     // isSimulating must start false.
     @Test func isSimulatingStartsFalse() {
-        let owl = OwlPolice()
-        #expect(owl.isSimulating == false)
+        let provider = LocationProvider()
+        #expect(provider.isSimulating == false)
     }
 
     // stopSimulation should reset simulationCompletedNaturally asynchronously.
     // We set the flag to true first, then call stopSimulation and flush the main queue.
     @Test func stopSimulationResetsCompletedFlag() async {
-        let owl = OwlPolice()
-        owl.simulationCompletedNaturally = true
-        owl.stopSimulation()
+        let provider = LocationProvider()
+        provider.simulationCompletedNaturally = true
+        provider.stopSimulation()
         // Flush the DispatchQueue.main.async block inside stopSimulation.
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             DispatchQueue.main.async { continuation.resume() }
         }
-        #expect(owl.simulationCompletedNaturally == false)
+        #expect(provider.simulationCompletedNaturally == false)
     }
 
     // stopSimulation should reset isSimulating to false.
     @Test func stopSimulationResetsIsSimulating() async {
-        let owl = OwlPolice()
+        let provider = LocationProvider()
         // Manually set isSimulating since simulateDrive needs a real route
-        owl.isSimulating = true
-        owl.stopSimulation()
+        provider.isSimulating = true
+        provider.stopSimulation()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             DispatchQueue.main.async { continuation.resume() }
         }
-        #expect(owl.isSimulating == false)
+        #expect(provider.isSimulating == false)
     }
 
     // stopSimulation should reset currentSimulationIndex to 0.
     @Test func stopSimulationResetsSimulationIndex() async {
-        let owl = OwlPolice()
-        owl.currentSimulationIndex = 42
-        owl.stopSimulation()
+        let provider = LocationProvider()
+        provider.currentSimulationIndex = 42
+        provider.stopSimulation()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             DispatchQueue.main.async { continuation.resume() }
         }
-        #expect(owl.currentSimulationIndex == 0)
+        #expect(provider.currentSimulationIndex == 0)
     }
 
     // startNavigationSession should clear all session data so a fresh ride starts clean.

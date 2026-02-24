@@ -72,3 +72,14 @@ class CameraStore: ObservableObject {
         }
     }
 }
+extension SpeedCamera {
+    init(id: String, street: String, from_cross_street: String?, to_cross_street: String?, speed_limit_mph: Int, lat: Double, lng: Double) {
+        self.id = id
+        self.street = street
+        self.from_cross_street = from_cross_street
+        self.to_cross_street = to_cross_street
+        self.speed_limit_mph = speed_limit_mph
+        self.lat = lat
+        self.lng = lng
+    }
+}

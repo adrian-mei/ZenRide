@@ -3,6 +3,7 @@ import SwiftUI
 struct GuidanceView: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
     @State private var currentInstructionIndex: Int = 0
     @State private var isApproachingTurn = false   // < 300ft to next turn
     private let haptic500 = UINotificationFeedbackGenerator()
@@ -74,7 +75,7 @@ struct GuidanceView: View {
                 .padding(.bottom, (instruction.instructionType?.contains("TURN") == true || instruction.instructionType?.contains("KEEP") == true) ? 4 : 20)
                 
                 // --- NEW: Next Turn Preview ---
-                let traveled = owlPolice.isSimulating ? owlPolice.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+                let traveled = locationProvider.isSimulating ? locationProvider.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
                 let currentDist = Double(instruction.routeOffsetInMeters) - traveled
                 if currentDist > 1600 && currentInstructionIndex + 1 < routingService.instructions.count {
                     let nextInst = routingService.instructions[currentInstructionIndex + 1]
@@ -101,7 +102,7 @@ struct GuidanceView: View {
                 
                 // --- NEON LANE GUIDANCE ---
                 if let type = instruction.instructionType, type.contains("TURN") || type.contains("KEEP") {
-                    let traveled2 = owlPolice.isSimulating ? owlPolice.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+                    let traveled2 = locationProvider.isSimulating ? locationProvider.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
                     let distanceToTurn = Double(instruction.routeOffsetInMeters) - traveled2
                     if distanceToTurn < 1000 && distanceToTurn > 100 {
                         NeonLaneGuidanceView(instructionType: type)
@@ -158,8 +159,8 @@ struct GuidanceView: View {
         }
         // Advance instructions based on our simulation point index.
         // We look for the first instruction whose pointIndex is strictly greater than our current simulation point.
-        .onChange(of: owlPolice.currentSimulationIndex) { newIndex in
-            if owlPolice.isSimulating {
+        .onChange(of: locationProvider.currentSimulationIndex) { newIndex in
+            if locationProvider.isSimulating {
                 if let nextInstructionIndex = routingService.instructions.firstIndex(where: { $0.pointIndex > newIndex }) {
                     if routingService.currentInstructionIndex != nextInstructionIndex {
                         routingService.currentInstructionIndex = nextInstructionIndex
@@ -183,20 +184,20 @@ struct GuidanceView: View {
                 }
             }
         }
-        .onChange(of: owlPolice.isSimulating) { isSimulating in
+        .onChange(of: locationProvider.isSimulating) { isSimulating in
             if isSimulating {
                 currentInstructionIndex = 0
                 routingService.currentInstructionIndex = 0
             }
         }
         // Simulation: 60fps distance updates drive haptics + approach surge
-        .onChange(of: owlPolice.distanceTraveledInSimulationMeters) { dist in
-            guard owlPolice.isSimulating else { return }
+        .onChange(of: locationProvider.distanceTraveledInSimulationMeters) { dist in
+            guard locationProvider.isSimulating else { return }
             updateApproachState(distanceTraveled: dist)
         }
         // Real GPS: instruction advancement + approach driven by route progress segment
         .onChange(of: routingService.routeProgressIndex) { progressIndex in
-            guard !owlPolice.isSimulating else { return }
+            guard !locationProvider.isSimulating else { return }
             // Advance to the next instruction whose point is still ahead of us
             if let nextIdx = routingService.instructions.firstIndex(where: { $0.pointIndex > progressIndex }) {
                 if routingService.currentInstructionIndex != nextIdx {
@@ -281,8 +282,8 @@ struct GuidanceView: View {
 
 extension GuidanceView {
     private func formatDistance(instruction: TomTomInstruction) -> String {
-        let traveled = owlPolice.isSimulating
-            ? owlPolice.distanceTraveledInSimulationMeters
+        let traveled = locationProvider.isSimulating
+            ? locationProvider.distanceTraveledInSimulationMeters
             : routingService.distanceTraveledMeters
         let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - traveled
         let distanceFeet = max(0, nextInstructionDistanceMeters * 3.28084)

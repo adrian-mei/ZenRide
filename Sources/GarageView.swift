@@ -16,6 +16,7 @@ struct MapHomeView: View {
     @EnvironmentObject var driveStore: DriveStore
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
 
     var onRollOut: () -> Void
     var postRideInfo: PostRideInfo?

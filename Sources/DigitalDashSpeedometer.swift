@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DigitalDashSpeedometer: View {
     @ObservedObject var owlPolice: OwlPolice
+    @ObservedObject var locationProvider: LocationProvider
 
     @State private var pulseScale: CGFloat = 1.0
     @State private var dangerPulse = false
@@ -11,7 +12,7 @@ struct DigitalDashSpeedometer: View {
     var speedLimit: Double { Double(owlPolice.nearestCamera?.speed_limit_mph ?? 45) }
 
     var currentSpeedColor: Color {
-        let s = owlPolice.currentSpeedMPH
+        let s = locationProvider.currentSpeedMPH
         if s > speedLimit + 10 { return .red }
         if s > speedLimit      { return .orange }
         return .cyan
@@ -19,7 +20,7 @@ struct DigitalDashSpeedometer: View {
 
     /// Gradient transitions continuously through the speed zones — no abrupt jumps.
     var ringGradient: LinearGradient {
-        let s = owlPolice.currentSpeedMPH
+        let s = locationProvider.currentSpeedMPH
         if s > speedLimit + 10 {
             return LinearGradient(colors: [.orange, .red], startPoint: .bottomLeading, endPoint: .topTrailing)
         } else if s > speedLimit {
@@ -31,19 +32,19 @@ struct DigitalDashSpeedometer: View {
         }
     }
 
-    var speedRatio: Double { min(max(owlPolice.currentSpeedMPH / 120.0, 0.0), 1.0) }
+    var speedRatio: Double { min(max(locationProvider.currentSpeedMPH / 120.0, 0.0), 1.0) }
 
     var isPerfectPace: Bool {
-        owlPolice.currentSpeedMPH > 10 && abs(owlPolice.currentSpeedMPH - speedLimit) <= 2.0
+        locationProvider.currentSpeedMPH > 10 && abs(locationProvider.currentSpeedMPH - speedLimit) <= 2.0
     }
 
     /// True when speed exceeds limit by more than 5 mph — triggers red danger halo.
-    var isDanger: Bool { owlPolice.currentSpeedMPH > speedLimit + 5 }
+    var isDanger: Bool { locationProvider.currentSpeedMPH > speedLimit + 5 }
 
     /// Delta vs. speed limit. Nil while stationary or within ±1 mph.
     var speedDelta: Int? {
-        guard owlPolice.currentSpeedMPH > 10 else { return nil }
-        let delta = Int(owlPolice.currentSpeedMPH.rounded()) - Int(speedLimit)
+        guard locationProvider.currentSpeedMPH > 10 else { return nil }
+        let delta = Int(locationProvider.currentSpeedMPH.rounded()) - Int(speedLimit)
         return abs(delta) > 1 ? delta : nil
     }
 
@@ -89,12 +90,12 @@ struct DigitalDashSpeedometer: View {
 
             // Center readout (Larger, more aggressive font for speed)
             VStack(spacing: -8) {
-                Text("\(Int(owlPolice.currentSpeedMPH))")
+                Text("\(Int(locationProvider.currentSpeedMPH))")
                     .font(.system(size: 56, weight: .heavy, design: .monospaced)) // INCREASED
                     .monospacedDigit()
                     .foregroundColor(currentSpeedColor)
                     .contentTransition(.numericText())
-                    .animation(.snappy, value: Int(owlPolice.currentSpeedMPH))
+                    .animation(.snappy, value: Int(locationProvider.currentSpeedMPH))
                     .shadow(color: currentSpeedColor.opacity(0.8), radius: 6)
 
                 Text("MPH")
@@ -137,7 +138,7 @@ struct DigitalDashSpeedometer: View {
                 if owlPolice.currentZone == .safe,
                    let nearest = owlPolice.nearestCamera,
                    owlPolice.distanceToNearestFT > 500 && owlPolice.distanceToNearestFT < 3000,
-                   owlPolice.currentSpeedMPH > Double(nearest.speed_limit_mph) {
+                   locationProvider.currentSpeedMPH > Double(nearest.speed_limit_mph) {
                     Image(systemName: "arrow.down")
                         .font(.system(size: 12, weight: .black))
                         .foregroundColor(.orange)
@@ -147,7 +148,7 @@ struct DigitalDashSpeedometer: View {
             }
         }
         .frame(width: 150, height: 150)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: owlPolice.currentSpeedMPH)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: locationProvider.currentSpeedMPH)
         .animation(.easeInOut(duration: 0.35), value: isDanger)
         .onChange(of: isPerfectPace) { isPerfect in
             if isPerfect {

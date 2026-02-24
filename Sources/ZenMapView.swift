@@ -33,6 +33,7 @@ struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var cameraStore: CameraStore
     @EnvironmentObject var parkingStore: ParkingStore
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
     @Binding var routeState: RouteState
     @Binding var isTracking: Bool
@@ -74,13 +75,13 @@ struct ZenMapView: UIViewRepresentable {
         }
 
         // Handle Car Annotation (Simulated OR Real Navigation)
-        if routeState == .navigating || owlPolice.isSimulating, let location = owlPolice.currentLocation {
+        if routeState == .navigating || locationProvider.isSimulating, let location = locationProvider.currentLocation {
             if coordinator.simulatedCarAnnotation == nil {
                 let newCar = SimulatedCarAnnotation(coordinate: location.coordinate)
                 coordinator.simulatedCarAnnotation = newCar
                 uiView.addAnnotation(newCar)
             } else {
-                let duration = owlPolice.isSimulating ? (1.0 / 60.0) : 1.0
+                let duration = locationProvider.isSimulating ? (1.0 / 60.0) : 1.0
                 UIView.animate(withDuration: duration, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
                     coordinator.simulatedCarAnnotation?.coordinate = location.coordinate
                 }
@@ -93,7 +94,7 @@ struct ZenMapView: UIViewRepresentable {
                 if let carAnnotation = coordinator.simulatedCarAnnotation,
                    let carView = uiView.view(for: carAnnotation) {
                     let radians = CGFloat(bearing * .pi / 180.0)
-                    let duration = owlPolice.isSimulating ? (1.0 / 60.0) : 1.0
+                    let duration = locationProvider.isSimulating ? (1.0 / 60.0) : 1.0
                     UIView.animate(withDuration: duration, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
                         carView.transform = CGAffineTransform(rotationAngle: radians)
                     }
@@ -107,10 +108,10 @@ struct ZenMapView: UIViewRepresentable {
         }
 
         // Dynamic 3D camera during navigation (for both real and simulated driving)
-        if routeState == .navigating, let location = owlPolice.currentLocation {
+        if routeState == .navigating, let location = locationProvider.currentLocation {
             let bearing = location.course >= 0 ? location.course : 0
             
-            let speedMph = max(0, owlPolice.currentSpeedMPH)
+            let speedMph = max(0, locationProvider.currentSpeedMPH)
             
             // 1. DYNAMIC LOOK AHEAD: Look further ahead when driving fast
             let lookAheadMeters = max(50.0, min(400.0, 50.0 + (speedMph * 5.0)))
@@ -137,7 +138,7 @@ struct ZenMapView: UIViewRepresentable {
             // to zoom in tightly and look down, so they can clearly see the intersection.
             if !routingService.instructions.isEmpty && routingService.currentInstructionIndex < routingService.instructions.count {
                 let currentInstruction = routingService.instructions[routingService.currentInstructionIndex]
-                let traveledForZoom = owlPolice.isSimulating ? owlPolice.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+                let traveledForZoom = locationProvider.isSimulating ? locationProvider.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
                 let distToTurn = Double(currentInstruction.routeOffsetInMeters) - traveledForZoom
                 let distToTurnFt = distToTurn * 3.28084
                 
@@ -161,7 +162,7 @@ struct ZenMapView: UIViewRepresentable {
                 heading: bearing
             )
             // Use curveLinear animation for real GPS to smoothly interpolate between drops without rubber-banding. Instant for simulation.
-            if !owlPolice.isSimulating {
+            if !locationProvider.isSimulating {
                 UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
                     uiView.setCamera(camera, animated: false) // Handled by UIView.animate
                 }
@@ -237,7 +238,7 @@ struct ZenMapView: UIViewRepresentable {
             let startIndex = min(routingService.routeProgressIndex, routingService.activeRoute.count - 1)
             var route = Array(routingService.activeRoute[startIndex...])
 
-            if routeState == .navigating, let carLoc = owlPolice.currentLocation?.coordinate, route.count > 1 {
+            if routeState == .navigating, let carLoc = locationProvider.currentLocation?.coordinate, route.count > 1 {
                 route[0] = carLoc
             }
 

@@ -18,6 +18,8 @@ struct ZenRideApp: App {
     @StateObject private var cameraStore = CameraStore()
     @StateObject private var parkingStore = ParkingStore()
     @StateObject private var owlPolice = OwlPolice()
+    @StateObject private var locationProvider = LocationProvider()
+    @StateObject private var navigationEngine = NavigationEngine()
     @StateObject private var routingService = RoutingService()
     @StateObject private var journal = RideJournal()
     @StateObject private var savedRoutes = SavedRoutesStore()
@@ -30,6 +32,8 @@ struct ZenRideApp: App {
                 .environmentObject(cameraStore)
                 .environmentObject(parkingStore)
                 .environmentObject(owlPolice)
+                .environmentObject(locationProvider)
+                .environmentObject(navigationEngine)
                 .environmentObject(routingService)
                 .environmentObject(journal)
                 .environmentObject(savedRoutes)
@@ -37,7 +41,7 @@ struct ZenRideApp: App {
                 .environmentObject(vehicleStore)
                 .preferredColorScheme(.dark)
                 .onAppear {
-                    owlPolice.startPatrol(with: cameraStore.cameras)
+                    owlPolice.cameras = cameraStore.cameras
                 }
         }
     }
@@ -55,6 +59,7 @@ struct ContentView: View {
     @State private var pendingMoodSave: ((String) -> Void)? = nil
 
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var driveStore: DriveStore
@@ -184,6 +189,7 @@ struct ContentView: View {
 
 struct RideView: View {
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
     var onStop: (RideContext?, PendingDriveSession?) -> Void
 
@@ -258,7 +264,7 @@ struct RideView: View {
                     HStack(alignment: .top) {
                         // Always show the full Digital Dash Speedometer
                         VStack(alignment: .leading, spacing: 20) {
-                            DigitalDashSpeedometer(owlPolice: owlPolice)
+                            DigitalDashSpeedometer(owlPolice: owlPolice, locationProvider: locationProvider)
                                 .transition(.scale.combined(with: .opacity))
                         }
                         .padding(.leading, 16)
@@ -412,7 +418,7 @@ struct RideView: View {
                 owlPolice.startNavigationSession()
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
-                    owlPolice.isSimulating = false
+                    locationProvider.isSimulating = false
                 }
             }, onSimulate: {
                 guard !routingService.activeRoute.isEmpty else {
@@ -424,7 +430,7 @@ struct RideView: View {
                 owlPolice.startNavigationSession()
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
-                    owlPolice.simulateDrive(along: routingService.activeRoute)
+                    locationProvider.simulateDrive(along: routingService.activeRoute)
                 }
             }, onCancel: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -438,7 +444,7 @@ struct RideView: View {
             .presentationDetents([.medium, .fraction(0.3)])
             .presentationDragIndicator(.visible)
         }
-        .onChange(of: owlPolice.currentSpeedMPH) { speed in
+        .onChange(of: locationProvider.currentSpeedMPH) { speed in
             // Speed-based auto-hide disabled per user request
             // if speed > 15.0 && uiVisible && routeState == .navigating {
             //     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { uiVisible = false }
@@ -458,12 +464,12 @@ struct RideView: View {
                 withAnimation { uiVisible = true }
             }
         }
-        .onChange(of: owlPolice.currentLocation) { location in
+        .onChange(of: locationProvider.currentLocation) { location in
             if routeState == .navigating, let loc = location {
                 routingService.checkReroute(currentLocation: loc)
             }
         }
-        .onChange(of: owlPolice.simulationCompletedNaturally) { completed in
+        .onChange(of: locationProvider.simulationCompletedNaturally) { completed in
             guard completed && routeState == .navigating else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
                 if routeState == .navigating {
@@ -517,7 +523,7 @@ struct RideView: View {
     }
 
     private func reportHazard() {
-        guard let location = owlPolice.currentLocation else { return }
+        guard let location = locationProvider.currentLocation else { return }
         NotificationCenter.default.post(
             name: NSNotification.Name("DropHazardPin"),
             object: location.coordinate
@@ -535,7 +541,7 @@ struct RideView: View {
             routingService.activeRoute = []
             routingService.availableRoutes = []
             routingService.activeAlternativeRoutes = []
-            owlPolice.stopSimulation()
+            locationProvider.stopSimulation()
             onStop(context, pending)
         }
     }
@@ -605,6 +611,7 @@ struct AlertOverlayView: View {
 
 struct AmbientGlowView: View {
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
     @State private var pulse: Bool = false
 
     var body: some View {

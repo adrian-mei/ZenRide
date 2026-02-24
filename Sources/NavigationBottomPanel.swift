@@ -9,6 +9,7 @@ private let arrivalFormatter: DateFormatter = {
 struct NavigationBottomPanel: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var locationProvider: LocationProvider
     var onEnd: () -> Void
 
     @State private var arrivingPulse = false
@@ -19,7 +20,7 @@ struct NavigationBottomPanel: View {
 
     var routeProgress: Double {
         guard routingService.routeDistanceMeters > 0 else { return 0 }
-        return min(1, owlPolice.distanceTraveledInSimulationMeters / Double(routingService.routeDistanceMeters))
+        return min(1, locationProvider.distanceTraveledInSimulationMeters / Double(routingService.routeDistanceMeters))
     }
 
     var remainingTimeSeconds: Int {
@@ -28,7 +29,7 @@ struct NavigationBottomPanel: View {
     }
 
     var remainingDistanceMeters: Double {
-        max(0, Double(routingService.routeDistanceMeters) - owlPolice.distanceTraveledInSimulationMeters)
+        max(0, Double(routingService.routeDistanceMeters) - locationProvider.distanceTraveledInSimulationMeters)
     }
 
     var isArriving: Bool { remainingDistanceMeters < 320 }
