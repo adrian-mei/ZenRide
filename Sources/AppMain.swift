@@ -2,7 +2,6 @@ import SwiftUI
 
 enum AppState {
     case onboarding
-    case vehicleSelect
     case garage
     case riding
     case windDown
@@ -66,16 +65,6 @@ struct ContentView: View {
 
             case .onboarding:
                 OnboardingView {
-                    // After onboarding, route based on whether user added a vehicle
-                    if vehicleStore.vehicles.isEmpty {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .vehicleSelect }
-                    } else {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
-                    }
-                }
-
-            case .vehicleSelect:
-                VehicleSelectView {
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
                 }
 
