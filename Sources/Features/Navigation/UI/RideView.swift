@@ -256,8 +256,10 @@ struct RideView: View {
                     routingService.activeAlternativeRoutes = []
                 }
             })
-            .presentationDetents([.medium, .fraction(0.3)])
+            .presentationDetents([.fraction(0.2), .medium, .large])
             .presentationDragIndicator(.visible)
+            .presentationBackgroundInteraction(.enabled)
+            .interactiveDismissDisabled()
         }
         .onChange(of: locationProvider.currentSpeedMPH) { speed in
             // Speed-based auto-hide disabled per user request
