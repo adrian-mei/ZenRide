@@ -465,7 +465,7 @@ struct RideView: View {
         }
         .onChange(of: owlPolice.isSimulating) { isSimulating in
             if !isSimulating && routeState == .navigating {
-                if !routingService.activeRoute.isEmpty && owlPolice.currentSimulationIndex >= routingService.activeRoute.count - 1 {
+                if !routingService.activeRoute.isEmpty {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
                         if routeState == .navigating {
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
