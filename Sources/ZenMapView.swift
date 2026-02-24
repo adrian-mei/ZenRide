@@ -216,7 +216,7 @@ struct ZenMapView: UIViewRepresentable {
         }
 
         if !routingService.activeRoute.isEmpty {
-            let startIndex = routingService.routeProgressIndex
+            let startIndex = min(routingService.routeProgressIndex, routingService.activeRoute.count - 1)
             var route = Array(routingService.activeRoute[startIndex...])
 
             if routeState == .navigating, let carLoc = owlPolice.currentLocation?.coordinate, route.count > 1 {

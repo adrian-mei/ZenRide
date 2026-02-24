@@ -195,12 +195,15 @@ class RoutingService: ObservableObject {
             }
 
             DispatchQueue.main.async {
-                if closestSegmentIndex > self.routeProgressIndex {
+                // Re-check bounds: activeRoute may have changed before this block executes
+                if closestSegmentIndex > self.routeProgressIndex,
+                   closestSegmentIndex < self.activeRoute.count {
                     self.routeProgressIndex = closestSegmentIndex
                 }
             }
         } else {
-            minDistance = currentCoord.distance(to: activeRoute.last!)
+            guard let lastPoint = activeRoute.last else { return }
+            minDistance = currentCoord.distance(to: lastPoint)
         }
 
         if minDistance > 100 {
