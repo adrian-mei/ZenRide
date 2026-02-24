@@ -9,7 +9,7 @@ class NavigationEngine: ObservableObject {
     
     // Core Services
     let locationProvider = LocationProvider()
-    let cameraService = OwlPolice()
+    let cameraService = BunnyPolice()
     // Keeping routingService separate for now as it's heavily tied to the UI
     // but we can pass it in.
     

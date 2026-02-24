@@ -4,7 +4,7 @@ import CoreLocation
 import Combine
 
 struct RideView: View {
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
     var onStop: (RideContext?, PendingDriveSession?) -> Void
@@ -31,8 +31,8 @@ struct RideView: View {
                     .transition(.opacity)
             }
 
-            if routeState == .navigating && (owlPolice.currentZone == .approach || owlPolice.currentZone == .danger) {
-                AlertOverlayView(camera: owlPolice.nearestCamera)
+            if routeState == .navigating && (bunnyPolice.currentZone == .approach || bunnyPolice.currentZone == .danger) {
+                AlertOverlayView(camera: bunnyPolice.nearestCamera)
                     .allowsHitTesting(false)
                     .zIndex(100)
             }
@@ -80,7 +80,7 @@ struct RideView: View {
                     HStack(alignment: .top) {
                         // Always show the full Digital Dash Speedometer
                         VStack(alignment: .leading, spacing: 20) {
-                            DigitalDashSpeedometer(owlPolice: owlPolice, locationProvider: locationProvider)
+                            DigitalDashSpeedometer(bunnyPolice: bunnyPolice, locationProvider: locationProvider)
                                 .transition(.scale.combined(with: .opacity))
                         }
                         .padding(.leading, 16)
@@ -89,12 +89,12 @@ struct RideView: View {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 12) {
-                            if routeState == .search && owlPolice.camerasPassedThisRide > 0 {
+                            if routeState == .search && bunnyPolice.camerasPassedThisRide > 0 {
                                 HStack(spacing: 4) {
                                     Image(systemName: "leaf.fill")
                                         .font(.subheadline)
                                         .foregroundColor(.green)
-                                    Text("$\(owlPolice.camerasPassedThisRide * 100)")
+                                    Text("$\(bunnyPolice.camerasPassedThisRide * 100)")
                                         .font(.subheadline.bold())
                                 }
                                 .padding(.horizontal, 12)
@@ -105,14 +105,14 @@ struct RideView: View {
 
                             VStack(spacing: 0) {
                                 Button {
-                                    owlPolice.isMuted.toggle()
+                                    bunnyPolice.isMuted.toggle()
                                 } label: {
-                                    Image(systemName: owlPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                    Image(systemName: bunnyPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                                         .font(.system(size: 22, weight: .bold))
                                         .frame(width: 64, height: 64)
-                                        .foregroundColor(owlPolice.isMuted ? .red : .white)
+                                        .foregroundColor(bunnyPolice.isMuted ? .red : .white)
                                 }
-                                .accessibilityLabel(owlPolice.isMuted ? "Unmute alerts" : "Mute alerts")
+                                .accessibilityLabel(bunnyPolice.isMuted ? "Unmute alerts" : "Mute alerts")
 
                                 Divider().padding(.horizontal, 10).opacity(0.3)
 
@@ -176,7 +176,7 @@ struct RideView: View {
             .zIndex(5)
 
             // Muted status pill no longer needed since controls are always visible
-            // if routeState == .navigating && owlPolice.isMuted && !uiVisible {
+            // if routeState == .navigating && bunnyPolice.isMuted && !uiVisible {
             // ...
             // }
         }
@@ -231,7 +231,7 @@ struct RideView: View {
                 }
                 departureTime = Date()
                 navigationStartTime = Date()
-                owlPolice.startNavigationSession()
+                bunnyPolice.startNavigationSession()
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     locationProvider.isSimulating = false
@@ -243,7 +243,7 @@ struct RideView: View {
                 }
                 departureTime = Date()
                 navigationStartTime = Date()
-                owlPolice.startNavigationSession()
+                bunnyPolice.startNavigationSession()
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     locationProvider.simulateDrive(along: routingService.activeRoute)
@@ -296,7 +296,7 @@ struct RideView: View {
                         routingService.activeRoute = []
                         routingService.availableRoutes = []
                         routingService.activeAlternativeRoutes = []
-                        owlPolice.stopNavigationSession()
+                        bunnyPolice.stopNavigationSession()
                         onStop(context, pending)
                     }
                 }
@@ -323,11 +323,11 @@ struct RideView: View {
         let actualDuration = Int(Date().timeIntervalSince(startTime))
         let distanceMiles = Double(ctx.routeDistanceMeters) / 1609.34
         return PendingDriveSession(
-            speedReadings: owlPolice.speedReadings,
-            cameraZoneEvents: owlPolice.cameraZoneEvents,
-            topSpeedMph: owlPolice.sessionTopSpeedMph,
-            avgSpeedMph: owlPolice.sessionAvgSpeedMph,
-            zenScore: owlPolice.zenScore,
+            speedReadings: bunnyPolice.speedReadings,
+            cameraZoneEvents: bunnyPolice.cameraZoneEvents,
+            topSpeedMph: bunnyPolice.sessionTopSpeedMph,
+            avgSpeedMph: bunnyPolice.sessionAvgSpeedMph,
+            zenScore: bunnyPolice.zenScore,
             departureTime: ctx.departureTime,
             actualDurationSeconds: max(actualDuration, ctx.routeDurationSeconds),
             distanceMiles: distanceMiles,
@@ -352,7 +352,7 @@ struct RideView: View {
     private func endRide() {
         let context = buildRideContext()
         let pending = buildPendingSession(context: context)
-        owlPolice.stopNavigationSession()
+        bunnyPolice.stopNavigationSession()
         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
             routingService.activeRoute = []
             routingService.availableRoutes = []

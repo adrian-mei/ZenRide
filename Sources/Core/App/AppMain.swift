@@ -7,7 +7,7 @@ import Combine
 struct ZenRideApp: App {
     @StateObject private var cameraStore = CameraStore()
     @StateObject private var parkingStore = ParkingStore()
-    @StateObject private var owlPolice = OwlPolice()
+    @StateObject private var bunnyPolice = BunnyPolice()
     @StateObject private var locationProvider = LocationProvider()
     @StateObject private var navigationEngine = NavigationEngine()
     @StateObject private var routingService = RoutingService()
@@ -21,7 +21,7 @@ struct ZenRideApp: App {
             ContentView()
                 .environmentObject(cameraStore)
                 .environmentObject(parkingStore)
-                .environmentObject(owlPolice)
+                .environmentObject(bunnyPolice)
                 .environmentObject(locationProvider)
                 .environmentObject(navigationEngine)
                 .environmentObject(routingService)
@@ -31,7 +31,7 @@ struct ZenRideApp: App {
                 .environmentObject(vehicleStore)
                 .preferredColorScheme(.dark)
                 .onAppear {
-                    owlPolice.cameras = cameraStore.cameras
+                    bunnyPolice.cameras = cameraStore.cameras
                 }
         }
     }

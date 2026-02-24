@@ -7,7 +7,7 @@ enum ZoneStatus {
     case danger
 }
 
-class OwlPolice: ObservableObject {
+class BunnyPolice: ObservableObject {
     private let speech = SpeechService.shared
     
     // MARK: - Published State
@@ -65,13 +65,13 @@ class OwlPolice: ObservableObject {
         sessionSpeedSum = 0
         sessionSpeedCount = 0
         startSpeedSampling()
-        Log.info("OwlPolice", "Navigation session started")
+        Log.info("BunnyPolice", "Navigation session started")
     }
     
     func stopNavigationSession() {
         stopSpeedSampling()
         finalizeActiveZoneEntry()
-        Log.info("OwlPolice", "Navigation session stopped. Readings: \(speedReadings.count), Events: \(cameraZoneEvents.count)")
+        Log.info("BunnyPolice", "Navigation session stopped. Readings: \(speedReadings.count), Events: \(cameraZoneEvents.count)")
     }
     
     func resetRideStats() {
@@ -225,7 +225,7 @@ class OwlPolice: ObservableObject {
             outcome: outcome
         )
         cameraZoneEvents.append(event)
-        Log.info("OwlPolice", "Camera zone event: \(streetName) — \(outcome.rawValue)")
+        Log.info("BunnyPolice", "Camera zone event: \(streetName) — \(outcome.rawValue)")
     }
     
     // MARK: - Alerts
@@ -251,7 +251,7 @@ class OwlPolice: ObservableObject {
         }
         approachCooldowns[camera.id] = now
         
-        let speech = "Hoo... Officer Owl here. There's a sleepy speed trap down this stretch. Roll off the throttle, let's just enjoy the breeze for a minute."
+        let speech = "Hop hop... Officer Bunny here. There's a sleepy speed trap down this stretch. Roll off the throttle, let's just enjoy the breeze for a minute."
         speak(speech)
     }
     

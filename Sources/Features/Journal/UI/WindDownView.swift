@@ -34,7 +34,7 @@ struct WindDownView: View {
                         .foregroundColor(.white)
 
                     if moneySaved > 0 {
-                        Text("Officer Owl had your back.\nEvaded $\(Int(moneySaved)) in theoretical fines.")
+                        Text("Officer Bunny had your back.\nEvaded $\(Int(moneySaved)) in theoretical fines.")
                             .font(.title3)
                             .fontWeight(.bold)
                             .foregroundColor(.cyan)
@@ -90,7 +90,7 @@ struct WindDownView: View {
                             .clipShape(Circle())
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Officer Owl")
+                            Text("Officer Bunny")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
                                 .foregroundColor(.orange)
                             Text("How did today feel?")

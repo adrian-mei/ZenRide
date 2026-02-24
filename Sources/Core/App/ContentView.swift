@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var postRideInfo: PostRideInfo? = nil
     @State private var pendingMoodSave: ((String) -> Void)? = nil
 
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
@@ -78,7 +78,7 @@ struct ContentView: View {
 
                     // Mood save closure — called from MoodSelectionCard or on dismiss
                     let capturedContext = context
-                    let capturedCamerasAvoided = owlPolice.camerasPassedThisRide
+                    let capturedCamerasAvoided = bunnyPolice.camerasPassedThisRide
                     pendingMoodSave = { mood in
                         if !mood.isEmpty {
                             journal.addEntry(
@@ -87,14 +87,14 @@ struct ContentView: View {
                                 context: capturedContext
                             )
                         }
-                        owlPolice.resetRideStats()
+                        bunnyPolice.resetRideStats()
                         lastRideContext = nil
                         pendingSession = nil
                         postRideInfo = nil
                         pendingMoodSave = nil
                     }
 
-                    owlPolice.stopNavigationSession()
+                    bunnyPolice.stopNavigationSession()
 
                     // Immediately back to garage (background save already done above)
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { appState = .garage }
@@ -103,12 +103,12 @@ struct ContentView: View {
             // WindDown kept for backward compatibility but not used in primary flow
             case .windDown:
                 WindDownView(
-                    ticketsAvoided: owlPolice.camerasPassedThisRide,
-                    zenScore: owlPolice.zenScore,
+                    ticketsAvoided: bunnyPolice.camerasPassedThisRide,
+                    zenScore: bunnyPolice.zenScore,
                     rideContext: lastRideContext,
                     cameraZoneEvents: pendingSession?.cameraZoneEvents ?? []
                 ) { mood in
-                    journal.addEntry(mood: mood, ticketsAvoided: owlPolice.camerasPassedThisRide, context: lastRideContext)
+                    journal.addEntry(mood: mood, ticketsAvoided: bunnyPolice.camerasPassedThisRide, context: lastRideContext)
 
                     if let pending = pendingSession {
                         let session = pending.toSession(mood: mood)
@@ -129,7 +129,7 @@ struct ContentView: View {
                         )
                     }
 
-                    owlPolice.resetRideStats()
+                    bunnyPolice.resetRideStats()
                     lastRideContext = nil
                     pendingSession = nil
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }

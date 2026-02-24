@@ -94,7 +94,11 @@ struct DriveStoreTests {
         let store = makeStore()
         store.appendSession(originCoord: originA, destCoord: destA, destinationName: "Park", session: makeSession())
         store.appendSession(originCoord: originA, destCoord: destB, destinationName: "LA", session: makeSession())
-        store.toggleBookmark(id: store.records[0].id)
+        
+        // Find the record for Park and bookmark it explicitly
+        let parkID = store.records.first(where: { $0.destinationName == "Park" })!.id
+        store.toggleBookmark(id: parkID)
+        
         #expect(store.bookmarkedRecords.count == 1)
         #expect(store.bookmarkedRecords[0].destinationName == "Park")
     }

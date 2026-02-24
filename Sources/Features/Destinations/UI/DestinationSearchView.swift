@@ -42,7 +42,7 @@ struct DestinationSearchView: View {
     @ObservedObject var searcher: DestinationSearcher
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var cameraStore: CameraStore
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore

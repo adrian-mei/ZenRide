@@ -2,7 +2,7 @@ import SwiftUI
 
 struct GuidanceView: View {
     @EnvironmentObject var routingService: RoutingService
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @State private var currentInstructionIndex: Int = 0
     @State private var isApproachingTurn = false   // < 300ft to next turn
@@ -180,7 +180,7 @@ struct GuidanceView: View {
                     isApproachingTurn = false   // reset surge on instruction change
                 }
                 if let message = routingService.instructions[index].message {
-                    owlPolice.speak(message)
+                    bunnyPolice.speak(message)
                 }
             }
         }

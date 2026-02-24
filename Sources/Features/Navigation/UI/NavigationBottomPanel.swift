@@ -8,7 +8,7 @@ private let arrivalFormatter: DateFormatter = {
 
 struct NavigationBottomPanel: View {
     @EnvironmentObject var routingService: RoutingService
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     var onEnd: () -> Void
 
@@ -51,8 +51,8 @@ struct NavigationBottomPanel: View {
         return h > 0 ? "\(h)h \(m)m" : "\(m) min"
     }
 
-    var liveMoneySaved: Int { owlPolice.camerasPassedThisRide * 100 }
-    var liveZenScore: Int { owlPolice.zenScore }
+    var liveMoneySaved: Int { bunnyPolice.camerasPassedThisRide * 100 }
+    var liveZenScore: Int { bunnyPolice.zenScore }
 
     var body: some View {
         VStack(spacing: 0) {

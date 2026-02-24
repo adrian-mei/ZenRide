@@ -4,10 +4,10 @@ import CoreLocation
 @testable import ZenRide
 
 @MainActor
-struct OwlPoliceTests {
+struct BunnyPoliceTests {
 
     @Test func testZoneTransitionsAndZenScore() async throws {
-        let service = OwlPolice()
+        let service = BunnyPolice()
         
         let camera = SpeedCamera(
             id: "cam-1",

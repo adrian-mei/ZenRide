@@ -268,7 +268,7 @@ class RoutingService: ObservableObject {
 
     // MARK: - Camera Counting
 
-    private func countCameras(on route: TomTomRoute, cameras: [SpeedCamera]) -> Int {
+    func countCameras(on route: TomTomRoute, cameras: [SpeedCamera]) -> Int {
         var count = 0
         guard let leg = route.legs.first else { return 0 }
 

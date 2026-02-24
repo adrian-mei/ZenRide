@@ -32,7 +32,7 @@ private let carChevronImage: UIImage = {
 struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var cameraStore: CameraStore
     @EnvironmentObject var parkingStore: ParkingStore
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
     @Binding var routeState: RouteState

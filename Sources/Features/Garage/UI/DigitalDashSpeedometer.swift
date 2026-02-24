@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct DigitalDashSpeedometer: View {
-    @ObservedObject var owlPolice: OwlPolice
+    @ObservedObject var bunnyPolice: BunnyPolice
     @ObservedObject var locationProvider: LocationProvider
 
     @State private var pulseScale: CGFloat = 1.0
@@ -9,7 +9,7 @@ struct DigitalDashSpeedometer: View {
 
     // MARK: - Computed
 
-    var speedLimit: Double { Double(owlPolice.nearestCamera?.speed_limit_mph ?? 45) }
+    var speedLimit: Double { Double(bunnyPolice.nearestCamera?.speed_limit_mph ?? 45) }
 
     var currentSpeedColor: Color {
         let s = locationProvider.currentSpeedMPH
@@ -108,7 +108,7 @@ struct DigitalDashSpeedometer: View {
                     Text("LIMIT")
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .foregroundColor(dangerPulse ? .white : .black)
-                    Text("\(owlPolice.nearestCamera?.speed_limit_mph ?? 45)")
+                    Text("\(bunnyPolice.nearestCamera?.speed_limit_mph ?? 45)")
                         .font(.system(size: 16, weight: .black, design: .monospaced))
                         .foregroundColor(dangerPulse ? .white : .black)
                 }
@@ -135,9 +135,9 @@ struct DigitalDashSpeedometer: View {
                 }
 
                 // Anticipation arrow (approaching camera above limit)
-                if owlPolice.currentZone == .safe,
-                   let nearest = owlPolice.nearestCamera,
-                   owlPolice.distanceToNearestFT > 500 && owlPolice.distanceToNearestFT < 3000,
+                if bunnyPolice.currentZone == .safe,
+                   let nearest = bunnyPolice.nearestCamera,
+                   bunnyPolice.distanceToNearestFT > 500 && bunnyPolice.distanceToNearestFT < 3000,
                    locationProvider.currentSpeedMPH > Double(nearest.speed_limit_mph) {
                     Image(systemName: "arrow.down")
                         .font(.system(size: 12, weight: .black))

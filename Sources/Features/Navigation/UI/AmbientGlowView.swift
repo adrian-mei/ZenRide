@@ -4,7 +4,7 @@ import CoreLocation
 import Combine
 
 struct AmbientGlowView: View {
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @State private var pulse: Bool = false
 
@@ -29,9 +29,9 @@ struct AmbientGlowView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .edgesIgnoringSafeArea(.all)
-        .opacity(owlPolice.currentZone == .danger ? (pulse ? 0.8 : 0.3) : 0.6)
+        .opacity(bunnyPolice.currentZone == .danger ? (pulse ? 0.8 : 0.3) : 0.6)
         .allowsHitTesting(false)
-        .onChange(of: owlPolice.currentZone) { zone in
+        .onChange(of: bunnyPolice.currentZone) { zone in
             if zone == .danger {
                 withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
                     pulse = true
@@ -45,7 +45,7 @@ struct AmbientGlowView: View {
     }
 
     var glowColor: Color {
-        switch owlPolice.currentZone {
+        switch bunnyPolice.currentZone {
         case .danger:   return Color(red: 0.9, green: 0.1, blue: 0.2)
         case .approach: return Color(red: 0.9, green: 0.5, blue: 0.0)
         case .safe:     return Color(red: 0.0, green: 0.5, blue: 1.0)
@@ -53,7 +53,7 @@ struct AmbientGlowView: View {
     }
 
     var glowWidth: CGFloat {
-        switch owlPolice.currentZone {
+        switch bunnyPolice.currentZone {
         case .danger:   return 60
         case .approach: return 30
         case .safe:     return 15

@@ -23,24 +23,43 @@ final class SpeechService: NSObject, ObservableObject {
         if let id = selectedVoiceId, let voice = AVSpeechSynthesisVoice(identifier: id) {
             return voice
         }
-        // Prefer Alex or Siri, then enhanced/premium, fall back to en-US
+        // Prefer female premium human voices, fall back to en-US
         return preferredHumanVoice
             ?? availableHumanVoices.first
             ?? AVSpeechSynthesisVoice(language: "en-US")
             ?? AVSpeechSynthesisVoice()
     }
 
-    /// Try specifically for Alex or Siri which usually sound the most human.
+    /// Try specifically for female human voices (e.g. Siri or premium voices).
     private var preferredHumanVoice: AVSpeechSynthesisVoice? {
         let voices = availableHumanVoices
-        // 1. Look for Alex (very human sounding)
-        if let alex = voices.first(where: { $0.identifier == AVSpeechSynthesisVoiceIdentifierAlex }) {
-            return alex
-        }
-        // 2. Look for Siri voices (if available/unlocked)
-        if let siri = voices.first(where: { $0.name.lowercased().contains("siri") || $0.identifier.lowercased().contains("siri") }) {
+        
+        // 1. Look for female Siri voices (if available/unlocked)
+        if let siri = voices.first(where: { 
+            ($0.name.lowercased().contains("siri") || $0.identifier.lowercased().contains("siri")) && 
+            $0.gender == .female && 
+            $0.language.hasPrefix("en") 
+        }) {
             return siri
         }
+        
+        // 2. Look for any premium female English voice
+        if let premiumFemale = voices.first(where: { 
+            $0.quality == .premium && 
+            $0.gender == .female && 
+            $0.language.hasPrefix("en")
+        }) {
+            return premiumFemale
+        }
+        
+        // 3. Fallback to any female English voice
+        if let anyFemale = voices.first(where: { 
+            $0.gender == .female && 
+            $0.language.hasPrefix("en")
+        }) {
+            return anyFemale
+        }
+        
         return nil
     }
 

@@ -15,7 +15,7 @@ struct MapHomeView: View {
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var driveStore: DriveStore
     @EnvironmentObject var vehicleStore: VehicleStore
-    @EnvironmentObject var owlPolice: OwlPolice
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
 
     var onRollOut: () -> Void
@@ -246,7 +246,7 @@ private struct GameDashboardHeader: View {
                     .padding(.horizontal, 20)
                     .transition(.scale.combined(with: .opacity))
             } else {
-                // Owl briefing — mission briefing style
+                // Bunny briefing — mission briefing style
                 HStack(spacing: 10) {
                     ZStack {
                         Circle()
@@ -257,7 +257,7 @@ private struct GameDashboardHeader: View {
                             .font(.system(size: 20))
                     }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("OWL INTEL")
+                        Text("BUNNY INTEL")
                             .font(.system(size: 9, weight: .black, design: .monospaced))
                             .foregroundColor(.orange.opacity(0.7))
                             .kerning(1.5)
@@ -831,7 +831,7 @@ struct MoodSelectionCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("OWL DEBRIEF")
+                    Text("BUNNY DEBRIEF")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .foregroundColor(.orange.opacity(0.8))
                         .kerning(1.5)
