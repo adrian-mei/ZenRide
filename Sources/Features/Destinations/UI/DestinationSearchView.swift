@@ -255,41 +255,6 @@ struct DestinationSearchView: View {
                 } header: { listHeader("Bookmarked Routes", "bookmark.fill", .cyan) }
             }
 
-            // Nearby Parking
-            if !nearbyParking.isEmpty {
-                Section {
-                    ForEach(nearbyParking) { spot in
-                        let meterLabel = spot.isMetered ? "Metered" : "Unmetered"
-                        let spacesText = spot.spacesCount > 1 ? "\(spot.spacesCount) spaces" : "1 space"
-                        let subtitle = spot.neighborhood.map { "\(spacesText) · \(meterLabel) · \($0)" } ?? "\(spacesText) · \(meterLabel)"
-                        SavedRouteRow(
-                            systemIcon: "parkingsign",
-                            iconColor: .purple,
-                            title: spot.street.capitalized,
-                            subtitle: subtitle
-                        ) {
-                            routeToParking(
-                                coordinate: CLLocationCoordinate2D(latitude: spot.latitude, longitude: spot.longitude),
-                                name: spot.street
-                            )
-                        }
-                    }
-                } header: { listHeader("Nearby Parking", "parkingsign", .purple) }
-            }
-
-            // Smart suggestions
-            if !cachedSuggestions.isEmpty {
-                Section {
-                    ForEach(cachedSuggestions) { route in
-                        SavedRouteRow(
-                            systemIcon: "sparkles", iconColor: .yellow,
-                            title: route.destinationName,
-                            subtitle: typicalTimeLabel(route)
-                        ) { navigate(to: route) }
-                    }
-                } header: { listHeader("Suggested", "sparkles", .yellow) }
-            }
-
             // Saved Places
             let pinned = savedRoutes.pinnedRoutes
             Section {
@@ -332,6 +297,41 @@ struct DestinationSearchView: View {
                     }
                 }
             } header: { listHeader("Saved Places", "star.fill", .orange) }
+
+            // Nearby Parking
+            if !nearbyParking.isEmpty {
+                Section {
+                    ForEach(nearbyParking) { spot in
+                        let meterLabel = spot.isMetered ? "Metered" : "Unmetered"
+                        let spacesText = spot.spacesCount > 1 ? "\(spot.spacesCount) spaces" : "1 space"
+                        let subtitle = spot.neighborhood.map { "\(spacesText) · \(meterLabel) · \($0)" } ?? "\(spacesText) · \(meterLabel)"
+                        SavedRouteRow(
+                            systemIcon: "parkingsign",
+                            iconColor: .purple,
+                            title: spot.street.capitalized,
+                            subtitle: subtitle
+                        ) {
+                            routeToParking(
+                                coordinate: CLLocationCoordinate2D(latitude: spot.latitude, longitude: spot.longitude),
+                                name: spot.street
+                            )
+                        }
+                    }
+                } header: { listHeader("Nearby Parking", "parkingsign", .purple) }
+            }
+
+            // Smart suggestions
+            if !cachedSuggestions.isEmpty {
+                Section {
+                    ForEach(cachedSuggestions) { route in
+                        SavedRouteRow(
+                            systemIcon: "sparkles", iconColor: .yellow,
+                            title: route.destinationName,
+                            subtitle: typicalTimeLabel(route)
+                        ) { navigate(to: route) }
+                    }
+                } header: { listHeader("Suggested", "sparkles", .yellow) }
+            }
 
             // Recent
             let recent = savedRoutes.topRecent(limit: 8).filter { !$0.isPinned }
