@@ -30,55 +30,26 @@ struct MapHomeView: View {
 
     @State private var hasCheckedIn = false
     @State private var isTracking = true
-    
-    var timeOfDayGreeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 4..<12:  return "Morning light is breaking."
-        case 12..<17: return "The afternoon sun is warm."
-        case 17..<20: return "Golden hour on the asphalt."
-        default:      return "The night is quiet and cool."
-        }
-    }
-    
-    var timeOfDayIcon: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 4..<12:  return "sunrise.fill"
-        case 12..<17: return "sun.max.fill"
-        case 17..<20: return "sunset.fill"
-        default:      return "moon.stars.fill"
-        }
-    }
-    
-    var timeOfDayColor: Color {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 4..<12:  return .yellow
-        case 12..<17: return .orange
-        case 17..<20: return Color(red: 1.0, green: 0.4, blue: 0.2) // Deep orange/red
-        default:      return .cyan
-        }
-    }
+    @State private var startPulse = false
 
     var body: some View {
         ZStack {
-            // MARK: Full-screen interactive map
+            // Full-screen interactive map
             ZenMapView(routeState: .constant(.search), isTracking: $isTracking)
                 .edgesIgnoringSafeArea(.all)
-                // Interactive — no allowsHitTesting(false)
 
-            // MARK: HUD Overlays
+            // Scanline overlay for game-screen feel
+            GameScanlineOverlay()
+                .allowsHitTesting(false)
+                .zIndex(1)
+
+            // HUD Overlays
             VStack(spacing: 0) {
-                // Top row: Basecamp Header
-                BasecampHeader(
-                    greeting: timeOfDayGreeting,
-                    icon: timeOfDayIcon,
-                    iconColor: timeOfDayColor,
+                GameDashboardHeader(
                     hasCheckedIn: hasCheckedIn,
                     onCheckIn: {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                             hasCheckedIn = true
                         }
                     },
@@ -86,20 +57,12 @@ struct MapHomeView: View {
                     onOpenSettings: { showProfile = true }
                 )
                 .padding(.top, 50)
-                
-                // Weather / Conditions Pill (Appears after check in)
+
                 if hasCheckedIn {
-                    ConditionsPill()
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                
-                // Floating search bar (only show if checked in or as a secondary action)
-                if hasCheckedIn {
-                    FloatingSearchBarButton(onTap: onRollOut)
+                    // Floating mission search bar
+                    MissionSearchButton(onTap: onRollOut)
                         .padding(.horizontal, 16)
-                        .padding(.top, 12)
+                        .padding(.top, 10)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
@@ -108,11 +71,11 @@ struct MapHomeView: View {
             .zIndex(10)
             .allowsHitTesting(true)
 
-            // MARK: Bottom Quick Routes Panel
+            // Bottom Mission Panel
             if hasCheckedIn {
                 VStack {
                     Spacer()
-                    QuickRoutesPanel(
+                    MissionSelectPanel(
                         topSuggestion: topSuggestion,
                         onRollOut: onRollOut,
                         savedRoutes: savedRoutes,
@@ -123,7 +86,7 @@ struct MapHomeView: View {
                 .zIndex(8)
             }
 
-            // MARK: Post-ride toast
+            // Post-ride toast
             if toastVisible, let info = postRideInfo {
                 VStack {
                     PostRideToast(info: info)
@@ -137,7 +100,9 @@ struct MapHomeView: View {
         }
         .onAppear {
             refreshSuggestion()
-            // Show post-ride toast if info present
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                startPulse = true
+            }
             if postRideInfo != nil {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                     toastVisible = true
@@ -145,7 +110,6 @@ struct MapHomeView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
                     withAnimation(.easeOut(duration: 0.5)) { toastVisible = false }
                 }
-                // Show mood card after toast dismisses
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     if pendingMoodSave != nil {
                         withAnimation { showMoodCard = true }
@@ -189,104 +153,111 @@ struct MapHomeView: View {
     }
 }
 
-// MARK: - Basecamp Header
+// MARK: - Scanline Overlay (game CRT effect)
 
-private struct BasecampHeader: View {
-    let greeting: String
-    let icon: String
-    let iconColor: Color
+private struct GameScanlineOverlay: View {
+    var body: some View {
+        GeometryReader { geo in
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.0),
+                    Color.black.opacity(0.03),
+                    Color.black.opacity(0.0),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .blendMode(.multiply)
+    }
+}
+
+// MARK: - Game Dashboard Header
+
+private struct GameDashboardHeader: View {
     let hasCheckedIn: Bool
     let onCheckIn: () -> Void
     let onOpenGarage: () -> Void
     let onOpenSettings: () -> Void
-    
+
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var driveStore: DriveStore
-    
+    @State private var enginePulse = false
+
     var body: some View {
         VStack(spacing: 0) {
+            // Top HUD bar
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
+                    // Game label
                     HStack(spacing: 6) {
-                        Image(systemName: icon)
-                            .foregroundColor(iconColor)
-                            .font(.system(size: 14, weight: .bold))
-                        Text("Camp Today")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.8))
-                            .textCase(.uppercase)
+                        Image(systemName: "dot.radiowaves.left.and.right")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(.green)
+                        Text("ZENRIDE  ·  LIVE")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundColor(.green)
+                            .kerning(2)
                     }
-                    
-                    Text(hasCheckedIn ? "Ready to roll." : greeting)
-                        .font(.system(size: 22, weight: .black, design: .serif))
-                        .foregroundColor(.white)
-                    
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.green.opacity(0.15))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().strokeBorder(Color.green.opacity(0.4), lineWidth: 1))
+
                     if hasCheckedIn {
-                        StatsMiniHUD()
-                            .padding(.top, 6)
+                        PlayerStatsHUD()
+                            .transition(.opacity.combined(with: .move(edge: .leading)))
+                    } else {
+                        Text("SELECT MISSION")
+                            .font(.system(size: 26, weight: .black, design: .monospaced))
+                            .foregroundColor(.white)
                             .transition(.opacity)
                     }
                 }
-                
+
                 Spacer()
-                
-                HStack(spacing: 8) {
+
+                VStack(alignment: .trailing, spacing: 8) {
                     if hasCheckedIn {
                         Button(action: onOpenSettings) {
                             Image(systemName: "gearshape.fill")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.white.opacity(0.8))
-                                .frame(width: 36, height: 36)
+                                .frame(width: 32, height: 32)
                                 .background(Color.white.opacity(0.1))
                                 .clipShape(Circle())
                         }
                     }
-                    
                     VehicleHUDButton(onTap: onOpenGarage)
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 16)
-            
+            .padding(.bottom, 14)
+
+            // Start Engine / already running
             if !hasCheckedIn {
-                Button(action: onCheckIn) {
-                    HStack {
-                        Image(systemName: "sun.max.fill")
-                            .foregroundColor(.yellow)
-                        Text("Good Morning, Camp")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color(white: 0.15))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                            )
-                    )
-                }
-                .padding(.horizontal, 20)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                StartEngineButton(onTap: onCheckIn, pulse: enginePulse)
+                    .padding(.horizontal, 20)
+                    .transition(.scale.combined(with: .opacity))
             } else {
-                // The Owl Guide appears after check in
-                HStack(spacing: 12) {
-                    Text("🦉")
-                        .font(.system(size: 24))
-                        .padding(8)
-                        .background(Color.orange.opacity(0.2))
-                        .clipShape(Circle())
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Officer Owl")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundColor(.orange)
-                        Text("Tire pressure checked? The road awaits.")
-                            .font(.system(size: 14, weight: .medium, design: .serif))
+                // Owl briefing — mission briefing style
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.2))
+                            .frame(width: 38, height: 38)
+                            .overlay(Circle().strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
+                        Text("🦉")
+                            .font(.system(size: 20))
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("OWL INTEL")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundColor(.orange.opacity(0.7))
+                            .kerning(1.5)
+                        Text("Systems green. Camera net active. Roll when ready.")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .foregroundColor(.white.opacity(0.9))
                     }
                     Spacer()
@@ -295,71 +266,143 @@ private struct BasecampHeader: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
         .background(
             LinearGradient(
-                colors: [Color.black.opacity(0.8), Color.black.opacity(0.0)],
+                colors: [Color.black.opacity(0.88), Color.black.opacity(0.0)],
                 startPoint: .top,
                 endPoint: .bottom
             )
         )
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                enginePulse = true
+            }
+        }
     }
 }
 
-// MARK: - Conditions Pill
+// MARK: - Start Engine Button
 
-private struct ConditionsPill: View {
-    @State private var temperature: Int = 72
-    @State private var conditionText: String = "Clear skies"
-    @State private var windSpeed: Int = 8
-    
+private struct StartEngineButton: View {
+    let onTap: () -> Void
+    let pulse: Bool
+
     var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 4) {
-                Image(systemName: "thermometer")
-                    .foregroundColor(.orange)
-                Text("\(temperature)°")
-                    .font(.system(size: 13, weight: .bold))
+        Button(action: onTap) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Color.cyan.opacity(pulse ? 0.25 : 0.12))
+                        .frame(width: 48, height: 48)
+                        .scaleEffect(pulse ? 1.08 : 1.0)
+                        .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: pulse)
+                    Image(systemName: "power.circle.fill")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.cyan)
+                        .shadow(color: .cyan.opacity(0.7), radius: 8)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("START ENGINE")
+                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .foregroundColor(.white)
+                        .kerning(1)
+                    Text("Begin today's session")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right.2")
+                    .font(.system(size: 16, weight: .black))
+                    .foregroundColor(.cyan.opacity(0.7))
             }
-            
-            Divider()
-                .background(Color.white.opacity(0.3))
-                .frame(height: 12)
-            
-            HStack(spacing: 4) {
-                Image(systemName: "cloud.sun.fill")
-                    .foregroundColor(.cyan)
-                Text(conditionText)
-                    .font(.system(size: 13, weight: .semibold))
-            }
-            
-            Divider()
-                .background(Color.white.opacity(0.3))
-                .frame(height: 12)
-            
-            HStack(spacing: 4) {
-                Image(systemName: "wind")
-                    .foregroundColor(.green)
-                Text("\(windSpeed) mph")
-                    .font(.system(size: 13, weight: .semibold))
-            }
-            
-            Spacer()
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(
+                ZStack {
+                    Color(red: 0.04, green: 0.08, blue: 0.12)
+                    LinearGradient(
+                        colors: [Color.cyan.opacity(0.18), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Color.cyan.opacity(pulse ? 0.9 : 0.5), Color.cyan.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
+            .shadow(color: Color.cyan.opacity(0.3), radius: 12, x: 0, y: 6)
         }
-        .foregroundColor(.white.opacity(0.9))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Player Stats HUD
+
+private struct PlayerStatsHUD: View {
+    @EnvironmentObject var driveStore: DriveStore
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if driveStore.currentStreak > 0 {
+                statBadge("\(driveStore.currentStreak)", icon: "flame.fill", color: .orange, label: "STREAK")
+                divider
+            }
+            statBadge("\(driveStore.totalRideCount)", icon: "flag.checkered", color: .cyan, label: "MISSIONS")
+            if driveStore.totalDistanceMiles > 0 {
+                divider
+                statBadge(String(format: "%.0f", driveStore.totalDistanceMiles), icon: "road.lanes", color: .purple, label: "MI")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(
-            Color(red: 0.1, green: 0.1, blue: 0.15)
-                .opacity(0.7)
-                .background(.ultraThinMaterial)
+            ZStack {
+                Color(red: 0.06, green: 0.06, blue: 0.1)
+                Color.white.opacity(0.04)
+            }
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 3)
+    }
+
+    @ViewBuilder
+    private func statBadge(_ value: String, icon: String, color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(color)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value)
+                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .foregroundColor(.white)
+                Text(label)
+                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                    .foregroundColor(color.opacity(0.7))
+                    .kerning(1)
+            }
+        }
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.15))
+            .frame(width: 1, height: 22)
     }
 }
 
@@ -388,14 +431,14 @@ private struct VehicleHUDButton: View {
                             .font(.system(size: 12, weight: .black, design: .rounded))
                             .foregroundColor(.white)
                             .lineLimit(1)
-                        Text(vehicle.type.displayName)
-                            .font(.system(size: 9, weight: .bold))
+                        Text(vehicle.type.displayName.uppercased())
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
                             .foregroundColor(accentColor.opacity(0.8))
-                            .kerning(0.5)
+                            .kerning(0.8)
                     }
                 } else {
-                    Text("Garage")
-                        .font(.system(size: 12, weight: .bold))
+                    Text("GARAGE")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundColor(.white)
                 }
             }
@@ -433,97 +476,54 @@ private struct VehicleHUDButton: View {
     }
 }
 
-// MARK: - Stats Mini HUD
+// MARK: - Mission Search Button
 
-private struct StatsMiniHUD: View {
-    @EnvironmentObject var driveStore: DriveStore
-
-    var body: some View {
-        if driveStore.totalRideCount > 0 {
-            HStack(spacing: 8) {
-                // Streak flame
-                if driveStore.currentStreak > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.red)
-                        Text("\(driveStore.currentStreak)")
-                            .font(.system(size: 13, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-
-                    Rectangle()
-                        .fill(Color.white.opacity(0.2))
-                        .frame(width: 1, height: 14)
-                }
-
-                HStack(spacing: 3) {
-                    Image(systemName: "flag.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.cyan)
-                    Text("\(driveStore.totalRideCount)")
-                        .font(.system(size: 13, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                }
-
-                Rectangle()
-                    .fill(Color.white.opacity(0.2))
-                    .frame(width: 1, height: 14)
-
-                HStack(spacing: 3) {
-                    Image(systemName: "map.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.orange)
-                    Text(String(format: "%.0f mi", driveStore.totalDistanceMiles))
-                        .font(.system(size: 13, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Color(red: 0.08, green: 0.08, blue: 0.12)
-                    .overlay(Color.white.opacity(0.05))
-            )
-            .clipShape(Capsule())
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-            .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
-        }
-    }
-}
-
-// MARK: - Floating Search Bar Button
-
-private struct FloatingSearchBarButton: View {
+private struct MissionSearchButton: View {
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
+                Image(systemName: "scope")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.secondary)
-                Text("Search destination")
-                    .font(.system(size: 17))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.cyan)
+                Text("SET DESTINATION")
+                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.85))
+                    .kerning(0.5)
                 Spacer()
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 15))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.cyan)
+                        .frame(width: 6, height: 6)
+                    Text("READY")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundColor(.cyan)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
-            .background(.regularMaterial)
+            .background(
+                ZStack {
+                    Color(red: 0.05, green: 0.08, blue: 0.12).opacity(0.92)
+                    LinearGradient(colors: [Color.cyan.opacity(0.08), .clear], startPoint: .leading, endPoint: .trailing)
+                }
+                .background(.regularMaterial)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.cyan.opacity(0.35), lineWidth: 1)
+            )
+            .shadow(color: Color.cyan.opacity(0.15), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
 }
 
-// MARK: - Quick Routes Panel
+// MARK: - Mission Select Panel
 
-private struct QuickRoutesPanel: View {
+private struct MissionSelectPanel: View {
     let topSuggestion: SavedRoute?
     let onRollOut: () -> Void
     let savedRoutes: SavedRoutesStore
@@ -534,7 +534,7 @@ private struct QuickRoutesPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Handle
+            // Panel handle
             Capsule()
                 .fill(Color.white.opacity(0.2))
                 .frame(width: 36, height: 4)
@@ -542,12 +542,17 @@ private struct QuickRoutesPanel: View {
                 .padding(.top, 10)
                 .padding(.bottom, 14)
 
-            // Header row
+            // Panel header
             HStack {
-                Text("QUICK ROUTES")
-                    .font(.system(size: 11, weight: .black))
-                    .foregroundColor(.white.opacity(0.5))
-                    .kerning(1.5)
+                HStack(spacing: 6) {
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.cyan)
+                    Text("MISSION SELECT")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.55))
+                        .kerning(1.5)
+                }
 
                 Spacer()
 
@@ -556,10 +561,11 @@ private struct QuickRoutesPanel: View {
                         showHistory = true
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "clock.arrow.circlepath")
+                            Image(systemName: "archivebox.fill")
                                 .font(.system(size: 10, weight: .bold))
-                            Text("History")
-                                .font(.system(size: 11, weight: .bold))
+                            Text("ARCHIVE")
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .kerning(0.5)
                         }
                         .foregroundColor(.cyan.opacity(0.8))
                     }
@@ -568,7 +574,7 @@ private struct QuickRoutesPanel: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
 
-            // Suggestion chip
+            // Suggested mission
             if let top = topSuggestion {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -577,102 +583,157 @@ private struct QuickRoutesPanel: View {
                         NotificationCenter.default.post(name: .zenRideNavigateTo, object: top)
                     }
                 } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.yellow)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(SmartSuggestionService.promptText(for: top))
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.yellow.opacity(0.2))
+                                .frame(width: 38, height: 38)
+                                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.yellow.opacity(0.4), lineWidth: 1))
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.yellow)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("SUGGESTED MISSION")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .foregroundColor(.yellow.opacity(0.7))
+                                .kerning(1)
                             Text(top.destinationName)
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text(SmartSuggestionService.promptText(for: top))
                                 .font(.system(size: 11))
                                 .foregroundColor(.white.opacity(0.5))
                         }
+
                         Spacer()
-                        Image(systemName: "arrow.right.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.yellow.opacity(0.7))
+
+                        Image(systemName: "chevron.right.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.yellow.opacity(0.6))
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 14)
                     .padding(.vertical, 12)
-                    .background(Color.yellow.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1))
+                    .background(Color.yellow.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.yellow.opacity(0.25), lineWidth: 1))
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 10)
             }
 
-            // Recent routes (horizontal chips)
+            // Recent missions (horizontal)
             if !recentRoutes.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(recentRoutes) { route in
-                            Button {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                onRollOut()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                    NotificationCenter.default.post(name: .zenRideNavigateTo, object: route)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("LAST MISSIONS")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.35))
+                        .kerning(1.5)
+                        .padding(.horizontal, 20)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(recentRoutes) { route in
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    onRollOut()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                        NotificationCenter.default.post(name: .zenRideNavigateTo, object: route)
+                                    }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "mappin.circle.fill")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundColor(.cyan)
+                                        Text(route.destinationName)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .lineLimit(1)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        ZStack {
+                                            Color.white.opacity(0.06)
+                                            LinearGradient(colors: [Color.cyan.opacity(0.08), .clear], startPoint: .leading, endPoint: .trailing)
+                                        }
+                                    )
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().strokeBorder(Color.cyan.opacity(0.2), lineWidth: 1))
                                 }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "mappin.circle.fill")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.blue)
-                                    Text(route.destinationName)
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.white.opacity(0.08))
-                                .clipShape(Capsule())
-                                .overlay(Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 1))
                             }
                         }
+                        .padding(.horizontal, 16)
                     }
-                    .padding(.horizontal, 16)
                 }
                 .padding(.bottom, 12)
             }
 
-            // Start Riding button
+            // LAUNCH MISSION button
             Button(action: {
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                 onRollOut()
             }) {
-                HStack(spacing: 10) {
-                    Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
-                        .font(.system(size: 16, weight: .bold))
-                    Text("Start Riding")
-                        .font(.system(size: 17, weight: .black, design: .rounded))
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.black.opacity(0.3))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 16, weight: .black))
+                            .foregroundColor(.black)
+                    }
+
+                    Text("LAUNCH MISSION")
+                        .font(.system(size: 17, weight: .black, design: .monospaced))
+                        .foregroundColor(.black)
+                        .kerning(0.5)
+
+                    Spacer()
+
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.black.opacity(0.6))
                 }
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 16)
                 .background(
                     LinearGradient(
-                        colors: [.cyan, Color(red: 0.0, green: 0.65, blue: 0.85)],
+                        colors: [.cyan, Color(red: 0.0, green: 0.7, blue: 0.9)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: Color.cyan.opacity(0.4), radius: 12, x: 0, y: 5)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: Color.cyan.opacity(0.5), radius: 14, x: 0, y: 6)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
         .background(
             ZStack {
-                Color(red: 0.06, green: 0.06, blue: 0.1)
-                LinearGradient(colors: [Color.white.opacity(0.08), .clear], startPoint: .top, endPoint: .bottom)
+                Color(red: 0.05, green: 0.05, blue: 0.08)
+                LinearGradient(
+                    colors: [Color.cyan.opacity(0.06), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(0.4), radius: 24, x: 0, y: -8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.cyan.opacity(0.3), Color.cyan.opacity(0.05)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: .black.opacity(0.5), radius: 28, x: 0, y: -10)
         .padding(.horizontal, 0)
         .ignoresSafeArea(edges: .bottom)
     }
@@ -685,27 +746,33 @@ private struct PostRideToast: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.green)
+            ZStack {
+                Circle()
+                    .fill(Color.green.opacity(0.2))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.green)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Ride saved")
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundColor(.white)
+                Text("MISSION COMPLETE")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundColor(.green)
+                    .kerning(1)
                 HStack(spacing: 8) {
                     Text(String(format: "%.1f mi", info.distanceMiles))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.8))
                     if info.zenScore > 0 {
-                        Text("· \(info.zenScore) Zen")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.cyan.opacity(0.8))
+                        Text("· ZEN \(info.zenScore)")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(.cyan.opacity(0.9))
                     }
                     if info.moneySaved > 0 {
-                        Text("· $\(Int(info.moneySaved)) saved")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.green.opacity(0.8))
+                        Text("· +$\(Int(info.moneySaved))")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(.green.opacity(0.9))
                     }
                 }
             }
@@ -716,13 +783,14 @@ private struct PostRideToast: View {
         .padding(.vertical, 12)
         .background(
             ZStack {
-                Color(red: 0.06, green: 0.12, blue: 0.1)
-                Color.green.opacity(0.12)
+                Color(red: 0.04, green: 0.1, blue: 0.08)
+                Color.green.opacity(0.1)
             }
+            .background(.ultraThinMaterial)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.green.opacity(0.3), lineWidth: 1))
-        .shadow(color: Color.green.opacity(0.2), radius: 10, x: 0, y: 4)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.green.opacity(0.4), lineWidth: 1))
+        .shadow(color: Color.green.opacity(0.25), radius: 12, x: 0, y: 5)
         .padding(.horizontal, 16)
         .padding(.top, 50)
     }
@@ -748,17 +816,21 @@ struct MoodSelectionCard: View {
                 .padding(.top, 12)
 
             HStack(spacing: 12) {
-                Text("🦉")
-                    .font(.system(size: 32))
-                    .padding(10)
-                    .background(Color.orange.opacity(0.15))
-                    .clipShape(Circle())
-                
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.2))
+                        .frame(width: 48, height: 48)
+                        .overlay(Circle().strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
+                    Text("🦉")
+                        .font(.system(size: 26))
+                }
+
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Officer Owl")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.orange)
-                    Text("How did today feel?")
+                    Text("OWL DEBRIEF")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundColor(.orange.opacity(0.8))
+                        .kerning(1.5)
+                    Text("How was the mission?")
                         .font(.system(size: 18, weight: .black, design: .serif))
                         .foregroundColor(.white)
                 }
@@ -775,9 +847,10 @@ struct MoodSelectionCard: View {
                         VStack(spacing: 8) {
                             Text(mood.emoji)
                                 .font(.system(size: 32))
-                            Text(mood.label)
-                                .font(.system(size: 12, weight: .bold))
+                            Text(mood.label.uppercased())
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
                                 .foregroundColor(mood.color)
+                                .kerning(0.5)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
@@ -802,4 +875,3 @@ struct MoodSelectionCard: View {
         .preferredColorScheme(.dark)
     }
 }
-
