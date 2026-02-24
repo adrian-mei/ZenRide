@@ -2,7 +2,7 @@ import SwiftUI
 
 private let arrivalFormatter: DateFormatter = {
     let f = DateFormatter()
-    f.dateFormat = "h:mm a"
+    f.dateFormat = "h:mm"
     return f
 }()
 
@@ -130,15 +130,16 @@ struct NavigationBottomPanel: View {
                         color: zenColor(liveZenScore)
                     )
 
-                    metricDivider
-
-                    LiveMetricTile(
-                        label: "SAVED",
-                        value: liveMoneySaved > 0 ? "$\(liveMoneySaved)" : "–",
-                        icon: "banknote.fill",
-                        color: liveMoneySaved > 0 ? .green : .white.opacity(0.3),
-                        pulse: moneySavedPulse
-                    )
+                    if liveMoneySaved > 0 {
+                        metricDivider
+                        LiveMetricTile(
+                            label: "SAVED",
+                            value: "$\(liveMoneySaved)",
+                            icon: "banknote.fill",
+                            color: .green,
+                            pulse: moneySavedPulse
+                        )
+                    }
 
                     metricDivider
 
@@ -152,19 +153,6 @@ struct NavigationBottomPanel: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 10)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-
-            // MARK: Pit Stops
-            if !isArriving {
-                Divider().opacity(0.15).padding(.horizontal, 20)
-
-                HStack(spacing: 0) {
-                    PitStopButton(icon: "fuelpump.fill",       title: "Gas",    color: .orange,                  query: "Gas Stations")
-                    PitStopButton(icon: "cup.and.saucer.fill", title: "Coffee", color: Color(red: 0.8, green: 0.5, blue: 0.2), query: "Coffee")
-                    PitStopButton(icon: "fork.knife",          title: "Food",   color: .green,                   query: "Restaurants")
-                }
-                .padding(.top, 6)
-                .padding(.bottom, 18)
             }
         }
         .background(
@@ -346,7 +334,7 @@ private struct SlideToEndSlider: View {
                 .kerning(0.8)
                 .foregroundColor(.red.opacity(0.8))
                 .frame(maxWidth: .infinity)
-                .padding(.leading, 24)
+                .padding(.leading, 60)
                 .opacity(1.0 - progress) // fade out as thumb moves
 
             // Thumb

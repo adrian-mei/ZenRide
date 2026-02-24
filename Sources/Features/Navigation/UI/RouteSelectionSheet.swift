@@ -78,7 +78,7 @@ struct RouteSelectionSheet: View {
 
                     RoutePreferenceChip(
                         icon: "road.lanes.curved.right",
-                        label: "Curvy Roads",
+                        label: "Curvy",
                         isActive: routingService.avoidHighways,
                         activeColor: .purple
                     ) { routingService.avoidHighways.toggle() }
@@ -471,6 +471,8 @@ struct RoutePreferenceChip: View {
                     .font(.system(size: 12, weight: .semibold))
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
