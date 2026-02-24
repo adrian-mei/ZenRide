@@ -56,6 +56,7 @@ struct DestinationSearchView: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var justSavedIndex: Int? = nil
     @State private var cachedSuggestions: [SavedRoute] = []
+    @State private var nearbyParking: [ParkingSpot] = []
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -101,7 +102,10 @@ struct DestinationSearchView: View {
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
         .onChange(of: isSearchFocused) { if $0 { onSearchFocused?() } }
-        .onAppear { refreshSuggestions() }
+        .onAppear {
+            refreshSuggestions()
+            refreshNearbyParking()
+        }
         .task {
             try? await Task.sleep(nanoseconds: 150_000_000) // 150ms — let sheet settle
             isSearchFocused = true
@@ -195,6 +199,24 @@ struct DestinationSearchView: View {
                         chip("wrench.and.screwdriver.fill", "Shop", .gray) { searcher.searchQuery = "Motorcycle Repair" }
                         chip("cup.and.saucer.fill", "Coffee", .orange) { searcher.searchQuery = "Coffee" }
                         chip("cross.fill",      "Hospital", .red)     { searcher.searchQuery = "Hospital" }
+                        // Parking chip — shows nearby parking section in the idle list
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            searcher.searchQuery = ""
+                            searcher.searchResults = []
+                            isSearchFocused = false
+                            refreshNearbyParking()
+                            onSearchFocused?()
+                        } label: {
+                            VStack(spacing: 6) {
+                                ZStack {
+                                    Circle().fill(Color.purple).frame(width: 50, height: 50)
+                                    Image(systemName: "parkingsign").font(.system(size: 20)).foregroundStyle(.white)
+                                }
+                                Text("Parking").font(.caption).fontWeight(.medium).foregroundStyle(.primary)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 4)
                     .padding(.vertical, 4)
@@ -202,6 +224,28 @@ struct DestinationSearchView: View {
                 .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+            }
+
+            // Nearby Parking
+            if !nearbyParking.isEmpty {
+                Section {
+                    ForEach(nearbyParking) { spot in
+                        let meterLabel = spot.isMetered ? "Metered" : "Unmetered"
+                        let spacesText = spot.spacesCount > 1 ? "\(spot.spacesCount) spaces" : "1 space"
+                        let subtitle = spot.neighborhood.map { "\(spacesText) · \(meterLabel) · \($0)" } ?? "\(spacesText) · \(meterLabel)"
+                        SavedRouteRow(
+                            systemIcon: "parkingsign",
+                            iconColor: .purple,
+                            title: spot.street.capitalized,
+                            subtitle: subtitle
+                        ) {
+                            routeToParking(
+                                coordinate: CLLocationCoordinate2D(latitude: spot.latitude, longitude: spot.longitude),
+                                name: spot.street
+                            )
+                        }
+                    }
+                } header: { listHeader("Nearby Parking", "parkingsign", .purple) }
             }
 
             // Smart suggestions
@@ -463,6 +507,18 @@ struct DestinationSearchView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             routeState = .reviewing
         }
+    }
+
+    private func refreshNearbyParking() {
+        let refLat = owlPolice.currentLocation?.coordinate.latitude ?? 37.7749
+        let refLng = owlPolice.currentLocation?.coordinate.longitude ?? -122.4194
+        // Use squared delta (no sqrt needed) for fast approximate distance sort
+        let sorted = parkingStore.spots.sorted {
+            let d0 = ($0.latitude - refLat) * ($0.latitude - refLat) + ($0.longitude - refLng) * ($0.longitude - refLng)
+            let d1 = ($1.latitude - refLat) * ($1.latitude - refLat) + ($1.longitude - refLng) * ($1.longitude - refLng)
+            return d0 < d1
+        }
+        nearbyParking = Array(sorted.prefix(5))
     }
 
     private func refreshSuggestions() {

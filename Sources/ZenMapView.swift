@@ -54,6 +54,12 @@ struct ZenMapView: UIViewRepresentable {
         config.pointOfInterestFilter = .excludingAll
         mapView.preferredConfiguration = config
 
+        // Register cluster view so MKMapView can render parking pin clusters
+        mapView.register(
+            MKMarkerAnnotationView.self,
+            forAnnotationViewWithReuseIdentifier: MKMapViewDefaultClusterAnnotationViewReuseIdentifier
+        )
+
         return mapView
     }
 
@@ -180,16 +186,15 @@ struct ZenMapView: UIViewRepresentable {
             uiView.addAnnotations(newAnnotations)
         }
 
-        // Show parking pins in search mode only
+        // Show parking pins in search mode — use coordinator flag to avoid O(n) work on every updateUIView
         if routeState == .search {
-            let existingParkingIds = Set(uiView.annotations.compactMap { ($0 as? ParkingAnnotation)?.spot.id })
-            let newParking = parkingStore.spots
-                .filter { !existingParkingIds.contains($0.id) }
-                .map { ParkingAnnotation(spot: $0) }
-            if !newParking.isEmpty { uiView.addAnnotations(newParking) }
-        } else {
-            let parkingPins = uiView.annotations.filter { $0 is ParkingAnnotation }
-            if !parkingPins.isEmpty { uiView.removeAnnotations(parkingPins) }
+            if !coordinator.parkingAnnotationsLoaded && !parkingStore.spots.isEmpty {
+                uiView.addAnnotations(parkingStore.spots.map { ParkingAnnotation(spot: $0) })
+                coordinator.parkingAnnotationsLoaded = true
+            }
+        } else if coordinator.parkingAnnotationsLoaded {
+            uiView.removeAnnotations(uiView.annotations.filter { $0 is ParkingAnnotation })
+            coordinator.parkingAnnotationsLoaded = false
         }
 
         // Update destination annotation in-place to avoid flicker
@@ -266,6 +271,7 @@ struct ZenMapView: UIViewRepresentable {
         var lastOverlayCacheKey: String = ""
         var lastBearing: Double = 0
         var lastRouteState: RouteState = .search
+        var parkingAnnotationsLoaded = false
         // Stored in coordinator (class/ref type) to avoid @State re-entrancy in updateUIView
         var simulatedCarAnnotation: SimulatedCarAnnotation?
         weak var mapView: MKMapView?
@@ -364,24 +370,36 @@ struct ZenMapView: UIViewRepresentable {
                 return annotationView
             }
 
+            if let cluster = annotation as? MKClusterAnnotation,
+               cluster.memberAnnotations.first is ParkingAnnotation {
+                let identifier = MKMapViewDefaultClusterAnnotationViewReuseIdentifier
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+                    ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                view.annotation = annotation
+                view.markerTintColor = UIColor.systemPurple
+                view.glyphText = "\(cluster.memberAnnotations.count)"
+                view.displayPriority = .defaultHigh
+                return view
+            }
+
             if annotation is ParkingAnnotation {
                 let identifier = "Parking"
-                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
-                if annotationView == nil {
-                    annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
-                    annotationView?.canShowCallout = true
+                let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+                    ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                annotationView.annotation = annotation
+                annotationView.canShowCallout = true
+                annotationView.clusteringIdentifier = "parking"
+                annotationView.glyphImage = UIImage(systemName: "parkingsign")
+                annotationView.glyphTintColor = UIColor.white
+                annotationView.markerTintColor = UIColor.systemPurple
+                annotationView.displayPriority = .defaultHigh
+                if annotationView.rightCalloutAccessoryView == nil {
                     let routeBtn = UIButton(type: .system)
                     routeBtn.setTitle("Route", for: .normal)
                     routeBtn.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
                     routeBtn.sizeToFit()
-                    annotationView?.rightCalloutAccessoryView = routeBtn
-                } else {
-                    annotationView?.annotation = annotation
+                    annotationView.rightCalloutAccessoryView = routeBtn
                 }
-                annotationView?.glyphImage = UIImage(systemName: "parkingsign")
-                annotationView?.glyphTintColor = UIColor.white
-                annotationView?.markerTintColor = UIColor.systemPurple
-                annotationView?.displayPriority = .defaultLow
                 return annotationView
             }
 
@@ -496,12 +514,16 @@ class ParkingAnnotation: NSObject, MKAnnotation {
     init(spot: ParkingSpot) {
         self.spot = spot
         self.coordinate = CLLocationCoordinate2D(latitude: spot.latitude, longitude: spot.longitude)
-        self.title = "Motorcycle Parking"
+        // Street name as the callout title — capitalise from "STEINER ST" → "Steiner St"
+        let streetName = spot.street.capitalized
+        self.title = spot.side.map { "\(streetName) (\($0) side)" } ?? streetName
+        // Subtitle: spaces · meter type · neighborhood (when available)
         let meterLabel = spot.isMetered ? "Metered" : "Unmetered"
-        if spot.spacesCount > 1 {
-            self.subtitle = "\(spot.spacesCount) spaces • \(meterLabel)"
+        let spacesText = spot.spacesCount > 1 ? "\(spot.spacesCount) spaces" : "1 space"
+        if let hood = spot.neighborhood {
+            self.subtitle = "\(spacesText) · \(meterLabel) · \(hood)"
         } else {
-            self.subtitle = meterLabel
+            self.subtitle = "\(spacesText) · \(meterLabel)"
         }
         super.init()
     }
