@@ -197,7 +197,7 @@ struct ZenMapView: UIViewRepresentable {
         }
 
         // Only redraw overlays when route or state actually changes
-        let cacheKey = "\(routingService.activeRoute.count)_\(routeState.hashValue)"
+        let cacheKey = "\(routingService.activeRoute.count)_\(routeState.hashValue)_\(routingService.routeProgressIndex)"
         guard coordinator.lastOverlayCacheKey != cacheKey else { return }
         coordinator.lastOverlayCacheKey = cacheKey
 

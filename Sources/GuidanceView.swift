@@ -48,6 +48,12 @@ struct GuidanceView: View {
                                 .font(.system(size: 34, weight: .black))
                                 .foregroundColor(.white)
                         }
+
+                        // Road feature badge
+                        let feature = instruction.roadFeature
+                        if feature != .none {
+                            roadFeatureBadge(feature)
+                        }
                     }
 
                     Spacer()
@@ -210,15 +216,46 @@ struct GuidanceView: View {
         }
     }
     
+    @ViewBuilder
+    private func roadFeatureBadge(_ feature: RoadFeature) -> some View {
+        let (icon, color, label): (String, Color, String) = {
+            switch feature {
+            case .stopSign:    return ("octagon.fill", .red, "STOP SIGN")
+            case .trafficLight: return ("light.beacon.max.fill", Color(red: 1, green: 0.75, blue: 0), "SIGNAL")
+            case .freewayEntry: return ("arrow.up.right.square.fill", .cyan, "ON-RAMP")
+            case .freewayExit:  return ("arrow.down.right.square.fill", Color.orange, "EXIT")
+            case .roundabout:   return ("arrow.clockwise.circle.fill", .white, "ROUNDABOUT")
+            case .none:         return ("", .clear, "")
+            }
+        }()
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+            Text(label)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.15))
+        .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.5), lineWidth: 1))
+    }
+
     private func iconForInstruction(_ type: String?) -> String {
         switch type {
-        case "TURN_RIGHT": return "arrow.turn.up.right"
-        case "TURN_LEFT": return "arrow.turn.up.left"
-        case "KEEP_RIGHT": return "arrow.up.right"
-        case "KEEP_LEFT": return "arrow.up.left"
-        case "START": return "location.fill" // Replaced car with neutral location arrow
-        case "ARRIVE": return "mappin.circle.fill"
-        default: return "arrow.up"
+        case "TURN_RIGHT":       return "arrow.turn.up.right"
+        case "TURN_LEFT":        return "arrow.turn.up.left"
+        case "KEEP_RIGHT":       return "arrow.up.right"
+        case "KEEP_LEFT":        return "arrow.up.left"
+        case "START":            return "location.fill"
+        case "ARRIVE":           return "mappin.circle.fill"
+        case "MOTORWAY_ENTER":   return "arrow.up.right.square.fill"
+        case "MOTORWAY_EXIT":    return "arrow.down.right.square.fill"
+        case "ROUNDABOUT_LEFT":  return "arrow.counterclockwise.circle.fill"
+        case "ROUNDABOUT_RIGHT": return "arrow.clockwise.circle.fill"
+        case "STRAIGHT":         return "arrow.up"
+        default:                 return "arrow.up"
         }
     }
 }

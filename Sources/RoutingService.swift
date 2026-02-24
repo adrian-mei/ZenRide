@@ -43,6 +43,15 @@ struct TomTomGuidance: Decodable {
     let instructions: [TomTomInstruction]?
 }
 
+enum RoadFeature {
+    case stopSign
+    case trafficLight
+    case freewayEntry
+    case freewayExit
+    case roundabout
+    case none
+}
+
 struct TomTomInstruction: Decodable {
     let routeOffsetInMeters: Int
     let travelTimeInSeconds: Int
@@ -50,6 +59,16 @@ struct TomTomInstruction: Decodable {
     let instructionType: String?
     let street: String?
     let message: String?
+
+    var roadFeature: RoadFeature {
+        let msg = message?.lowercased() ?? ""
+        if instructionType == "MOTORWAY_ENTER" { return .freewayEntry }
+        if instructionType == "MOTORWAY_EXIT"  { return .freewayExit }
+        if instructionType?.hasPrefix("ROUNDABOUT") == true { return .roundabout }
+        if msg.contains("traffic signal") || msg.contains("traffic light") { return .trafficLight }
+        if msg.contains("stop sign") { return .stopSign }
+        return .none
+    }
 }
 
 struct TomTomRoute: Decodable, Identifiable {

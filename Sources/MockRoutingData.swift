@@ -58,7 +58,15 @@ struct MockRoutingData {
                 "pointIndex": 7,
                 "instructionType": "TURN_RIGHT",
                 "street": "3rd St",
-                "message": "Turn right onto 3rd St"
+                "message": "At the traffic signal, turn right onto 3rd St"
+              },
+              {
+                "routeOffsetInMeters": 1400,
+                "travelTimeInSeconds": 260,
+                "pointIndex": 12,
+                "instructionType": "MOTORWAY_ENTER",
+                "street": "I-80 East",
+                "message": "Get on I-80 East"
               },
               {
                 "routeOffsetInMeters": 1800,
@@ -66,7 +74,7 @@ struct MockRoutingData {
                 "pointIndex": 16,
                 "instructionType": "TURN_LEFT",
                 "street": "Howard St",
-                "message": "Turn left onto Howard St"
+                "message": "At the stop sign, turn left onto Howard St"
               },
               {
                 "routeOffsetInMeters": 2100,
