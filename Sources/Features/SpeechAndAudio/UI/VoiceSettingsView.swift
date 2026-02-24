@@ -42,15 +42,39 @@ struct VoiceSettingsView: View {
                     .listRowBackground(Color.cyan.opacity(0.08))
                 }
 
+                // AI Cloud Voice
+                Section {
+                    VoiceRow(
+                        voice: nil, // Indicates Google TTS
+                        customName: "Google Cloud AI (Female)",
+                        customIdentifier: "google-tts-en-US-Journey-F",
+                        customQuality: "ULTRA REALISTIC",
+                        customRegion: "US",
+                        customGender: "Female",
+                        isSelected: isSelected(id: "google-tts-en-US-Journey-F"),
+                        isPreviewing: previewingVoiceId == "google-tts-en-US-Journey-F",
+                        onSelect: { select(id: "google-tts-en-US-Journey-F") },
+                        onPreview: { preview(id: "google-tts-en-US-Journey-F") }
+                    )
+                } header: {
+                    Text("Cloud Voices (Requires Internet)")
+                        .font(.system(size: 12, weight: .bold))
+                }
+
                 if !englishVoices.isEmpty {
                     Section {
                         ForEach(englishVoices, id: \.identifier) { voice in
                             VoiceRow(
                                 voice: voice,
-                                isSelected: isSelected(voice),
+                                customName: nil,
+                                customIdentifier: nil,
+                                customQuality: nil,
+                                customRegion: nil,
+                                customGender: nil,
+                                isSelected: isSelected(id: voice.identifier),
                                 isPreviewing: previewingVoiceId == voice.identifier,
-                                onSelect: { select(voice) },
-                                onPreview: { preview(voice) }
+                                onSelect: { select(id: voice.identifier) },
+                                onPreview: { preview(id: voice.identifier) }
                             )
                         }
                     } header: {
@@ -67,10 +91,15 @@ struct VoiceSettingsView: View {
                         ForEach(mandarinVoices, id: \.identifier) { voice in
                             VoiceRow(
                                 voice: voice,
-                                isSelected: isSelected(voice),
+                                customName: nil,
+                                customIdentifier: nil,
+                                customQuality: nil,
+                                customRegion: nil,
+                                customGender: nil,
+                                isSelected: isSelected(id: voice.identifier),
                                 isPreviewing: previewingVoiceId == voice.identifier,
-                                onSelect: { select(voice) },
-                                onPreview: { preview(voice) }
+                                onSelect: { select(id: voice.identifier) },
+                                onPreview: { preview(id: voice.identifier) }
                             )
                         }
                     } header: {
@@ -84,10 +113,15 @@ struct VoiceSettingsView: View {
                         ForEach(cantoneseVoices, id: \.identifier) { voice in
                             VoiceRow(
                                 voice: voice,
-                                isSelected: isSelected(voice),
+                                customName: nil,
+                                customIdentifier: nil,
+                                customQuality: nil,
+                                customRegion: nil,
+                                customGender: nil,
+                                isSelected: isSelected(id: voice.identifier),
                                 isPreviewing: previewingVoiceId == voice.identifier,
-                                onSelect: { select(voice) },
-                                onPreview: { preview(voice) }
+                                onSelect: { select(id: voice.identifier) },
+                                onPreview: { preview(id: voice.identifier) }
                             )
                         }
                     } header: {
@@ -108,27 +142,28 @@ struct VoiceSettingsView: View {
 
     // MARK: - Helpers
 
-    private func isSelected(_ voice: AVSpeechSynthesisVoice) -> Bool {
-        if let id = speechService.selectedVoiceId {
-            return id == voice.identifier
+    private func isSelected(id: String) -> Bool {
+        if let currentId = speechService.selectedVoiceId {
+            return currentId == id
         }
+        if id.starts(with: "google") { return false }
         // If no selection, highlight the voice that would be used as default
-        return voice.identifier == speechService.selectedVoice.identifier
+        return id == speechService.selectedVoice.identifier
     }
 
-    private func select(_ voice: AVSpeechSynthesisVoice) {
+    private func select(id: String) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        speechService.selectedVoiceId = voice.identifier
-        Log.info("VoiceSettings", "Voice selected: \(voice.name) (\(voice.language))")
+        speechService.selectedVoiceId = id
+        Log.info("VoiceSettings", "Voice selected: \(id)")
     }
 
-    private func preview(_ voice: AVSpeechSynthesisVoice) {
+    private func preview(id: String) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        previewingVoiceId = voice.identifier
-        speechService.previewVoice(voice)
+        previewingVoiceId = id
+        speechService.previewVoice(id: id)
         // Clear previewing state after ~4 seconds (ample for the sample phrase)
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            if previewingVoiceId == voice.identifier {
+            if previewingVoiceId == id {
                 previewingVoiceId = nil
             }
         }
@@ -138,13 +173,27 @@ struct VoiceSettingsView: View {
 // MARK: - Voice Row
 
 private struct VoiceRow: View {
-    let voice: AVSpeechSynthesisVoice
+    let voice: AVSpeechSynthesisVoice?
+    let customName: String?
+    let customIdentifier: String?
+    let customQuality: String?
+    let customRegion: String?
+    let customGender: String?
+    
     let isSelected: Bool
     let isPreviewing: Bool
     let onSelect: () -> Void
     let onPreview: () -> Void
 
+    private var voiceName: String {
+        if let customName = customName { return customName }
+        if let voice = voice { return voice.name }
+        return "Unknown"
+    }
+
     private var qualityLabel: String {
+        if let cq = customQuality { return cq }
+        guard let voice = voice else { return "" }
         switch voice.quality {
         case .premium:  return "PREMIUM"
         case .enhanced: return "ENHANCED"
@@ -153,16 +202,21 @@ private struct VoiceRow: View {
     }
 
     private var qualityColor: Color {
-        voice.quality == .premium ? .purple : .cyan
+        if customQuality != nil { return .pink }
+        return voice?.quality == .premium ? .purple : .cyan
     }
 
     /// Short region tag from the language code, e.g. "en-AU" → "AU"
     private var regionTag: String {
+        if let cr = customRegion { return cr }
+        guard let voice = voice else { return "" }
         let parts = voice.language.split(separator: "-")
         return parts.count > 1 ? String(parts[1]) : voice.language.uppercased()
     }
 
     private var genderText: String? {
+        if let cg = customGender { return cg }
+        guard let voice = voice else { return nil }
         switch voice.gender {
         case .female: return "Female"
         case .male:   return "Male"
@@ -181,7 +235,7 @@ private struct VoiceRow: View {
             // Name + quality badge + region
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(voice.name)
+                    Text(voiceName)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
 

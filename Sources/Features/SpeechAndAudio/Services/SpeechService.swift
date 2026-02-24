@@ -127,38 +127,55 @@ final class SpeechService: NSObject, ObservableObject {
     // MARK: - Speech
 
     func speak(_ text: String, rate: Float = 0.5, pitch: Float = 1.0) {
-        // Try Google TTS first
-        GoogleTTSClient.shared.speak(text) { [weak self] in
-            // Fallback to Apple TTS
-            guard let self = self else { return }
-            Log.info("SpeechService", "Falling back to Apple TTS for: \(text)")
-            let utterance = AVSpeechUtterance(string: text)
-            utterance.voice = self.selectedVoice
-            utterance.rate = rate
-            utterance.pitchMultiplier = pitch
-            self.synthesizer.speak(utterance)
+        if selectedVoiceId?.starts(with: "google-tts") == true {
+            // Use Google TTS
+            GoogleTTSClient.shared.speak(text) { [weak self] in
+                // Fallback to Apple TTS
+                guard let self = self else { return }
+                Log.info("SpeechService", "Falling back to Apple TTS for: \(text)")
+                self.speakWithApple(text, rate: rate, pitch: pitch)
+            }
+        } else {
+            // Use Apple TTS directly
+            speakWithApple(text, rate: rate, pitch: pitch)
         }
     }
+    
+    private func speakWithApple(_ text: String, rate: Float, pitch: Float) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = self.selectedVoice
+        utterance.rate = rate
+        utterance.pitchMultiplier = pitch
+        self.synthesizer.speak(utterance)
+    }
 
-    /// Plays a short sample phrase through the given voice so the user can preview it.
-    func previewVoice(_ voice: AVSpeechSynthesisVoice) {
+    /// Plays a short sample phrase through the given voice ID so the user can preview it.
+    func previewVoice(id: String) {
         synthesizer.stopSpeaking(at: .immediate)
         GoogleTTSClient.shared.stopSpeaking()
         
-        let sampleText: String
-        if voice.language.hasPrefix("zh-HK") {
-            sampleText = "這是您的 GPS 語音導航將在路上的聲音。"
-        } else if voice.language.hasPrefix("zh") {
-            sampleText = "这是您的 GPS 语音导航将在路上的声音。"
-        } else {
-            sampleText = "This is how your GPS guide will sound on the road."
-        }
+        let sampleText = "This is how your GPS guide will sound on the road."
         
-        let utterance = AVSpeechUtterance(string: sampleText)
-        utterance.voice = voice
-        utterance.rate = 0.5
-        utterance.pitchMultiplier = 1.0
-        synthesizer.speak(utterance)
+        if id.starts(with: "google-tts") {
+            GoogleTTSClient.shared.speak(sampleText) { [weak self] in
+                self?.speakWithApple(sampleText, rate: 0.5, pitch: 1.0)
+            }
+        } else if let voice = AVSpeechSynthesisVoice(identifier: id) {
+            let localizedSample: String
+            if voice.language.hasPrefix("zh-HK") {
+                localizedSample = "這是您的 GPS 語音導航將在路上的聲音。"
+            } else if voice.language.hasPrefix("zh") {
+                localizedSample = "这是您的 GPS 语音导航将在路上的声音。"
+            } else {
+                localizedSample = sampleText
+            }
+            
+            let utterance = AVSpeechUtterance(string: localizedSample)
+            utterance.voice = voice
+            utterance.rate = 0.5
+            utterance.pitchMultiplier = 1.0
+            synthesizer.speak(utterance)
+        }
     }
 
     func stopSpeaking() {
