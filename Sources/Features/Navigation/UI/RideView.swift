@@ -213,7 +213,7 @@ struct RideView: View {
         .sheet(isPresented: Binding(
             get: { routeState == .reviewing },
             set: { isPresented in
-                if !isPresented {
+                if !isPresented && routeState != .navigating {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         routeState = .search
                         destinationName = ""
