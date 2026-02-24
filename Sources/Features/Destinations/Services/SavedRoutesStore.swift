@@ -13,18 +13,76 @@ struct SavedRoute: Codable, Identifiable {
     var isPinned: Bool = false         // user explicitly saved this place
 }
 
+struct RecentSearch: Codable, Identifiable {
+    var id = UUID()
+    var name: String
+    var subtitle: String
+    var latitude: Double
+    var longitude: Double
+    var timestamp: Date
+}
+
 extension Notification.Name {
     static let zenRideNavigateTo = Notification.Name("zenRideNavigateTo")
 }
 
 class SavedRoutesStore: ObservableObject {
     @Published var routes: [SavedRoute] = []
+    @Published var recentSearches: [RecentSearch] = []
+    
     private let key = "SavedRoutes"
+    private let recentSearchesKey = "RecentSearches_v1"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         load()
+        loadRecentSearches()
+    }
+
+    // MARK: - Recent Searches
+    
+    func addRecentSearch(name: String, subtitle: String, coordinate: CLLocationCoordinate2D) {
+        let nameTrimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !nameTrimmed.isEmpty else { return }
+        
+        recentSearches.removeAll { $0.name.lowercased() == nameTrimmed.lowercased() }
+        let newSearch = RecentSearch(
+            name: nameTrimmed,
+            subtitle: subtitle,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            timestamp: Date()
+        )
+        recentSearches.insert(newSearch, at: 0)
+        
+        if recentSearches.count > 10 {
+            recentSearches.removeLast()
+        }
+        saveRecentSearches()
+    }
+
+    func deleteRecentSearch(id: UUID) {
+        recentSearches.removeAll { $0.id == id }
+        saveRecentSearches()
+    }
+
+    private func saveRecentSearches() {
+        do {
+            let data = try JSONEncoder().encode(recentSearches)
+            defaults.set(data, forKey: recentSearchesKey)
+        } catch {
+            Log.error("SavedRoutesStore", "Failed to encode recent searches: \(error)")
+        }
+    }
+
+    private func loadRecentSearches() {
+        guard let data = defaults.data(forKey: recentSearchesKey) else { return }
+        do {
+            recentSearches = try JSONDecoder().decode([RecentSearch].self, from: data)
+        } catch {
+            Log.error("SavedRoutesStore", "Failed to decode recent searches: \(error)")
+        }
     }
 
     // MARK: - Pinned / Saved Places

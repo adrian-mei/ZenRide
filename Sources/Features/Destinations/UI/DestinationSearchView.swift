@@ -227,6 +227,34 @@ struct DestinationSearchView: View {
                 .listRowSeparator(.hidden)
             }
 
+            // Bookmarked Routes
+            let bookmarked = driveStore.bookmarkedRecords
+            if !bookmarked.isEmpty {
+                Section {
+                    ForEach(bookmarked) { record in
+                        SavedRouteRow(
+                            systemIcon: "bookmark.fill", iconColor: .cyan,
+                            title: record.destinationName,
+                            subtitle: relativeDate(record.lastDrivenDate)
+                        ) {
+                            let coord = record.destinationCoordinate
+                            let origin = locationProvider.currentLocation?.coordinate
+                                ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+                            destinationName = record.destinationName
+                            Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+                            isSearchFocused = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { routeState = .reviewing }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button {
+                                withAnimation { driveStore.toggleBookmark(id: record.id) }
+                            } label: { Label("Remove", systemImage: "bookmark.slash") }
+                                .tint(.gray)
+                        }
+                    }
+                } header: { listHeader("Bookmarked Routes", "bookmark.fill", .cyan) }
+            }
+
             // Nearby Parking
             if !nearbyParking.isEmpty {
                 Section {
@@ -260,34 +288,6 @@ struct DestinationSearchView: View {
                         ) { navigate(to: route) }
                     }
                 } header: { listHeader("Suggested", "sparkles", .yellow) }
-            }
-
-            // Bookmarked Routes
-            let bookmarked = driveStore.bookmarkedRecords
-            if !bookmarked.isEmpty {
-                Section {
-                    ForEach(bookmarked) { record in
-                        SavedRouteRow(
-                            systemIcon: "bookmark.fill", iconColor: .cyan,
-                            title: record.destinationName,
-                            subtitle: relativeDate(record.lastDrivenDate)
-                        ) {
-                            let coord = record.destinationCoordinate
-                            let origin = locationProvider.currentLocation?.coordinate
-                                ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
-                            destinationName = record.destinationName
-                            Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
-                            isSearchFocused = false
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { routeState = .reviewing }
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button {
-                                withAnimation { driveStore.toggleBookmark(id: record.id) }
-                            } label: { Label("Remove", systemImage: "bookmark.slash") }
-                                .tint(.gray)
-                        }
-                    }
-                } header: { listHeader("Bookmarked Routes", "bookmark.fill", .cyan) }
             }
 
             // Saved Places
@@ -357,7 +357,32 @@ struct DestinationSearchView: View {
                             } label: { Label("Delete", systemImage: "trash") }
                         }
                     }
-                } header: { listHeader("Recent", "clock", .secondary) }
+                } header: { listHeader("Recent Destinations", "clock", .secondary) }
+            }
+            
+            // Recent Searches
+            if !savedRoutes.recentSearches.isEmpty {
+                Section {
+                    ForEach(savedRoutes.recentSearches) { search in
+                        SavedRouteRow(
+                            systemIcon: "magnifyingglass", iconColor: .gray,
+                            title: search.name,
+                            subtitle: search.subtitle
+                        ) {
+                            searcher.searchQuery = search.name
+                            searcher.isSearching = true
+                            searcher.search(for: search.name, near: locationProvider.currentLocation?.coordinate)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                withAnimation {
+                                    savedRoutes.deleteRecentSearch(id: search.id)
+                                }
+                            } label: { Label("Delete", systemImage: "trash") }
+                        }
+                    }
+                } header: { listHeader("Recent Searches", "clock.arrow.circlepath", .gray) }
             }
         }
         .listStyle(.plain)
@@ -499,6 +524,14 @@ struct DestinationSearchView: View {
     private func routeTo(item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate else { return }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        
+        // Add to recent searches
+        savedRoutes.addRecentSearch(
+            name: item.name ?? "Destination",
+            subtitle: item.placemark.zenFormattedAddress,
+            coordinate: coord
+        )
+        
         let origin = locationProvider.currentLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         destinationName = item.name ?? "Destination"
         Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
@@ -658,27 +691,19 @@ private struct SearchResultRow: View {
     }
     
     private func formatAddress(placemark: MKPlacemark) -> String {
-        // Build detailed street address (e.g. "123 Main St, San Francisco")
+        return placemark.zenFormattedAddress
+    }
+}
+
+extension MKPlacemark {
+    var zenFormattedAddress: String {
         var components: [String] = []
-        
         var street = ""
-        if let subThoroughfare = placemark.subThoroughfare {
-            street += subThoroughfare + " "
-        }
-        if let thoroughfare = placemark.thoroughfare {
-            street += thoroughfare
-        }
-        
-        if !street.isEmpty {
-            components.append(street)
-        }
-        
-        if let city = placemark.locality {
-            components.append(city)
-        } else if let area = placemark.administrativeArea {
-            components.append(area)
-        }
-        
+        if let subThoroughfare = self.subThoroughfare { street += subThoroughfare + " " }
+        if let thoroughfare = self.thoroughfare { street += thoroughfare }
+        if !street.isEmpty { components.append(street) }
+        if let city = self.locality { components.append(city) }
+        else if let area = self.administrativeArea { components.append(area) }
         return components.isEmpty ? "Unknown Address" : components.joined(separator: ", ")
     }
 }

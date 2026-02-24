@@ -142,12 +142,29 @@ class VehicleStore: ObservableObject {
             }
         }
 
-        if let str = UserDefaults.standard.string(forKey: selectedKey),
-           let uuid = UUID(uuidString: str),
-           vehicles.contains(where: { $0.id == uuid }) {
-            selectedVehicleId = uuid
+        if vehicles.isEmpty {
+            let defaultBike = Vehicle(
+                name: "My Bike",
+                make: "Unknown",
+                model: "Default",
+                year: Calendar.current.component(.year, from: Date()),
+                type: .motorcycle,
+                colorHex: "00FFFF",
+                licensePlate: "",
+                odometerMiles: 0
+            )
+            vehicles.append(defaultBike)
+            selectedVehicleId = defaultBike.id
+            save()
+            Log.info("VehicleStore", "Created default bike")
         } else {
-            selectedVehicleId = vehicles.first?.id
+            if let str = UserDefaults.standard.string(forKey: selectedKey),
+               let uuid = UUID(uuidString: str),
+               vehicles.contains(where: { $0.id == uuid }) {
+                selectedVehicleId = uuid
+            } else {
+                selectedVehicleId = vehicles.first?.id
+            }
         }
     }
 }
