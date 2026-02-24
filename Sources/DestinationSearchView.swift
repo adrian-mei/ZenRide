@@ -45,6 +45,7 @@ struct DestinationSearchView: View {
     @EnvironmentObject var owlPolice: OwlPolice
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
+    @EnvironmentObject var driveStore: DriveStore
 
     @Binding var routeState: RouteState
     @Binding var destinationName: String
@@ -100,6 +101,10 @@ struct DestinationSearchView: View {
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
         .onChange(of: isSearchFocused) { if $0 { onSearchFocused?() } }
         .onAppear { refreshSuggestions() }
+        .task {
+            try? await Task.sleep(nanoseconds: 150_000_000) // 150ms — let sheet settle
+            isSearchFocused = true
+        }
         .onChange(of: savedRoutes.routes.count) { _ in refreshSuggestions() }
         .onReceive(NotificationCenter.default.publisher(for: .zenRideNavigateTo)) { note in
             if let route = note.object as? SavedRoute { navigate(to: route) }
@@ -203,6 +208,34 @@ struct DestinationSearchView: View {
                         ) { navigate(to: route) }
                     }
                 } header: { listHeader("Suggested", "sparkles", .yellow) }
+            }
+
+            // Bookmarked Routes
+            let bookmarked = driveStore.bookmarkedRecords
+            if !bookmarked.isEmpty {
+                Section {
+                    ForEach(bookmarked) { record in
+                        SavedRouteRow(
+                            systemIcon: "bookmark.fill", iconColor: .cyan,
+                            title: record.destinationName,
+                            subtitle: relativeDate(record.lastDrivenDate)
+                        ) {
+                            let coord = record.destinationCoordinate
+                            let origin = owlPolice.currentLocation?.coordinate
+                                ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+                            destinationName = record.destinationName
+                            Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+                            isSearchFocused = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { routeState = .reviewing }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button {
+                                withAnimation { driveStore.toggleBookmark(id: record.id) }
+                            } label: { Label("Remove", systemImage: "bookmark.slash") }
+                                .tint(.gray)
+                        }
+                    }
+                } header: { listHeader("Bookmarked Routes", "bookmark.fill", .cyan) }
             }
 
             // Saved Places

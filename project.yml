@@ -26,3 +26,14 @@ targets:
     settings:
       CODE_SIGN_STYLE: Automatic
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  ZenRideTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '16.4'
+    sources:
+    - Tests
+    dependencies:
+    - target: ZenRide
+    settings:
+      CODE_SIGN_STYLE: Automatic

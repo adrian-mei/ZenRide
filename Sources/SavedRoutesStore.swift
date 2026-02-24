@@ -20,8 +20,12 @@ extension Notification.Name {
 class SavedRoutesStore: ObservableObject {
     @Published var routes: [SavedRoute] = []
     private let key = "SavedRoutes"
+    private let defaults: UserDefaults
 
-    init() { load() }
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        load()
+    }
 
     // MARK: - Pinned / Saved Places
 
@@ -131,14 +135,14 @@ class SavedRoutesStore: ObservableObject {
     private func save() {
         do {
             let data = try JSONEncoder().encode(routes)
-            UserDefaults.standard.set(data, forKey: key)
+            defaults.set(data, forKey: key)
         } catch {
             Log.error("SavedRoutesStore", "Failed to encode routes: \(error)")
         }
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return }
+        guard let data = defaults.data(forKey: key) else { return }
         do {
             routes = try JSONDecoder().decode([SavedRoute].self, from: data)
         } catch {

@@ -87,6 +87,7 @@ struct DriveRecord: Codable, Identifiable {
     var originLongitude: Double
     var destinationLatitude: Double
     var destinationLongitude: Double
+    var isBookmarked: Bool = false
     var sessions: [DriveSession]        // most recent first
 
     // Computed aggregates

@@ -4,8 +4,12 @@ import CoreLocation
 class DriveStore: ObservableObject {
     @Published var records: [DriveRecord] = []
     private let key = "DriveStoreRecords_v1"
+    private let defaults: UserDefaults
 
-    init() { load() }
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        load()
+    }
 
     // MARK: - Route Fingerprint
 
@@ -43,6 +47,24 @@ class DriveStore: ObservableObject {
             records.insert(record, at: 0)
             Log.info("DriveStore", "Created new drive record '\(destinationName)' (fingerprint: \(fp))")
         }
+        save()
+    }
+
+    // MARK: - Bookmark
+
+    var bookmarkedRecords: [DriveRecord] {
+        records.filter(\.isBookmarked).sorted { $0.lastDrivenDate > $1.lastDrivenDate }
+    }
+
+    func toggleBookmark(id: UUID) {
+        guard let idx = records.firstIndex(where: { $0.id == id }) else { return }
+        records[idx].isBookmarked.toggle()
+        Log.info("DriveStore", "Bookmark toggled for '\(records[idx].destinationName)'")
+        save()
+    }
+
+    func deleteRecord(id: UUID) {
+        records.removeAll { $0.id == id }
         save()
     }
 
@@ -110,14 +132,14 @@ class DriveStore: ObservableObject {
     private func save() {
         do {
             let data = try JSONEncoder().encode(records)
-            UserDefaults.standard.set(data, forKey: key)
+            defaults.set(data, forKey: key)
         } catch {
             Log.error("DriveStore", "Failed to encode records: \(error)")
         }
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return }
+        guard let data = defaults.data(forKey: key) else { return }
         do {
             records = try JSONDecoder().decode([DriveRecord].self, from: data)
             Log.info("DriveStore", "Loaded \(records.count) drive records")

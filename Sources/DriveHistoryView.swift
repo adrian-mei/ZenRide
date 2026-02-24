@@ -49,6 +49,16 @@ struct DriveHistoryView: View {
                                 }
                                 .listRowBackground(Color(white: 0.1))
                                 .listRowSeparatorTint(Color.white.opacity(0.1))
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        driveStore.toggleBookmark(id: record.id)
+                                    } label: {
+                                        Label(record.isBookmarked ? "Unmark" : "Bookmark",
+                                              systemImage: record.isBookmarked ? "bookmark.slash.fill" : "bookmark.fill")
+                                    }
+                                    .tint(.cyan)
+                                }
                             }
                         } header: {
                             Text("PAST RIDES & DISCOVERIES")
@@ -190,10 +200,17 @@ private struct RouteRecordRow: View {
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.3))
-                    .padding(.top, 4)
+                HStack(spacing: 8) {
+                    if record.isBookmarked {
+                        Image(systemName: "bookmark.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.cyan)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption.bold())
+                        .foregroundColor(.white.opacity(0.3))
+                }
+                .padding(.top, 4)
             }
 
             HStack(spacing: 16) {

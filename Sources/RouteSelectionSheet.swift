@@ -7,8 +7,6 @@ struct RouteSelectionSheet: View {
     var onCancel: () -> Void
 
     @EnvironmentObject var routingService: RoutingService
-    @State private var countdown = 10
-    @State private var timer: Timer? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -111,7 +109,6 @@ struct RouteSelectionSheet: View {
                             onSelect: {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 routingService.selectRoute(at: index)
-                                resetTimer()
                             }
                         )
                         .transition(.asymmetric(
@@ -135,10 +132,7 @@ struct RouteSelectionSheet: View {
             // MARK: Action Buttons
             HStack(spacing: 12) {
                 // Simulate button
-                Button(action: {
-                    timer?.invalidate()
-                    onSimulate()
-                }) {
+                Button(action: onSimulate) {
                     HStack(spacing: 6) {
                         Image(systemName: "play.circle")
                             .font(.system(size: 16, weight: .medium))
@@ -152,49 +146,15 @@ struct RouteSelectionSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
 
-                // Ride button with countdown arc + prominent countdown badge
-                Button(action: {
-                    timer?.invalidate()
-                    onDrive()
-                }) {
-                    ZStack {
-                        HStack(spacing: 8) {
-                            Image(systemName: routingService.vehicleMode.icon)
-                                .font(.system(size: 16, weight: .bold))
-                            Text("Ride")
-                                .font(.system(size: 17, weight: .black, design: .rounded))
-                        }
-                        .foregroundColor(.black)
-
-                        // Countdown number — visible in top-trailing corner
-                        if !routingService.isCalculatingRoute && !routingService.availableRoutes.isEmpty {
-                            VStack {
-                                HStack {
-                                    Spacer()
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.black.opacity(0.3))
-                                            .frame(width: 26, height: 26)
-                                        
-                                        Circle()
-                                            .trim(from: 0, to: Double(countdown) / 10.0)
-                                            .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                                            .rotationEffect(.degrees(-90))
-                                            .frame(width: 26, height: 26)
-                                            .animation(.linear(duration: 1.0), value: countdown)
-                                        
-                                        Text("\(countdown)")
-                                            .font(.system(size: 11, weight: .black, design: .monospaced))
-                                            .foregroundColor(.white)
-                                            .contentTransition(.numericText())
-                                    }
-                                    .padding(.top, 6)
-                                    .padding(.trailing, 8)
-                                }
-                                Spacer()
-                            }
-                        }
+                // Ride button
+                Button(action: onDrive) {
+                    HStack(spacing: 8) {
+                        Image(systemName: routingService.vehicleMode.icon)
+                            .font(.system(size: 16, weight: .bold))
+                        Text("Ride")
+                            .font(.system(size: 17, weight: .black, design: .rounded))
                     }
+                    .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .frame(height: 60)
                     .background(
@@ -212,13 +172,6 @@ struct RouteSelectionSheet: View {
             .padding(.bottom, 28)
         }
         .presentationDragIndicator(.visible)
-        .onAppear {
-            if !routingService.availableRoutes.isEmpty { startTimer() }
-        }
-        .onChange(of: routingService.availableRoutes.count) { count in
-            if count > 0 && timer == nil { startTimer() }
-        }
-        .onDisappear { timer?.invalidate() }
         .onChange(of: routingService.avoidSpeedCameras) { _ in recalculatePreferences() }
         .onChange(of: routingService.avoidHighways)     { _ in recalculatePreferences() }
         .onChange(of: routingService.avoidTolls)        { _ in recalculatePreferences() }
@@ -277,32 +230,11 @@ struct RouteSelectionSheet: View {
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
-    // MARK: - Timer
+    // MARK: - Preferences
 
     private func recalculatePreferences() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        timer?.invalidate()
-        countdown = 10
         Task { await routingService.recalculate() }
-    }
-
-    private func startTimer() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            DispatchQueue.main.async {
-                if countdown > 1 {
-                    countdown -= 1
-                } else {
-                    timer?.invalidate()
-                    onDrive()
-                }
-            }
-        }
-    }
-
-    private func resetTimer() {
-        countdown = 10
-        startTimer()
     }
 }
 
