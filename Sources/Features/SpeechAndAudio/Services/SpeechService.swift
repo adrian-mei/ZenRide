@@ -127,9 +127,17 @@ final class SpeechService: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - Tests Detection
+    
+    private var isRunningTests: Bool {
+        return ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     // MARK: - Speech
 
     func speak(_ text: String, rate: Float = 0.5, pitch: Float = 1.0) {
+        guard !isRunningTests else { return }
+        
         if selectedVoiceId?.starts(with: "google-tts") == true {
             // Use Google TTS
             GoogleTTSClient.shared.speak(text) { [weak self] in
@@ -145,6 +153,8 @@ final class SpeechService: NSObject, ObservableObject {
     }
     
     private func speakWithApple(_ text: String, rate: Float, pitch: Float) {
+        guard !isRunningTests else { return }
+        
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = self.selectedAppleVoice
         utterance.rate = rate
@@ -154,6 +164,8 @@ final class SpeechService: NSObject, ObservableObject {
 
     /// Plays a short sample phrase through the given voice ID so the user can preview it.
     func previewVoice(id: String) {
+        guard !isRunningTests else { return }
+        
         synthesizer.stopSpeaking(at: .immediate)
         GoogleTTSClient.shared.stopSpeaking()
         

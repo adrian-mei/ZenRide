@@ -96,14 +96,14 @@ final class GoogleTTSClient: NSObject, AVAudioPlayerDelegate {
             do {
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let audioContentBase64 = json["audioContent"] as? String,
-                   let audioData = Data(base64Encoded: audioContentBase64) {
+                   let audioData = Data(base64Encoded: audioContentBase64, options: .ignoreUnknownCharacters) {
                     
                     try audioData.write(to: fileURL)
                     DispatchQueue.main.async {
                         self.playAudio(url: fileURL)
                     }
                 } else {
-                    Log.error("GoogleTTS", "Failed to parse Google TTS response")
+                    Log.error("GoogleTTS", "Failed to parse Google TTS response or decode Base64")
                     DispatchQueue.main.async { fallback() }
                 }
             } catch {
