@@ -127,16 +127,24 @@ final class SpeechService: NSObject, ObservableObject {
     // MARK: - Speech
 
     func speak(_ text: String, rate: Float = 0.5, pitch: Float = 1.0) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = selectedVoice
-        utterance.rate = rate
-        utterance.pitchMultiplier = pitch
-        synthesizer.speak(utterance)
+        // Try Google TTS first
+        GoogleTTSClient.shared.speak(text) { [weak self] in
+            // Fallback to Apple TTS
+            guard let self = self else { return }
+            Log.info("SpeechService", "Falling back to Apple TTS for: \(text)")
+            let utterance = AVSpeechUtterance(string: text)
+            utterance.voice = self.selectedVoice
+            utterance.rate = rate
+            utterance.pitchMultiplier = pitch
+            self.synthesizer.speak(utterance)
+        }
     }
 
     /// Plays a short sample phrase through the given voice so the user can preview it.
     func previewVoice(_ voice: AVSpeechSynthesisVoice) {
         synthesizer.stopSpeaking(at: .immediate)
+        GoogleTTSClient.shared.stopSpeaking()
+        
         let sampleText: String
         if voice.language.hasPrefix("zh-HK") {
             sampleText = "這是您的 GPS 語音導航將在路上的聲音。"
@@ -155,5 +163,6 @@ final class SpeechService: NSObject, ObservableObject {
 
     func stopSpeaking() {
         synthesizer.stopSpeaking(at: .immediate)
+        GoogleTTSClient.shared.stopSpeaking()
     }
 }
