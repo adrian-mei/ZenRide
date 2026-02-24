@@ -7,93 +7,54 @@ struct RouteSelectionSheet: View {
     var onCancel: () -> Void
 
     @EnvironmentObject var routingService: RoutingService
+    @State private var showAvoidSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
             // MARK: Header
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("ROUTE TO")
-                            .font(.system(size: 11, weight: .black, design: .rounded))
-                            .foregroundColor(.cyan)
-                            .kerning(1.5)
-                        Text(destinationName.isEmpty ? "Destination" : destinationName)
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-
-                    Spacer()
-
-                    Button(action: onCancel) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.white.opacity(0.5))
-                            .frame(width: 44, height: 44)
-                    }
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ROUTE TO")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.secondary)
+                        .kerning(1)
+                    Text(destinationName.isEmpty ? "Destination" : destinationName)
+                        .font(.title2.weight(.bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-
-                // MARK: Vehicle Mode Toggle (motorcycle + car only)
-                HStack(spacing: 8) {
-                    ForEach(VehicleMode.allCases, id: \.rawValue) { mode in
-                        Button {
-                            guard routingService.vehicleMode != mode else { return }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            routingService.vehicleMode = mode
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: mode.icon)
-                                    .font(.system(size: 16, weight: routingService.vehicleMode == mode ? .bold : .regular))
-                                Text(mode.displayName)
-                                    .font(.system(size: 14, weight: routingService.vehicleMode == mode ? .bold : .regular))
-                            }
-                            .foregroundColor(routingService.vehicleMode == mode ? .black : .primary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                routingService.vehicleMode == mode
-                                    ? Color.cyan
-                                    : Color(.systemGray5)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .shadow(
-                                color: routingService.vehicleMode == mode ? Color.cyan.opacity(0.4) : .clear,
-                                radius: 8, x: 0, y: 3
-                            )
-                        }
-                        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: routingService.vehicleMode)
-                    }
-                }
-
-                // MARK: Route Preference Chips
-                HStack(spacing: 8) {
-                    RoutePreferenceChip(
-                        icon: "camera.fill",
-                        label: "No Cameras",
-                        isActive: routingService.avoidSpeedCameras,
-                        activeColor: .green
-                    ) { routingService.avoidSpeedCameras.toggle() }
-
-                    RoutePreferenceChip(
-                        icon: "road.lanes.curved.right",
-                        label: "Curvy",
-                        isActive: routingService.avoidHighways,
-                        activeColor: .purple
-                    ) { routingService.avoidHighways.toggle() }
-
-                    RoutePreferenceChip(
-                        icon: "dollarsign.circle.fill",
-                        label: "No Tolls",
-                        isActive: routingService.avoidTolls,
-                        activeColor: .orange
-                    ) { routingService.avoidTolls.toggle() }
+                Spacer()
+                Button(action: onCancel) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(.secondary)
+                        .frame(width: 44, height: 44)
                 }
             }
-            .padding(.top, 24)
             .padding(.horizontal, 24)
-            .padding(.bottom, 16)
+            .padding(.top, 24)
+            .padding(.bottom, 12)
+
+            // MARK: Vehicle mode + Avoid row
+            HStack(spacing: 10) {
+                vehicleModeToggle
+                Spacer()
+                Button { showAvoidSheet = true } label: {
+                    HStack(spacing: 4) {
+                        Text("Avoid")
+                            .font(.system(size: 14, weight: .medium))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .semibold))
+                    }
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial)
+                    .clipShape(Capsule())
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 14)
 
             // MARK: Route Options
             VStack(spacing: 10) {
@@ -103,9 +64,10 @@ struct RouteSelectionSheet: View {
                     routeErrorState
                 } else {
                     ForEach(Array(routingService.availableRoutes.enumerated()), id: \.element.id) { index, route in
-                        RouteListRow(
+                        AppleMapsRouteRow(
                             route: route,
                             isSelected: routingService.selectedRouteIndex == index,
+                            onGo: onDrive,
                             onSelect: {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 routingService.selectRoute(at: index)
@@ -117,64 +79,60 @@ struct RouteSelectionSheet: View {
                         ))
                     }
 
-                    // Camera risk strip (shown when routes have cameras)
-                    if routingService.availableRoutes.contains(where: { $0.cameraCount > 0 }) {
-                        CameraRiskStrip(routes: routingService.availableRoutes, selectedIndex: routingService.selectedRouteIndex)
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    // Simulate link
+                    Button(action: onSimulate) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "play.circle")
+                            Text("Simulate")
+                        }
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.secondary)
                     }
+                    .padding(.top, 4)
                 }
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.isCalculatingRoute)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: routingService.availableRoutes.count)
             .padding(.horizontal, 24)
-            .padding(.bottom, 16)
-
-            // MARK: Action Buttons
-            HStack(spacing: 12) {
-                // Simulate button
-                Button(action: onSimulate) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "play.circle")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("Simulate")
-                            .font(.system(size: 15, weight: .semibold))
-                    }
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 60)
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
-
-                // Ride button
-                Button(action: onDrive) {
-                    HStack(spacing: 8) {
-                        Image(systemName: routingService.vehicleMode.icon)
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Ride")
-                            .font(.system(size: 17, weight: .black, design: .rounded))
-                    }
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 60)
-                    .background(
-                        LinearGradient(
-                            colors: [.cyan, Color(red: 0.0, green: 0.65, blue: 0.85)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: .cyan.opacity(0.45), radius: 12, x: 0, y: 4)
-                }
-            }
-            .padding(.horizontal, 24)
             .padding(.bottom, 28)
+        }
+        .sheet(isPresented: $showAvoidSheet) {
+            AvoidPreferencesSheet(
+                avoidCameras: $routingService.avoidSpeedCameras,
+                avoidTolls: $routingService.avoidTolls,
+                avoidHighways: $routingService.avoidHighways
+            )
+            .presentationDetents([.height(240)])
         }
         .presentationDragIndicator(.visible)
         .onChange(of: routingService.avoidSpeedCameras) { _ in recalculatePreferences() }
         .onChange(of: routingService.avoidHighways)     { _ in recalculatePreferences() }
         .onChange(of: routingService.avoidTolls)        { _ in recalculatePreferences() }
+    }
+
+    // MARK: - Vehicle Mode Toggle
+
+    private var vehicleModeToggle: some View {
+        HStack(spacing: 2) {
+            ForEach(VehicleMode.allCases, id: \.rawValue) { mode in
+                Button {
+                    guard routingService.vehicleMode != mode else { return }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    routingService.vehicleMode = mode
+                } label: {
+                    Image(systemName: mode.icon)
+                        .font(.system(size: 16, weight: routingService.vehicleMode == mode ? .bold : .regular))
+                        .foregroundColor(routingService.vehicleMode == mode ? .black : .primary)
+                        .frame(width: 44, height: 36)
+                        .background(routingService.vehicleMode == mode ? Color.cyan : .clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+        }
+        .padding(3)
+        .background(Color(.systemGray5))
+        .clipShape(RoundedRectangle(cornerRadius: 13))
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: routingService.vehicleMode)
     }
 
     // MARK: - States
@@ -238,257 +196,125 @@ struct RouteSelectionSheet: View {
     }
 }
 
-// MARK: - Camera Risk Strip
+// MARK: - Apple Maps Route Row
 
-private struct CameraRiskStrip: View {
-    let routes: [TomTomRoute]
-    let selectedIndex: Int
-
-    var selectedRoute: TomTomRoute? {
-        guard selectedIndex < routes.count else { return nil }
-        return routes[selectedIndex]
-    }
-
-    var maxCameras: Int { routes.map(\.cameraCount).max() ?? 1 }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.secondary)
-                Text("CAMERA RISK ON SELECTED ROUTE")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .kerning(0.8)
-            }
-
-            if let route = selectedRoute {
-                if route.isZeroCameras {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.shield.fill")
-                            .foregroundColor(.green)
-                        Text("Zero speed cameras on this route")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.green)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.green.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.green.opacity(0.3), lineWidth: 1))
-                } else {
-                    VStack(alignment: .leading, spacing: 6) {
-                        // Visual risk bar
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.white.opacity(0.08))
-                                    .frame(height: 8)
-
-                                Capsule()
-                                    .fill(LinearGradient(
-                                        colors: [.orange, .red],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    ))
-                                    .frame(
-                                        width: maxCameras > 0
-                                            ? geo.size.width * Double(route.cameraCount) / Double(maxCameras)
-                                            : 0,
-                                        height: 8
-                                    )
-                                    .shadow(color: .orange.opacity(0.5), radius: 4)
-
-                                // Camera dots
-                                ForEach(0..<route.cameraCount, id: \.self) { i in
-                                    let position = maxCameras > 1
-                                        ? Double(i) / Double(max(1, route.cameraCount - 1))
-                                        : 0.5
-                                    Circle()
-                                        .fill(Color.red)
-                                        .frame(width: 6, height: 6)
-                                        .shadow(color: .red.opacity(0.8), radius: 3)
-                                        .offset(x: geo.size.width * position - 3)
-                                }
-                            }
-                        }
-                        .frame(height: 8)
-
-                        HStack {
-                            Image(systemName: "camera.badge.ellipsis")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.orange)
-                            Text("\(route.cameraCount) speed camera\(route.cameraCount == 1 ? "" : "s") · ~$\(route.savedFines) potential fines")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.orange)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.orange.opacity(0.25), lineWidth: 1))
-                }
-            }
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedIndex)
-    }
-}
-
-// MARK: - Route List Row
-
-struct RouteListRow: View {
+private struct AppleMapsRouteRow: View {
     @EnvironmentObject var routingService: RoutingService
     let route: TomTomRoute
     let isSelected: Bool
+    var onGo: () -> Void
     var onSelect: () -> Void
 
     var formattedTime: String {
-        let minutes = route.summary.travelTimeInSeconds / 60
-        let hours = minutes / 60
-        let mins = minutes % 60
-        return hours > 0 ? "\(hours)h \(mins)m" : "\(minutes) min"
+        let m = route.summary.travelTimeInSeconds / 60
+        let h = m / 60
+        let mins = m % 60
+        return h > 0 ? "\(h)h \(mins)m" : "\(m) min"
+    }
+
+    var etaString: String {
+        let eta = Date().addingTimeInterval(TimeInterval(route.summary.travelTimeInSeconds))
+        let f = DateFormatter()
+        f.dateFormat = "h:mm"
+        return f.string(from: eta)
     }
 
     var formattedDistance: String {
         String(format: "%.1f mi", Double(route.summary.lengthInMeters) / 1609.34)
     }
 
-    var routeAccentColor: Color {
-        if route.isZeroCameras { return .green }
-        if route.cameraCount > 0 { return .orange }
-        if routingService.avoidHighways { return .purple }
-        return .blue
+    var subtitle: String {
+        var parts: [String] = []
+        if route.isZeroCameras {
+            parts.append("Zero cameras · Safest")
+        } else if route.cameraCount > 0 {
+            parts.append("\(route.cameraCount) camera\(route.cameraCount == 1 ? "" : "s")")
+            parts.append(route.isLessTraffic ? "Less traffic" : "Fastest")
+        } else {
+            parts.append(route.isLessTraffic ? "Less traffic" : "Fastest")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    var subtitleColor: Color {
+        route.isZeroCameras ? .green : route.cameraCount > 0 ? .orange : .secondary
     }
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 12) {
-                // Color indicator bar
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(routeAccentColor)
-                    .frame(width: 4, height: 44)
-                    .shadow(color: routeAccentColor.opacity(0.6), radius: 4)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 6) {
-                        if route.isZeroCameras {
-                            Label("Zero Cameras", systemImage: "checkmark.shield.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.green)
-                        } else if route.cameraCount > 0 {
-                            Label("\(route.cameraCount) Camera\(route.cameraCount == 1 ? "" : "s")", systemImage: "camera.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.orange)
-                        } else if routingService.avoidHighways {
-                            Label("Curvy Route", systemImage: "point.topleft.down.curvedto.point.bottomright.up")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.purple)
-                        } else if route.isLessTraffic {
-                            Label("Less Traffic", systemImage: "car.2.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.blue)
-                        } else {
-                            Label("Fastest", systemImage: "bolt.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.primary)
-                        }
-
-                        if route.isZeroCameras && isSelected {
-                            Text("ZEN ROUTE")
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.green)
-                                .clipShape(Capsule())
-                        }
-                    }
-
-                    Text(route.isZeroCameras
-                         ? "Safest choice · camera-free"
-                         : route.cameraCount > 0
-                             ? "Risk: ~$\(route.savedFines) potential fines"
-                             : (routingService.avoidHighways ? "Scenic & curvy" : "Standard route"))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 3) {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(formattedTime)
-                        .font(.system(size: 20, weight: .bold, design: .monospaced))
-                        .foregroundColor(isSelected ? routeAccentColor : .primary)
-                    Text(formattedDistance)
-                        .font(.system(size: 12))
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.primary)
+                    Text("\(etaString) ETA · \(formattedDistance)")
+                        .font(.system(size: 14))
                         .foregroundColor(.secondary)
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundColor(subtitleColor)
+                }
+                Spacer()
+                Button(action: onGo) {
+                    Text("GO")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Color(red: 0.2, green: 0.78, blue: 0.35))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .frame(minHeight: 64)
+            .padding(16)
             .background(
-                ZStack {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(routeAccentColor.opacity(0.08))
-                    }
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.regularMaterial)
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(
-                        isSelected ? routeAccentColor.opacity(0.5) : Color.white.opacity(0.06),
-                        lineWidth: isSelected ? 1.5 : 1
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemGray6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(isSelected ? Color.cyan.opacity(0.5) : .clear, lineWidth: 1.5)
                     )
             )
-            .shadow(
-                color: isSelected ? routeAccentColor.opacity(0.15) : .clear,
-                radius: 8, x: 0, y: 3
-            )
         }
+        .buttonStyle(.plain)
     }
 }
 
-// MARK: - Route Preference Chip
+// MARK: - Avoid Preferences Sheet
 
-struct RoutePreferenceChip: View {
-    let icon: String
-    let label: String
-    let isActive: Bool
-    let activeColor: Color
-    let onTap: () -> Void
+private struct AvoidPreferencesSheet: View {
+    @Binding var avoidCameras: Bool
+    @Binding var avoidTolls: Bool
+    @Binding var avoidHighways: Bool
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                Text(label)
-                    .font(.system(size: 12, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+        VStack(spacing: 0) {
+            Text("Avoid")
+                .font(.headline)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
+
+            VStack(spacing: 0) {
+                Toggle("Speed Cameras", isOn: $avoidCameras)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 13)
+                Divider().padding(.leading, 20)
+                Toggle("Tolls", isOn: $avoidTolls)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 13)
+                Divider().padding(.leading, 20)
+                Toggle("Highways", isOn: $avoidHighways)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 13)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .foregroundColor(isActive ? activeColor : .secondary)
-            .background(isActive ? activeColor.opacity(0.15) : Color(.systemGray5))
-            .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .strokeBorder(isActive ? activeColor.opacity(0.5) : Color.clear, lineWidth: 1)
-            )
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 16)
+
+            Spacer()
         }
-        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isActive)
     }
 }
 
-// MARK: - Helpers
+// MARK: - Helpers (RoundedCorner used by AlertOverlayView)
 
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
