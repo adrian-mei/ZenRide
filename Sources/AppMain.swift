@@ -463,22 +463,19 @@ struct RideView: View {
                 routingService.checkReroute(currentLocation: loc)
             }
         }
-        .onChange(of: owlPolice.isSimulating) { isSimulating in
-            if !isSimulating && routeState == .navigating {
-                if !routingService.activeRoute.isEmpty {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                        if routeState == .navigating {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                routeState = .search
-                                let context = buildRideContext()
-                                let pending = buildPendingSession(context: context)
-                                routingService.activeRoute = []
-                                routingService.availableRoutes = []
-                                routingService.activeAlternativeRoutes = []
-                                owlPolice.stopNavigationSession()
-                                onStop(context, pending)
-                            }
-                        }
+        .onChange(of: owlPolice.simulationCompletedNaturally) { completed in
+            guard completed && routeState == .navigating else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                if routeState == .navigating {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        routeState = .search
+                        let context = buildRideContext()
+                        let pending = buildPendingSession(context: context)
+                        routingService.activeRoute = []
+                        routingService.availableRoutes = []
+                        routingService.activeAlternativeRoutes = []
+                        owlPolice.stopNavigationSession()
+                        onStop(context, pending)
                     }
                 }
             }

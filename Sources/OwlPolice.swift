@@ -22,6 +22,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var currentZone: ZoneStatus = .safe
     @Published var currentLocation: CLLocation?
     @Published var isSimulating: Bool = false
+    @Published var simulationCompletedNaturally: Bool = false
     @Published var camerasPassedThisRide: Int = 0
     @Published var zenScore: Int = 100
 
@@ -210,6 +211,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
                     return
                 }
                 guard nextIndex < route.count else {
+                    self.simulationCompletedNaturally = true
                     self.stopSimulation()
                     return
                 }
@@ -254,6 +256,7 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
             self.currentSpeedMPH = 0
             self.currentSimulationIndex = 0
             self.distanceTraveledInSimulationMeters = 0
+            self.simulationCompletedNaturally = false
             self.locationManager.startUpdatingLocation()
         }
     }
