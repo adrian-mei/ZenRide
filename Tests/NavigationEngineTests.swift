@@ -338,26 +338,11 @@ struct NavigationEngineTests {
         #expect(engine.routeState == .search)
     }
 
-    @Test func simulateStartSurvivesCancelSearchCalledWhileNavigating() async throws {
-        // Documents the engine contract that mirrors the view-layer guard added to the
-        // sheet binding set closure: once simulation starts, routeState is .navigating
-        // and a stale sheet-dismiss (isPresented = false) must not reset it.
-        let engine = NavigationEngine()
-        let routingService = RoutingService()
-        let startCoord = CLLocationCoordinate2D(latitude: 37.0, longitude: -122.0)
-        let endCoord   = CLLocationCoordinate2D(latitude: 37.01, longitude: -122.0)
-        routingService.activeRoute = [startCoord, endCoord]
-        engine.bind(routingService: routingService, cameras: [])
-        engine.destinationName = "Test"
-
-        engine.startSimulatedDrive()
-        try await Task.sleep(nanoseconds: 100_000_000)
-
-        #expect(engine.routeState == .navigating)
-        #expect(engine.locationProvider.isSimulating == true)
-
-        // Verify state is stable — the view guard (`routeState != .navigating`) prevents
-        // the sheet binding's set closure from calling cancelSearch() in this state.
-        #expect(engine.routeState == .navigating)
+    @Test func shouldResetOnSheetDismissBlocksResetWhenNavigating() {
+        // Directly tests the extracted guard function — covers the Simulate/Drive bug
+        // where the sheet binding set closure was resetting routeState to .search.
+        #expect(shouldResetOnSheetDismiss(routeState: .search) == true)
+        #expect(shouldResetOnSheetDismiss(routeState: .reviewing) == true)
+        #expect(shouldResetOnSheetDismiss(routeState: .navigating) == false)
     }
 }

@@ -213,7 +213,7 @@ struct RideView: View {
         .sheet(isPresented: Binding(
             get: { routeState == .reviewing },
             set: { isPresented in
-                if !isPresented && routeState != .navigating {
+                if !isPresented && shouldResetOnSheetDismiss(routeState: routeState) {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         routeState = .search
                         destinationName = ""
@@ -361,4 +361,11 @@ struct RideView: View {
             onStop(context, pending)
         }
     }
+}
+
+/// Returns true when a sheet dismissal should reset navigation state back to search.
+/// Extracted for testability: the sheet binding `set` closure calls this to avoid
+/// overwriting `.navigating` when the sheet is dismissed by a Simulate/Drive tap.
+func shouldResetOnSheetDismiss(routeState: RouteState) -> Bool {
+    routeState != .navigating
 }
