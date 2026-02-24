@@ -19,43 +19,39 @@ final class SpeechService: NSObject, ObservableObject {
 
     // MARK: - Voice Accessors
 
-    var selectedVoice: AVSpeechSynthesisVoice {
-        if let id = selectedVoiceId, let voice = AVSpeechSynthesisVoice(identifier: id) {
+    /// The fallback Apple voice used if Google TTS fails or if an Apple voice is explicitly selected.
+    var selectedAppleVoice: AVSpeechSynthesisVoice {
+        if let id = selectedVoiceId, !id.starts(with: "google-tts"), let voice = AVSpeechSynthesisVoice(identifier: id) {
             return voice
         }
-        // Prefer female premium human voices, fall back to en-US
+        // Prefer premium female human voices, fall back to en-US
         return preferredHumanVoice
             ?? availableHumanVoices.first
             ?? AVSpeechSynthesisVoice(language: "en-US")
             ?? AVSpeechSynthesisVoice()
     }
 
-    /// Try specifically for female human voices (e.g. Siri or premium voices).
+    /// Try specifically for premium female human voices (excluding Siri).
     private var preferredHumanVoice: AVSpeechSynthesisVoice? {
         let voices = availableHumanVoices
         
-        // 1. Look for female Siri voices (if available/unlocked)
-        if let siri = voices.first(where: { 
-            ($0.name.lowercased().contains("siri") || $0.identifier.lowercased().contains("siri")) && 
-            $0.gender == .female && 
-            $0.language.hasPrefix("en") 
-        }) {
-            return siri
-        }
-        
-        // 2. Look for any premium female English voice
+        // 1. Look for any premium female English voice
         if let premiumFemale = voices.first(where: { 
             $0.quality == .premium && 
             $0.gender == .female && 
-            $0.language.hasPrefix("en")
+            $0.language.hasPrefix("en") &&
+            !$0.name.lowercased().contains("siri") && 
+            !$0.identifier.lowercased().contains("siri")
         }) {
             return premiumFemale
         }
         
-        // 3. Fallback to any female English voice
+        // 2. Fallback to any female English voice (excluding Siri)
         if let anyFemale = voices.first(where: { 
             $0.gender == .female && 
-            $0.language.hasPrefix("en")
+            $0.language.hasPrefix("en") &&
+            !$0.name.lowercased().contains("siri") && 
+            !$0.identifier.lowercased().contains("siri")
         }) {
             return anyFemale
         }
@@ -63,27 +59,28 @@ final class SpeechService: NSObject, ObservableObject {
         return nil
     }
 
-    /// High-quality voices (English, Mandarin, Cantonese) excluding robotic defaults.
+    /// High-quality voices (English, Mandarin, Cantonese) excluding robotic defaults and Siri.
     var availableHumanVoices: [AVSpeechSynthesisVoice] {
         let allVoices = AVSpeechSynthesisVoice.speechVoices()
         let supportedVoices = allVoices.filter { $0.language.hasPrefix("en") || $0.language.hasPrefix("zh") }
         
         var humanVoices = supportedVoices.filter { voice in
-            voice.quality != .default || 
-            voice.name.lowercased().contains("siri") || 
-            voice.identifier == AVSpeechSynthesisVoiceIdentifierAlex
+            // Exclude Siri voices completely as per request
+            guard !voice.name.lowercased().contains("siri") && !voice.identifier.lowercased().contains("siri") else {
+                return false
+            }
+            return voice.quality != .default || voice.identifier == AVSpeechSynthesisVoiceIdentifierAlex
         }
         
-        // Safety fallback: if no premium voices for a specific language group, add the standard ones back
-        // so the user has at least one option to select from.
+        // Safety fallback
         if !humanVoices.contains(where: { $0.language.hasPrefix("en") }) {
-            humanVoices.append(contentsOf: supportedVoices.filter { $0.language.hasPrefix("en") })
+            humanVoices.append(contentsOf: supportedVoices.filter { $0.language.hasPrefix("en") && !$0.name.lowercased().contains("siri") })
         }
         if !humanVoices.contains(where: { $0.language == "zh-CN" || $0.language == "zh-TW" }) {
-            humanVoices.append(contentsOf: supportedVoices.filter { $0.language == "zh-CN" || $0.language == "zh-TW" })
+            humanVoices.append(contentsOf: supportedVoices.filter { ($0.language == "zh-CN" || $0.language == "zh-TW") && !$0.name.lowercased().contains("siri") })
         }
         if !humanVoices.contains(where: { $0.language == "zh-HK" }) {
-            humanVoices.append(contentsOf: supportedVoices.filter { $0.language == "zh-HK" })
+            humanVoices.append(contentsOf: supportedVoices.filter { $0.language == "zh-HK" && !$0.name.lowercased().contains("siri") })
         }
         
         // Deduplicate in case of overlap
@@ -101,9 +98,15 @@ final class SpeechService: NSObject, ObservableObject {
 
     private override init() {
         super.init()
-        selectedVoiceId = UserDefaults.standard.string(forKey: voiceIdKey)
+        // Default to Google TTS if no voice has been selected yet
+        if UserDefaults.standard.string(forKey: voiceIdKey) == nil {
+            selectedVoiceId = "google-tts-en-US-Journey-F"
+        } else {
+            selectedVoiceId = UserDefaults.standard.string(forKey: voiceIdKey)
+        }
+        
         configureAudioSession()
-        Log.info("SpeechService", "Initialized. Selected voice: \(selectedVoice.name) (\(selectedVoice.language))")
+        Log.info("SpeechService", "Initialized. Selected voice ID: \(selectedVoiceId ?? "none")")
     }
 
     // MARK: - Audio Session
@@ -143,7 +146,7 @@ final class SpeechService: NSObject, ObservableObject {
     
     private func speakWithApple(_ text: String, rate: Float, pitch: Float) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = self.selectedVoice
+        utterance.voice = self.selectedAppleVoice
         utterance.rate = rate
         utterance.pitchMultiplier = pitch
         self.synthesizer.speak(utterance)

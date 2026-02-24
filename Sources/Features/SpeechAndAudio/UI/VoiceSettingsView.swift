@@ -146,9 +146,8 @@ struct VoiceSettingsView: View {
         if let currentId = speechService.selectedVoiceId {
             return currentId == id
         }
-        if id.starts(with: "google") { return false }
-        // If no selection, highlight the voice that would be used as default
-        return id == speechService.selectedVoice.identifier
+        if id.starts(with: "google") { return true } // now default
+        return false
     }
 
     private func select(id: String) {
