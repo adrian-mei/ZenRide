@@ -10,8 +10,6 @@ struct AmbientGlowView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.0, green: 0.05, blue: 0.1).ignoresSafeArea()
-
             LinearGradient(colors: [glowColor, .clear], startPoint: .top, endPoint: .bottom)
                 .frame(height: glowWidth * 4)
                 .frame(maxHeight: .infinity, alignment: .top)
@@ -29,7 +27,7 @@ struct AmbientGlowView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .edgesIgnoringSafeArea(.all)
-        .opacity(bunnyPolice.currentZone == .danger ? (pulse ? 0.8 : 0.3) : 0.6)
+        .opacity(bunnyPolice.currentZone == .danger ? (pulse ? 0.45 : 0.15) : 0.3)
         .allowsHitTesting(false)
         .onChange(of: bunnyPolice.currentZone) { zone in
             if zone == .danger {

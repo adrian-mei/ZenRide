@@ -86,7 +86,7 @@ struct RideView: View {
                                     Image(systemName: isTracking ? "location.fill" : "location")
                                         .font(.system(size: 22, weight: .bold))
                                         .frame(width: 64, height: 64)
-                                        .foregroundColor(isTracking ? .cyan : .white)
+                                        .foregroundColor(.white)
                                 }
                                 .accessibilityLabel("Recenter map on your location")
 
@@ -96,25 +96,14 @@ struct RideView: View {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .font(.system(size: 26, weight: .black))
                                         .frame(width: 64, height: 64)
-                                        .foregroundColor(.yellow)
-                                        .shadow(color: .orange.opacity(0.8), radius: 6)
+                                        .foregroundColor(.orange)
                                 }
                                 .accessibilityLabel("Report Hazard")
                             }
                             .frame(width: 64)
                             .foregroundColor(.white)
-                            .background(
-                                ZStack {
-                                    Color(red: 0.05, green: 0.05, blue: 0.08).opacity(0.5)
-                                    LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .top, endPoint: .bottom)
-                                }
-                                .background(.ultraThinMaterial)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(Color.cyan.opacity(0.3), lineWidth: 1.0)
-                            )
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .environment(\.colorScheme, .dark)
                             .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                         }
                         .padding(.trailing, 16)

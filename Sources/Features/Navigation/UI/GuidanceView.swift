@@ -20,9 +20,7 @@ struct GuidanceView: View {
                         Image(systemName: iconForInstruction(instruction.instructionType))
                             .font(.system(size: 48, weight: .heavy))
                             .foregroundColor(.cyan)
-                            .shadow(color: .cyan.opacity(isApproachingTurn ? 0.95 : 0.6),
-                                    radius: isApproachingTurn ? 18 : 5)
-                            .scaleEffect(isApproachingTurn ? 1.14 : 1.0)
+                            .scaleEffect(isApproachingTurn ? 1.1 : 1.0)
                             .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isApproachingTurn)
                             .frame(width: 80)
                         
@@ -34,8 +32,8 @@ struct GuidanceView: View {
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text(instruction.message ?? "Continue")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.cyan.opacity(0.85))
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.65))
                             .lineLimit(1)
 
                         if let street = instruction.street, !street.isEmpty {
@@ -113,38 +111,17 @@ struct GuidanceView: View {
                 // --------------------------
                 
                 } // End of inner VStack
-                .background(
-                    ZStack {
-                        if instruction.instructionType == "ARRIVE" {
-                            Color(red: 0.8, green: 0.5, blue: 0.0).opacity(0.85)
-                        } else {
-                            // "Night Rider" Deep Indigo-Cyan gradient
-                            LinearGradient(
-                                colors: [Color(red: 0.0, green: 0.2, blue: 0.4).opacity(0.6), Color(red: 0.05, green: 0.05, blue: 0.15).opacity(0.7)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        }
-                        
-                        // Subtle inner gloss for the HUD look
-                        LinearGradient(
-                            colors: [.white.opacity(0.15), .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    }
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous)) // Reverted VisorShape for better content fitting on all devices
-                )
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .environment(\.colorScheme, .dark)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(Color.cyan.opacity(isApproachingTurn ? 0.9 : 0.5),
-                              lineWidth: isApproachingTurn ? 3.0 : 2.0)
+                    Group {
+                        if instruction.instructionType == "ARRIVE" {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(Color.green.opacity(0.15))
+                        }
+                    }
                 )
-                .shadow(color: .cyan.opacity(isApproachingTurn ? 0.5 : 0.2),
-                        radius: isApproachingTurn ? 26 : 15, x: 0, y: 10)
-                .scaleEffect(isApproachingTurn ? 1.018 : 1.0)
-                .animation(.spring(response: 0.35, dampingFraction: 0.72), value: isApproachingTurn)
+                .shadow(color: .black.opacity(0.3), radius: 16, x: 0, y: 6)
                 .padding(.horizontal, 12)
                 .id(currentInstructionIndex)
                 .transition(.asymmetric(
