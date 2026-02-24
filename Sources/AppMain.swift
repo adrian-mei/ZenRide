@@ -217,6 +217,35 @@ struct RideView: View {
 
             // Main UI chrome
             VStack(spacing: 12) {
+                // Exit-to-garage button — only shown in search mode (no route selected yet)
+                if routeState == .search {
+                    HStack {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                                endRide()
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Garage")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.black.opacity(0.7))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 // Turn-by-turn HUD — always visible while navigating
                 if routeState == .navigating {
                     GuidanceView()
