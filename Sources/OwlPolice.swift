@@ -164,6 +164,14 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
         _sessionTopSpeedMph = 0
         sessionSpeedSum = 0
         sessionSpeedCount = 0
+        // Reset zone/camera state so next ride starts clean
+        currentZone = .safe
+        nearestCamera = nil
+        distanceToNearestFT = 0
+        lastProximityCheckLocation = nil
+        approachCooldowns = [:]
+        dangerCooldowns = [:]
+        exitCooldowns = [:]
     }
 
     // MARK: - Simulation
@@ -244,6 +252,8 @@ class OwlPolice: NSObject, ObservableObject, CLLocationManagerDelegate {
         DispatchQueue.main.async {
             self.isSimulating = false
             self.currentSpeedMPH = 0
+            self.currentSimulationIndex = 0
+            self.distanceTraveledInSimulationMeters = 0
             self.locationManager.startUpdatingLocation()
         }
     }

@@ -103,6 +103,10 @@ struct MapHomeView: View {
             withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                 startPulse = true
             }
+            // Skip check-in if returning from a ride or already an active rider
+            if postRideInfo != nil || driveStore.totalRideCount > 0 {
+                hasCheckedIn = true
+            }
             if postRideInfo != nil {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                     toastVisible = true
