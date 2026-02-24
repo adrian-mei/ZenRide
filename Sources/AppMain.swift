@@ -222,32 +222,13 @@ struct RideView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                // Controls row — shown in search mode always, in nav always
-                if routeState == .search || routeState == .navigating {
+                // Controls row — only shown while navigating
+                if routeState == .navigating {
                     HStack(alignment: .top) {
                         // Always show the full Digital Dash Speedometer
                         VStack(alignment: .leading, spacing: 20) {
                             DigitalDashSpeedometer(owlPolice: owlPolice)
                                 .transition(.scale.combined(with: .opacity))
-
-                            if routeState == .search {
-                                Button {
-                                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                                    withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
-                                        endRide()
-                                    }
-                                } label: {
-                                    Image(systemName: "stop.fill")
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(.red)
-                                        .frame(width: 64, height: 64)
-                                        .background(Color.black.opacity(0.8))
-                                        .clipShape(Circle())
-                                        .overlay(Circle().strokeBorder(Color.red.opacity(0.5), lineWidth: 2))
-                                        .shadow(color: .red.opacity(0.4), radius: 6)
-                                }
-                                .transition(.move(edge: .leading).combined(with: .opacity))
-                            }
                         }
                         .padding(.leading, 16)
                         .padding(.top, 16)

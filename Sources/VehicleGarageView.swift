@@ -1116,7 +1116,7 @@ struct VehicleSelectView: View {
                         onComplete()
                     } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: selectedType == .motorcycle ? "figure.motorcycle" : "car.fill")
+                            Image(systemName: selectedType == .motorcycle ? "motorcycle" : "car.fill")
                                 .font(.system(size: 18, weight: .bold))
                             Text("Let's Roll")
                                 .font(.system(size: 20, weight: .black, design: .rounded))

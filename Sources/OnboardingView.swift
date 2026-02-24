@@ -336,7 +336,7 @@ private struct OnboardingVehiclePage: View {
                         onNext()
                     } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: selectedType == .motorcycle ? "figure.motorcycle" : "car.fill")
+                            Image(systemName: selectedType == .motorcycle ? "motorcycle" : "car.fill")
                                 .font(.system(size: 16, weight: .bold))
                             Text(isValid ? "Next →" : "Skip for now")
                                 .font(.title3)

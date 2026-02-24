@@ -7,7 +7,7 @@ enum VehicleMode: String, CaseIterable {
 
     var icon: String {
         switch self {
-        case .motorcycle: return "figure.motorcycle"
+        case .motorcycle: return "motorcycle"
         case .car:        return "car.fill"
         }
     }
