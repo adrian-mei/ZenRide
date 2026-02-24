@@ -141,17 +141,17 @@ struct RideView: View {
                             .foregroundColor(.white)
                             .background(
                                 ZStack {
-                                    Color(red: 0.05, green: 0.05, blue: 0.08).opacity(0.8)
-                                    LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom)
+                                    Color(red: 0.05, green: 0.05, blue: 0.08).opacity(0.5)
+                                    LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .top, endPoint: .bottom)
                                 }
                                 .background(.ultraThinMaterial)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(Color.cyan.opacity(0.4), lineWidth: 1.5)
+                                    .stroke(Color.cyan.opacity(0.3), lineWidth: 1.0)
                             )
-                            .shadow(color: .black.opacity(0.4), radius: 10, x: 0, y: 6)
+                            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                         }
                         .padding(.trailing, 16)
                         .padding(.top, 16)
@@ -165,7 +165,6 @@ struct RideView: View {
                 if routeState == .navigating {
                     NavigationBottomPanel(onEnd: { endRide() })
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .edgesIgnoringSafeArea(.bottom)
                 }
 
                 // "Tap to show controls" hint — disabled

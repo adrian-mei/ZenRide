@@ -54,8 +54,8 @@ struct DigitalDashSpeedometer: View {
         ZStack {
             // Background
             Circle()
-                .fill(Color(red: 0.05, green: 0.05, blue: 0.1).opacity(0.85))
-                .shadow(color: .cyan.opacity(0.2), radius: 10)
+                .fill(Color(red: 0.05, green: 0.05, blue: 0.1).opacity(0.5))
+                .shadow(color: .cyan.opacity(0.1), radius: 10)
 
             // Danger pulse halo — expands and fades rhythmically when speeding
             Circle()

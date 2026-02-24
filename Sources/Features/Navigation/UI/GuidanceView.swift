@@ -116,11 +116,11 @@ struct GuidanceView: View {
                 .background(
                     ZStack {
                         if instruction.instructionType == "ARRIVE" {
-                            Color(red: 0.8, green: 0.5, blue: 0.0).opacity(0.95)
+                            Color(red: 0.8, green: 0.5, blue: 0.0).opacity(0.85)
                         } else {
                             // "Night Rider" Deep Indigo-Cyan gradient
                             LinearGradient(
-                                colors: [Color(red: 0.0, green: 0.2, blue: 0.4).opacity(0.95), Color(red: 0.05, green: 0.05, blue: 0.15).opacity(0.98)],
+                                colors: [Color(red: 0.0, green: 0.2, blue: 0.4).opacity(0.6), Color(red: 0.05, green: 0.05, blue: 0.15).opacity(0.7)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -128,7 +128,7 @@ struct GuidanceView: View {
                         
                         // Subtle inner gloss for the HUD look
                         LinearGradient(
-                            colors: [.white.opacity(0.2), .clear],
+                            colors: [.white.opacity(0.15), .clear],
                             startPoint: .top,
                             endPoint: .bottom
                         )
