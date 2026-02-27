@@ -18,25 +18,26 @@ struct RideView: View {
     @State private var departureTime: Date? = nil
     @State private var navigationStartTime: Date? = nil
     @State private var isTracking: Bool = true
+    @State private var mapMode: MapMode = .turnByTurn
 
     init(initialDestinationName: String, onStop: @escaping (RideContext?, PendingDriveSession?) -> Void) {
         self.initialDestinationName = initialDestinationName
         self.onStop = onStop
         _destinationName = State(initialValue: initialDestinationName)
-        _routeState = State(initialValue: .reviewing)
+        _routeState = State(initialValue: initialDestinationName.isEmpty ? .navigating : .reviewing)
     }
 
     var body: some View {
         ZStack(alignment: .top) {
-            ZenMapView(routeState: $routeState, isTracking: $isTracking)
-                .ignoresSafeArea(.all)
-
-            if routeState == .navigating {
-                AmbientGlowView()
-                    .allowsHitTesting(false)
-                    .zIndex(1)
-                    .transition(.opacity)
-            }
+            ZenMapView(routeState: $routeState, isTracking: $isTracking, mapMode: mapMode, onMapTap: {
+                if routeState == .navigating {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        uiVisible.toggle()
+                        showTapHint = false
+                    }
+                }
+            })
+            .ignoresSafeArea(.all)
 
             if routeState == .navigating && (bunnyPolice.currentZone == .approach || bunnyPolice.currentZone == .danger) {
                 AlertOverlayView(camera: bunnyPolice.nearestCamera)
@@ -46,15 +47,34 @@ struct RideView: View {
 
             // Main UI chrome
             VStack(spacing: 12) {
+                if routeState == .navigating {
+                    if routingService.activeQuest != nil {
+                        QuestProgressView()
+                    }
+                }
+                
                 // Turn-by-turn HUD — always visible while navigating
                 if routeState == .navigating {
-                    GuidanceView()
-                        .padding(.top, 16)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                    VStack(spacing: 8) {
+                        GuidanceView()
+                            .padding(.top, 16)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        
+                        if showTapHint {
+                            Text("Tap map to toggle controls")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(.black.opacity(0.6))
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                                .transition(.opacity)
+                        }
+                    }
                 }
 
                 // Controls row — only shown while navigating
-                if routeState == .navigating {
+                if routeState == .navigating && uiVisible {
                     HStack(alignment: .top) {
                         // Always show the full Digital Dash Speedometer
                         VStack(alignment: .leading, spacing: 20) {
@@ -67,6 +87,24 @@ struct RideView: View {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 12) {
+                            
+                            // Map Mode Toggle (Turn-by-turn vs Overview)
+                            Button {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
+                                }
+                            } label: {
+                                Image(systemName: mapMode == .turnByTurn ? "map.fill" : "location.north.fill")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .frame(width: 56, height: 56)
+                                    .foregroundColor(Theme.Colors.acTextDark)
+                                    .background(Theme.Colors.acCream)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                                    .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
+                            }
+                            .accessibilityLabel(mapMode == .turnByTurn ? "Show Route Overview" : "Return to Turn-by-Turn")
+                            
                             VStack(spacing: 0) {
                                 Button {
                                     bunnyPolice.isMuted.toggle()
@@ -115,12 +153,25 @@ struct RideView: View {
                 Spacer()
 
                 // Bottom navigation panel
-                if routeState == .navigating {
+                if routeState == .navigating && uiVisible {
                     NavigationBottomPanel(onEnd: { endRide() })
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .zIndex(5)
+        }
+        .onAppear {
+            if initialDestinationName.isEmpty {
+                // Free Drive (Cruise) Mode
+                departureTime = Date()
+                navigationStartTime = Date()
+                bunnyPolice.startNavigationSession()
+                locationProvider.isSimulating = false
+                showTapHint = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    withAnimation { showTapHint = false }
+                }
+            }
         }
         .sheet(isPresented: Binding(
             get: { routeState == .reviewing },
@@ -137,6 +188,11 @@ struct RideView: View {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     locationProvider.isSimulating = false
+                    uiVisible = false
+                    showTapHint = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    withAnimation { showTapHint = false }
                 }
             }, onSimulate: {
                 guard !routingService.activeRoute.isEmpty else {
@@ -149,6 +205,11 @@ struct RideView: View {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     routeState = .navigating
                     locationProvider.simulateDrive(along: routingService.activeRoute)
+                    uiVisible = false
+                    showTapHint = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    withAnimation { showTapHint = false }
                 }
             }, onCancel: {
                 endRide()
@@ -176,9 +237,29 @@ struct RideView: View {
         }
         .onChange(of: locationProvider.simulationCompletedNaturally) { completed in
             guard completed && routeState == .navigating else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                if routeState == .navigating {
-                    endRide()
+            
+            if routingService.activeQuest != nil {
+                if let loc = locationProvider.currentLocation?.coordinate {
+                    let advanced = routingService.advanceToNextLeg(currentLocation: loc)
+                    if advanced {
+                        // Resimulate the next leg after a brief pause
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                            if !routingService.activeRoute.isEmpty {
+                                locationProvider.simulateDrive(along: routingService.activeRoute)
+                            }
+                        }
+                    } else {
+                        // Finished entirely
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                            endRide()
+                        }
+                    }
+                }
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    if routeState == .navigating {
+                        endRide()
+                    }
                 }
             }
         }

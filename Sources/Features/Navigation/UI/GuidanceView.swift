@@ -5,7 +5,7 @@ struct GuidanceView: View {
     @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @State private var currentInstructionIndex: Int = 0
-    @State private var isApproachingTurn = false   // < 300ft to next turn
+    @State private var isApproachingTurn = false
     private let haptic500 = UINotificationFeedbackGenerator()
     private let haptic100 = UIImpactFeedbackGenerator(style: .heavy)
 
@@ -16,261 +16,140 @@ struct GuidanceView: View {
                 
                 VStack(spacing: 0) {
                     HStack(spacing: 16) {
-                    VStack(spacing: 6) {
-                        Image(systemName: iconForInstruction(instruction.instructionType))
-                            .font(.system(size: 48, weight: .heavy))
-                            .foregroundColor(.cyan)
-                            .scaleEffect(isApproachingTurn ? 1.1 : 1.0)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isApproachingTurn)
-                            .frame(width: 80)
+                        VStack(spacing: 6) {
+                            Image(systemName: instruction.turnType.icon)
+                                .font(.system(size: 48, weight: .heavy))
+                                .foregroundColor(Theme.Colors.acLeaf)
+                                .scaleEffect(isApproachingTurn ? 1.1 : 1.0)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isApproachingTurn)
+                                .frame(width: 80)
+                            
+                            Text(formatDistance(instruction: instruction))
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.acTextDark)
+                                .contentTransition(.numericText())
+                        }
                         
-                        Text(formatDistance(instruction: instruction))
-                            .font(.system(size: 24, weight: .black, design: .monospaced)) // Thicker, digital distance
-                            .foregroundColor(.white)
-                            .contentTransition(.numericText())
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(instruction.message ?? "Continue")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.65))
-                            .lineLimit(1)
-
-                        if let street = instruction.street, !street.isEmpty {
-                            Text(street)
-                                .font(.system(size: 34, weight: .black))
-                                .foregroundColor(.white)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(instruction.text)
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.acTextDark)
                                 .lineLimit(2)
-                                .minimumScaleFactor(0.7)
-                        } else {
-                            Text("Main Route")
-                                .font(.system(size: 34, weight: .black))
-                                .foregroundColor(.white)
+                                .minimumScaleFactor(0.8)
                         }
-
-                        // Road feature badge
-                        let feature = instruction.roadFeature
-                        if feature != .none {
-                            roadFeatureBadge(feature)
-                        }
+                        Spacer(minLength: 0)
                     }
-
-                    Spacer()
-
-                    // Vehicle mode badge (top-right of card)
-                    VStack {
-                        Image(systemName: routingService.vehicleMode.icon)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .padding(8)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(Circle())
-                        Spacer()
+                    .padding(.top, 16)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
+                    
+                    // Next Instruction preview
+                    if currentInstructionIndex + 1 < routingService.instructions.count {
+                        let nextInst = routingService.instructions[currentInstructionIndex + 1]
+                        if nextInst.turnType != .arrive {
+                            Divider().background(Theme.Colors.acBorder.opacity(0.3))
+                            HStack(spacing: 12) {
+                                Text("THEN")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundColor(Theme.Colors.acTextMuted)
+                                
+                                Image(systemName: nextInst.turnType.icon)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Theme.Colors.acTextDark)
+                                
+                                Text(nextInst.text)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Theme.Colors.acTextDark)
+                                    .lineLimit(1)
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(Theme.Colors.acField)
+                        }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, (instruction.instructionType?.contains("TURN") == true || instruction.instructionType?.contains("KEEP") == true) ? 4 : 20)
-                
-                // --- NEW: Next Turn Preview ---
-                let traveled = locationProvider.isSimulating ? locationProvider.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
-                let currentDist = Double(instruction.routeOffsetInMeters) - traveled
-                if currentDist > 1600 && currentInstructionIndex + 1 < routingService.instructions.count {
-                    let nextInst = routingService.instructions[currentInstructionIndex + 1]
-                    if nextInst.instructionType != "ARRIVE" {
-                        HStack(spacing: 8) {
-                            Text("THEN:")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white.opacity(0.6))
-                            Image(systemName: iconForInstruction(nextInst.instructionType))
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white.opacity(0.8))
-                            Text(nextInst.street ?? nextInst.message ?? "")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white.opacity(0.8))
-                                .lineLimit(1)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 16)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    }
-                }
-                // -----------------------------
-                
-                // --- NEON LANE GUIDANCE ---
-                if let type = instruction.instructionType, type.contains("TURN") || type.contains("KEEP") {
-                    let traveled2 = locationProvider.isSimulating ? locationProvider.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
-                    let distanceToTurn = Double(instruction.routeOffsetInMeters) - traveled2
-                    if distanceToTurn < 1000 && distanceToTurn > 100 {
-                        NeonLaneGuidanceView(instructionType: type)
-                            .padding(.bottom, 16)
-                            .transition(.scale(scale: 0.9).combined(with: .opacity))
-                    }
-                }
-                // --------------------------
-                
-                } // End of inner VStack
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .environment(\.colorScheme, .dark)
+                .background(Theme.Colors.acCream)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .overlay(
-                    Group {
-                        if instruction.instructionType == "ARRIVE" {
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(Color.green.opacity(0.15))
-                        }
-                    }
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Theme.Colors.acBorder, lineWidth: 2)
                 )
-                .shadow(color: .black.opacity(0.3), radius: 16, x: 0, y: 6)
-                .padding(.horizontal, 12)
-                .id(currentInstructionIndex)
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
+                .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 6)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                // Navigation Logic
+                .onChange(of: locationProvider.distanceTraveledInSimulationMeters) { traveled in
+                    if locationProvider.isSimulating {
+                        updateProgress(traveled: traveled, instruction: instruction)
+                    }
+                }
+                .onChange(of: routingService.distanceTraveledMeters) { traveled in
+                    if !locationProvider.isSimulating {
+                        updateProgress(traveled: traveled, instruction: instruction)
+                    }
+                }
             }
         }
         .onAppear {
-            haptic500.prepare()
-            haptic100.prepare()
+            currentInstructionIndex = routingService.currentInstructionIndex
         }
-        // Advance instructions based on our simulation point index.
-        // We look for the first instruction whose pointIndex is strictly greater than our current simulation point.
-        .onChange(of: locationProvider.currentSimulationIndex) { newIndex in
-            if locationProvider.isSimulating {
-                if let nextInstructionIndex = routingService.instructions.firstIndex(where: { $0.pointIndex > newIndex }) {
-                    if routingService.currentInstructionIndex != nextInstructionIndex {
-                        routingService.currentInstructionIndex = nextInstructionIndex
-                    }
-                } else if !routingService.instructions.isEmpty {
-                    let lastIndex = routingService.instructions.count - 1
-                    if routingService.currentInstructionIndex != lastIndex {
-                        routingService.currentInstructionIndex = lastIndex
-                    }
-                }
-            }
-        }
-        .onChange(of: routingService.currentInstructionIndex) { index in
-            if index >= 0 && index < routingService.instructions.count {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                    currentInstructionIndex = index
-                    isApproachingTurn = false   // reset surge on instruction change
-                }
-                if let message = routingService.instructions[index].message {
-                    bunnyPolice.speak(message)
-                }
-            }
-        }
-        .onChange(of: locationProvider.isSimulating) { isSimulating in
-            if isSimulating {
-                currentInstructionIndex = 0
-                routingService.currentInstructionIndex = 0
-            }
-        }
-        // Simulation: 60fps distance updates drive haptics + approach surge
-        .onChange(of: locationProvider.distanceTraveledInSimulationMeters) { dist in
-            guard locationProvider.isSimulating else { return }
-            updateApproachState(distanceTraveled: dist)
-        }
-        // Real GPS: instruction advancement + approach driven by route progress segment
-        .onChange(of: routingService.routeProgressIndex) { progressIndex in
-            guard !locationProvider.isSimulating else { return }
-            // Advance to the next instruction whose point is still ahead of us
-            if let nextIdx = routingService.instructions.firstIndex(where: { $0.pointIndex > progressIndex }) {
-                if routingService.currentInstructionIndex != nextIdx {
-                    routingService.currentInstructionIndex = nextIdx
-                }
-            } else if !routingService.instructions.isEmpty {
-                let lastIdx = routingService.instructions.count - 1
-                if routingService.currentInstructionIndex != lastIdx {
-                    routingService.currentInstructionIndex = lastIdx
-                }
-            }
-            updateApproachState(distanceTraveled: routingService.distanceTraveledMeters)
-        }
-    }
-
-    private func updateApproachState(distanceTraveled: Double) {
-        guard !routingService.instructions.isEmpty,
-              currentInstructionIndex < routingService.instructions.count else { return }
-        let instruction = routingService.instructions[currentInstructionIndex]
-        let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - distanceTraveled
-        let distanceFeet = max(0, nextInstructionDistanceMeters * 3.28084)
-
-        if distanceFeet < 510 && distanceFeet > 490 && !routingService.hasWarned500ft {
-            routingService.hasWarned500ft = true
-            haptic500.notificationOccurred(.warning)
-        }
-        if distanceFeet < 110 && distanceFeet > 90 && !routingService.hasWarned100ft {
-            routingService.hasWarned100ft = true
-            haptic100.impactOccurred()
-        }
-        let approaching = distanceFeet > 0 && distanceFeet < 300
-        if approaching != isApproachingTurn {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                isApproachingTurn = approaching
+        .onChange(of: routingService.currentInstructionIndex) { newValue in
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                currentInstructionIndex = newValue
             }
         }
     }
-    
-    @ViewBuilder
-    private func roadFeatureBadge(_ feature: RoadFeature) -> some View {
-        let (icon, color, label): (String, Color, String) = {
-            switch feature {
-            case .stopSign:    return ("octagon.fill", .red, "STOP SIGN")
-            case .trafficLight: return ("light.beacon.max.fill", Color(red: 1, green: 0.75, blue: 0), "SIGNAL")
-            case .freewayEntry: return ("arrow.up.right.square.fill", .cyan, "ON-RAMP")
-            case .freewayExit:  return ("arrow.down.right.square.fill", Color.orange, "EXIT")
-            case .roundabout:   return ("arrow.clockwise.circle.fill", .white, "ROUNDABOUT")
-            case .none:         return ("", .clear, "")
+
+    private func updateProgress(traveled: Double, instruction: NavigationInstruction) {
+        let distToTurn = Double(instruction.routeOffsetInMeters) - traveled
+        
+        let distToTurnFt = distToTurn * 3.28084
+        if distToTurnFt > 0 && distToTurnFt < 300 {
+            if !isApproachingTurn { isApproachingTurn = true }
+        } else {
+            if isApproachingTurn { isApproachingTurn = false }
+        }
+
+        if distToTurnFt > 0 {
+            if distToTurnFt <= 500 && !routingService.hasWarned500ft {
+                haptic500.notificationOccurred(.warning)
+                routingService.hasWarned500ft = true
+                SpeechService.shared.speak("In 500 feet, \(instruction.text)")
             }
-        }()
-        HStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-            Text(label)
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+            if distToTurnFt <= 100 && !routingService.hasWarned100ft {
+                haptic100.impactOccurred()
+                routingService.hasWarned100ft = true
+                SpeechService.shared.speak(instruction.text)
+            }
         }
-        .foregroundColor(color)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(color.opacity(0.15))
-        .clipShape(Capsule())
-        .overlay(Capsule().strokeBorder(color.opacity(0.5), lineWidth: 1))
-    }
 
-    private func iconForInstruction(_ type: String?) -> String {
-        switch type {
-        case "TURN_RIGHT":       return "arrow.turn.up.right"
-        case "TURN_LEFT":        return "arrow.turn.up.left"
-        case "KEEP_RIGHT":       return "arrow.up.right"
-        case "KEEP_LEFT":        return "arrow.up.left"
-        case "START":            return "location.fill"
-        case "ARRIVE":           return "mappin.circle.fill"
-        case "MOTORWAY_ENTER":   return "arrow.up.right.square.fill"
-        case "MOTORWAY_EXIT":    return "arrow.down.right.square.fill"
-        case "ROUNDABOUT_LEFT":  return "arrow.counterclockwise.circle.fill"
-        case "ROUNDABOUT_RIGHT": return "arrow.clockwise.circle.fill"
-        case "STRAIGHT":         return "arrow.up"
-        default:                 return "arrow.up"
+        if distToTurn <= 10 { // 10 meters tolerance to snap to next
+            if currentInstructionIndex < routingService.instructions.count - 1 {
+                routingService.currentInstructionIndex += 1
+                if instruction.turnType == .arrive {
+                    routingService.currentInstructionIndex = routingService.instructions.count
+                }
+            }
         }
     }
-}
 
-extension GuidanceView {
-    private func formatDistance(instruction: TomTomInstruction) -> String {
+    private func formatDistance(instruction: NavigationInstruction) -> String {
         let traveled = locationProvider.isSimulating
             ? locationProvider.distanceTraveledInSimulationMeters
             : routingService.distanceTraveledMeters
-        let nextInstructionDistanceMeters = Double(instruction.routeOffsetInMeters) - traveled
-        let distanceFeet = max(0, nextInstructionDistanceMeters * 3.28084)
-        let distanceMiles = distanceFeet / 5280
         
-        if distanceFeet < 1000 {
-            let roundedFeet = Int(round(distanceFeet / 50.0) * 50)
-            return "\(max(50, roundedFeet)) ft" // Never show 0 while moving
+        let distMeters = Double(instruction.routeOffsetInMeters) - traveled
+        let distFeet = max(0, distMeters * 3.28084)
+        
+        if distFeet > 1000 { // Approx 0.2 miles
+            let distMiles = distFeet / 5280.0
+            return String(format: "%.1f mi", distMiles)
         } else {
-            return String(format: "%.1f mi", distanceMiles)
+            // Round to nearest 50 feet for cleaner UI
+            let roundedFeet = Int(round(distFeet / 50.0) * 50)
+            return "\(max(50, roundedFeet)) ft"
         }
     }
 }

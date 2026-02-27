@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import ZenRide
+@testable import FashodaMap
 
 struct GoogleTTSClientTests {
     

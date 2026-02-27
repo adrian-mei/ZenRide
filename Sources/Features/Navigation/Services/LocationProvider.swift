@@ -6,12 +6,17 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var currentSpeedMPH: Double = 0
     
     @Published var isSimulating: Bool = false
+    @Published var simulationPaused: Bool = false
+    @Published var simulationSpeedMultiplier: Double = 1.0
     @Published var simulationCompletedNaturally: Bool = false
     @Published var currentSimulationIndex: Int = 0
     @Published var distanceTraveledInSimulationMeters: Double = 0
     
     private let locationManager = CLLocationManager()
     private var simulationTimer: Timer?
+    private var simulationRoute: [CLLocationCoordinate2D] = []
+    private var currentSimulationCoord: CLLocationCoordinate2D?
+    private var nextSimulationIndex: Int = 1
     
     override init() {
         super.init()
@@ -63,27 +68,34 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         DispatchQueue.main.async {
             self.isSimulating = true
+            self.simulationPaused = false
+            self.simulationSpeedMultiplier = 1.0
             self.currentSimulationIndex = 0
             self.distanceTraveledInSimulationMeters = 0
             self.simulationCompletedNaturally = false
         }
         
-        var currentCoord = route[0]
-        var nextIndex = 1
+        self.simulationRoute = route
+        self.currentSimulationCoord = route[0]
+        self.nextSimulationIndex = 1
         var distanceTraveledMeters: Double = 0
         
         let targetSpeedMPH: Double = 65
-        let targetSpeedMPS = targetSpeedMPH / 2.23694
         
         let tickInterval: TimeInterval = 0.5
-        let distancePerTick = targetSpeedMPS * tickInterval
         
         simulationTimer?.invalidate()
         simulationTimer = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
+            guard !self.simulationPaused else { return }
+            guard let currentCoord = self.currentSimulationCoord else { return }
+            
+            // Apply speed multiplier
+            let targetSpeedMPS = (targetSpeedMPH / 2.23694) * self.simulationSpeedMultiplier
+            let distancePerTick = targetSpeedMPS * tickInterval
             
             // Reached destination logic
-            if nextIndex >= route.count {
+            if self.nextSimulationIndex >= self.simulationRoute.count {
                 DispatchQueue.main.async {
                     self.simulationCompletedNaturally = true
                     self.stopSimulation()
@@ -91,25 +103,32 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
                 return
             }
             
-            let targetCoord = route[nextIndex]
-            let distanceToTarget = currentCoord.distance(to: targetCoord)
+            let targetCoord = self.simulationRoute[self.nextSimulationIndex]
+            
+            // Math helper logic to avoid 'distance' not found error (using CLLocation distance logic)
+            let currentLoc = CLLocation(latitude: currentCoord.latitude, longitude: currentCoord.longitude)
+            let targetLoc = CLLocation(latitude: targetCoord.latitude, longitude: targetCoord.longitude)
+            let distanceToTarget = currentLoc.distance(from: targetLoc)
+            
             let bearing = currentCoord.bearing(to: targetCoord)
+            
+            var newCoord = currentCoord
             
             if distanceToTarget <= distancePerTick {
                 // Arrived at next node
                 distanceTraveledMeters += distanceToTarget
-                currentCoord = targetCoord
+                newCoord = targetCoord
                 
                 DispatchQueue.main.async {
-                    self.currentSimulationIndex = nextIndex
+                    self.currentSimulationIndex = self.nextSimulationIndex
                     self.distanceTraveledInSimulationMeters = distanceTraveledMeters
                 }
-                nextIndex += 1
+                self.nextSimulationIndex += 1
                 
                 // If we reach the end exactly on this tick
-                if nextIndex >= route.count {
+                if self.nextSimulationIndex >= self.simulationRoute.count {
                     let mockLocation = CLLocation(
-                        coordinate: currentCoord,
+                        coordinate: newCoord,
                         altitude: 0,
                         horizontalAccuracy: 5,
                         verticalAccuracy: 5,
@@ -128,14 +147,16 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
             } else {
                 // Move towards target
                 distanceTraveledMeters += distancePerTick
-                currentCoord = currentCoord.coordinate(offsetBy: distancePerTick, bearingDegrees: bearing)
+                newCoord = currentCoord.coordinate(offsetBy: distancePerTick, bearingDegrees: bearing)
                 DispatchQueue.main.async {
                     self.distanceTraveledInSimulationMeters = distanceTraveledMeters
                 }
             }
             
+            self.currentSimulationCoord = newCoord
+            
             let mockLocation = CLLocation(
-                coordinate: currentCoord,
+                coordinate: newCoord,
                 altitude: 0,
                 horizontalAccuracy: 5,
                 verticalAccuracy: 5,

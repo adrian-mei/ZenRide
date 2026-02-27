@@ -21,123 +21,83 @@ struct VoiceSettingsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // Info banner
-                Section {
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.wave.2.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(.cyan)
-                            .frame(width: 32)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Human Guides")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
-                            Text("Only the highest quality, human-sounding voices (Premium & Siri).")
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 6)
-                    .listRowBackground(Color.cyan.opacity(0.08))
-                }
-
-                // AI Cloud Voice
-                Section {
-                    VoiceRow(
-                        voice: nil, // Indicates Google TTS
-                        customName: "Google Cloud AI (Female)",
-                        customIdentifier: "google-tts-en-US-Journey-F",
-                        customQuality: "ULTRA REALISTIC",
-                        customRegion: "US",
-                        customGender: "Female",
-                        isSelected: isSelected(id: "google-tts-en-US-Journey-F"),
-                        isPreviewing: previewingVoiceId == "google-tts-en-US-Journey-F",
-                        onSelect: { select(id: "google-tts-en-US-Journey-F") },
-                        onPreview: { preview(id: "google-tts-en-US-Journey-F") }
-                    )
-                } header: {
-                    Text("Cloud Voices (Requires Internet)")
-                        .font(.system(size: 12, weight: .bold))
-                }
-
-                if !englishVoices.isEmpty {
+            ZStack {
+                Theme.Colors.acField.ignoresSafeArea()
+                
+                List {
+                    // Info banner
                     Section {
-                        ForEach(englishVoices, id: \.identifier) { voice in
-                            VoiceRow(
-                                voice: voice,
-                                customName: nil,
-                                customIdentifier: nil,
-                                customQuality: nil,
-                                customRegion: nil,
-                                customGender: nil,
-                                isSelected: isSelected(id: voice.identifier),
-                                isPreviewing: previewingVoiceId == voice.identifier,
-                                onSelect: { select(id: voice.identifier) },
-                                onPreview: { preview(id: voice.identifier) }
-                            )
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.wave.2.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(Theme.Colors.acSky)
+                                .frame(width: 32)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Camp Guides")
+                                    .font(Theme.Typography.headline)
+                                    .foregroundColor(Theme.Colors.acTextDark)
+                                Text("Only the highest quality voices for your roadtrip.")
+                                    .font(Theme.Typography.body)
+                                    .foregroundColor(Theme.Colors.acTextMuted)
+                            }
                         }
-                    } header: {
-                        Text("English")
-                            .font(.system(size: 12, weight: .bold))
-                    } footer: {
-                        Text("Missing voices? Download more in Settings › Accessibility › Spoken Content.")
-                            .font(.caption2)
+                        .padding(.vertical, 6)
+                        .listRowBackground(Theme.Colors.acCream)
                     }
-                }
 
-                if !mandarinVoices.isEmpty {
+                    // AI Cloud Voice
                     Section {
-                        ForEach(mandarinVoices, id: \.identifier) { voice in
-                            VoiceRow(
-                                voice: voice,
-                                customName: nil,
-                                customIdentifier: nil,
-                                customQuality: nil,
-                                customRegion: nil,
-                                customGender: nil,
-                                isSelected: isSelected(id: voice.identifier),
-                                isPreviewing: previewingVoiceId == voice.identifier,
-                                onSelect: { select(id: voice.identifier) },
-                                onPreview: { preview(id: voice.identifier) }
-                            )
-                        }
+                        VoiceRow(
+                            voice: nil, // Indicates Google TTS
+                            customName: "Camp Guide (Cloud AI)",
+                            customIdentifier: "google-tts-en-US-Journey-F",
+                            customQuality: "ULTRA REALISTIC",
+                            customRegion: "US",
+                            customGender: "Female",
+                            isSelected: isSelected(id: "google-tts-en-US-Journey-F"),
+                            isPreviewing: previewingVoiceId == "google-tts-en-US-Journey-F",
+                            onSelect: { select(id: "google-tts-en-US-Journey-F") },
+                            onPreview: { preview(id: "google-tts-en-US-Journey-F") }
+                        )
                     } header: {
-                        Text("Mandarin")
-                            .font(.system(size: 12, weight: .bold))
+                        Text("Cloud Voices")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(Theme.Colors.acWood)
                     }
-                }
 
-                if !cantoneseVoices.isEmpty {
-                    Section {
-                        ForEach(cantoneseVoices, id: \.identifier) { voice in
-                            VoiceRow(
-                                voice: voice,
-                                customName: nil,
-                                customIdentifier: nil,
-                                customQuality: nil,
-                                customRegion: nil,
-                                customGender: nil,
-                                isSelected: isSelected(id: voice.identifier),
-                                isPreviewing: previewingVoiceId == voice.identifier,
-                                onSelect: { select(id: voice.identifier) },
-                                onPreview: { preview(id: voice.identifier) }
-                            )
+                    if !englishVoices.isEmpty {
+                        Section {
+                            ForEach(englishVoices, id: \.identifier) { voice in
+                                VoiceRow(
+                                    voice: voice,
+                                    customName: nil,
+                                    customIdentifier: nil,
+                                    customQuality: nil,
+                                    customRegion: nil,
+                                    customGender: nil,
+                                    isSelected: isSelected(id: voice.identifier),
+                                    isPreviewing: previewingVoiceId == voice.identifier,
+                                    onSelect: { select(id: voice.identifier) },
+                                    onPreview: { preview(id: voice.identifier) }
+                                )
+                            }
+                        } header: {
+                            Text("English")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(Theme.Colors.acWood)
+                        } footer: {
+                            Text("Missing voices? Download more in Settings › Accessibility › Spoken Content.")
+                                .font(.caption2)
+                                .foregroundColor(Theme.Colors.acTextMuted)
                         }
-                    } header: {
-                        Text("Cantonese")
-                            .font(.system(size: 12, weight: .bold))
                     }
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("GPS Voice")
+            .navigationTitle("Copilot Voice")
             .navigationBarTitleDisplayMode(.large)
-            .preferredColorScheme(.dark)
-            .scrollContentBackground(.hidden)
-            .background(Color(red: 0.06, green: 0.06, blue: 0.1))
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Helpers
@@ -160,7 +120,6 @@ struct VoiceSettingsView: View {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         previewingVoiceId = id
         speechService.previewVoice(id: id)
-        // Clear previewing state after ~4 seconds (ample for the sample phrase)
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
             if previewingVoiceId == id {
                 previewingVoiceId = nil
@@ -201,11 +160,10 @@ private struct VoiceRow: View {
     }
 
     private var qualityColor: Color {
-        if customQuality != nil { return .pink }
-        return voice?.quality == .premium ? .purple : .cyan
+        if customQuality != nil { return Theme.Colors.acCoral }
+        return voice?.quality == .premium ? Theme.Colors.acGold : Theme.Colors.acSky
     }
 
-    /// Short region tag from the language code, e.g. "en-AU" → "AU"
     private var regionTag: String {
         if let cr = customRegion { return cr }
         guard let voice = voice else { return "" }
@@ -225,22 +183,20 @@ private struct VoiceRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Selection circle
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                 .font(.system(size: 22))
-                .foregroundColor(isSelected ? .cyan : Color(white: 0.35))
+                .foregroundColor(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder)
                 .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
 
-            // Name + quality badge + region
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(voiceName)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
+                        .font(Theme.Typography.body)
+                        .foregroundColor(Theme.Colors.acTextDark)
 
                     if !qualityLabel.isEmpty {
                         Text(qualityLabel)
-                            .font(.system(size: 8, weight: .black))
+                            .font(.system(size: 8, weight: .black, design: .rounded))
                             .foregroundColor(qualityColor)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -255,24 +211,24 @@ private struct VoiceRow: View {
                         Text(gender)
                     }
                 }
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.secondary)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextMuted)
             }
 
             Spacer()
 
-            // Preview play button
             Button {
                 onPreview()
             } label: {
                 ZStack {
                     Circle()
-                        .fill(isPreviewing ? Color.green.opacity(0.15) : Color.white.opacity(0.06))
+                        .fill(isPreviewing ? Theme.Colors.acLeaf.opacity(0.2) : Theme.Colors.acField)
                         .frame(width: 38, height: 38)
+                        .overlay(Circle().stroke(Theme.Colors.acBorder.opacity(0.5), lineWidth: 1))
 
                     Image(systemName: isPreviewing ? "waveform" : "play.fill")
                         .font(.system(size: isPreviewing ? 14 : 12, weight: .bold))
-                        .foregroundColor(isPreviewing ? .green : .secondary)
+                        .foregroundColor(isPreviewing ? Theme.Colors.acLeaf : Theme.Colors.acTextMuted)
                 }
                 .animation(.easeInOut(duration: 0.2), value: isPreviewing)
             }
@@ -281,6 +237,6 @@ private struct VoiceRow: View {
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onTapGesture { onSelect() }
-        .listRowBackground(isSelected ? Color.cyan.opacity(0.07) : Color.clear)
+        .listRowBackground(isSelected ? Theme.Colors.acLeaf.opacity(0.05) : Theme.Colors.acCream)
     }
 }

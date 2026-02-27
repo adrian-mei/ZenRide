@@ -4,7 +4,7 @@ import CoreLocation
 import Combine
 
 @main
-struct ZenRideApp: App {
+struct FashodaMapApp: App {
     @StateObject private var cameraStore = CameraStore()
     @StateObject private var parkingStore = ParkingStore()
     @StateObject private var bunnyPolice = BunnyPolice()
@@ -15,6 +15,7 @@ struct ZenRideApp: App {
     @StateObject private var savedRoutes = SavedRoutesStore()
     @StateObject private var driveStore = DriveStore()
     @StateObject private var vehicleStore = VehicleStore()
+    @StateObject private var questStore = QuestStore()
 
     var body: some Scene {
         WindowGroup {
@@ -29,7 +30,7 @@ struct ZenRideApp: App {
                 .environmentObject(savedRoutes)
                 .environmentObject(driveStore)
                 .environmentObject(vehicleStore)
-                .preferredColorScheme(.dark)
+                .environmentObject(questStore)
                 .onAppear {
                     bunnyPolice.cameras = cameraStore.cameras
                 }

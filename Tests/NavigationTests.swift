@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import CoreLocation
-@testable import ZenRide
+@testable import FashodaMap
 
 // MARK: - Helpers
 
@@ -123,52 +123,8 @@ struct CoordinateMathTests {
     }
 }
 
-// MARK: - TomTom Instruction Road Feature Tests
-
-struct TomTomInstructionRoadFeatureTests {
-
-    @Test func freewayEntryMappedCorrectly() {
-        let inst = makeInstruction(type: "MOTORWAY_ENTER")
-        #expect(inst.roadFeature == .freewayEntry)
-    }
-
-    @Test func freewayExitMappedCorrectly() {
-        let inst = makeInstruction(type: "MOTORWAY_EXIT")
-        #expect(inst.roadFeature == .freewayExit)
-    }
-
-    @Test func roundaboutPrefixMappedCorrectly() {
-        for subtype in ["ROUNDABOUT_LEFT", "ROUNDABOUT_RIGHT", "ROUNDABOUT_CROSS"] {
-            let inst = makeInstruction(type: subtype)
-            #expect(inst.roadFeature == .roundabout)
-        }
-    }
-
-    @Test func trafficLightFromMessage() {
-        let inst = makeInstruction(message: "At the traffic signal, turn right")
-        #expect(inst.roadFeature == .trafficLight)
-    }
-
-    @Test func trafficLightKeywordVariant() {
-        let inst = makeInstruction(message: "At the traffic light, turn left")
-        #expect(inst.roadFeature == .trafficLight)
-    }
-
-    @Test func stopSignFromMessage() {
-        let inst = makeInstruction(message: "At the stop sign, turn left onto Howard St")
-        #expect(inst.roadFeature == .stopSign)
-    }
-
-    @Test func unknownTypeReturnsNone() {
-        let inst = makeInstruction(type: "TURN_RIGHT", message: "Turn right onto 3rd St")
-        #expect(inst.roadFeature == .none)
-    }
-
-    @Test func nilTypeNilMessageReturnsNone() {
-        let inst = makeInstruction()
-        #expect(inst.roadFeature == .none)
-    }
-}
+// MARK: - TomTom Instruction Road Feature Tests (Deprecated)
+// Tests removed as NavigationInstruction replaced TomTomInstruction for UI logic
 
 // MARK: - Route Selection Tests
 
@@ -246,11 +202,11 @@ struct RoutingServiceSelectionTests {
     // Instruction content matches the mock data.
     @Test func instructionContentMatchesMockData() {
         let service = makeServiceWithRoute(at: 0)
-        #expect(service.instructions[0].instructionType == "START")
-        #expect(service.instructions[1].instructionType == "TURN_RIGHT")
-        #expect(service.instructions[2].instructionType == "MOTORWAY_ENTER")
-        #expect(service.instructions[3].instructionType == "TURN_LEFT")
-        #expect(service.instructions[4].instructionType == "ARRIVE")
+        #expect(service.instructions[0].turnType == .straight)
+        #expect(service.instructions[1].turnType == .right)
+        #expect(service.instructions[2].turnType == .straight)
+        #expect(service.instructions[3].turnType == .left)
+        #expect(service.instructions[4].turnType == .arrive)
     }
 
     // Instruction offsets match the mock data (production path, not recalculated).
@@ -261,24 +217,6 @@ struct RoutingServiceSelectionTests {
         #expect(service.instructions[2].routeOffsetInMeters == 1400)
         #expect(service.instructions[3].routeOffsetInMeters == 1800)
         #expect(service.instructions[4].routeOffsetInMeters == 2100)
-    }
-
-    // Instruction point indices match the mock data (used for GuidanceView advancement).
-    @Test func instructionPointIndicesMatchMockData() {
-        let service = makeServiceWithRoute(at: 0)
-        #expect(service.instructions[0].pointIndex == 0)
-        #expect(service.instructions[1].pointIndex == 7)
-        #expect(service.instructions[2].pointIndex == 12)
-        #expect(service.instructions[3].pointIndex == 16)
-        #expect(service.instructions[4].pointIndex == 21)
-    }
-
-    // roadFeature maps correctly for the mock instructions.
-    @Test func instructionRoadFeaturesFromMockData() {
-        let service = makeServiceWithRoute(at: 0)
-        #expect(service.instructions[1].roadFeature == .trafficLight) // "At the traffic signal..."
-        #expect(service.instructions[2].roadFeature == .freewayEntry) // MOTORWAY_ENTER
-        #expect(service.instructions[3].roadFeature == .stopSign)     // "At the stop sign..."
     }
 
     // Advancing currentInstructionIndex resets haptic warning flags.

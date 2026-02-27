@@ -10,6 +10,7 @@ struct WindDownView: View {
     @State private var dismissCountdown = 10
     @State private var timer: Timer? = nil
     @State private var timerPaused = false
+    @State private var selectedMood: String? = nil
 
     var moneySaved: Double {
         let fromEvents = cameraZoneEvents.reduce(0) { $0 + $1.moneySaved }
@@ -18,281 +19,183 @@ struct WindDownView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                Spacer(minLength: 40)
+        ZStack {
+            Theme.Colors.acField.ignoresSafeArea()
 
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.cyan)
-                    .shadow(color: .cyan.opacity(0.5), radius: 10)
+            ScrollView {
+                VStack(spacing: 32) {
+                    Spacer(minLength: 40)
 
-                VStack(spacing: 12) {
-                    Text("Kickstand Down.")
-                        .font(.largeTitle)
-                        .fontWeight(.black)
-                        .foregroundColor(.white)
-
-                    if moneySaved > 0 {
-                        Text("Officer Bunny had your back.\nEvaded $\(Int(moneySaved)) in theoretical fines.")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.cyan)
-                            .multilineTextAlignment(.center)
-                    } else {
-                        Text("Clean run. No traps triggered.")
-                            .font(.title3)
-                            .foregroundColor(.gray)
-                    }
-
-                    HStack(spacing: 6) {
-                        Image(systemName: "leaf.fill")
-                            .foregroundColor(zenScore > 80 ? .green : (zenScore > 50 ? .orange : .red))
-                        Text("Zen Smoothness: \(zenScore)%")
-                            .font(.headline)
-                            .foregroundColor(zenScore > 80 ? .green : (zenScore > 50 ? .orange : .red))
-                    }
-                    .padding(.top, 8)
-                }
-
-                // Route summary card
-                if let ctx = rideContext {
-                    VStack(spacing: 6) {
-                        Text(ctx.destinationName)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                        HStack(spacing: 20) {
-                            Label(formattedDistance(ctx), systemImage: "arrow.triangle.turn.up.right.diamond")
-                            Label(formattedDuration(ctx), systemImage: "clock")
-                        }
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    }
-                    .padding(16)
-                    .background(.regularMaterial)
-                    .cornerRadius(16)
-                    .padding(.horizontal)
-                }
-
-                // Camera zone breakdown (only shown when events were recorded)
-                if !cameraZoneEvents.isEmpty {
-                    CameraBreakdownCard(events: cameraZoneEvents)
-                        .padding(.horizontal)
-                }
-
-                VStack(spacing: 20) {
-                    HStack(spacing: 12) {
-                        Text("🦉")
-                            .font(.system(size: 24))
-                            .padding(8)
-                            .background(Color.orange.opacity(0.15))
-                            .clipShape(Circle())
+                    // Stamp / Badge
+                    ZStack {
+                        Circle()
+                            .fill(Theme.Colors.acLeaf.opacity(0.15))
+                            .frame(width: 120, height: 120)
+                            .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
                         
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Officer Bunny")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(.orange)
-                            Text("How did today feel?")
-                                .font(.headline)
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                        Spacer()
+                        Image(systemName: "tent.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(Theme.Colors.acLeaf)
                     }
-                    .padding(.horizontal)
 
-                    HStack(spacing: 16) {
-                        MoodButton(symbol: "leaf.fill", color: .cyan, title: "Peaceful") {
-                            timer?.invalidate()
-                            onComplete("Peaceful")
-                        }
-                        MoodButton(symbol: "flame.fill", color: .orange, title: "Adventurous") {
-                            timer?.invalidate()
-                            onComplete("Adventurous")
-                        }
-                        MoodButton(symbol: "moon.zzz.fill", color: .gray, title: "Tiring") {
-                            timer?.invalidate()
-                            onComplete("Tiring")
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                .onTapGesture {
-                    // Tapping mood area pauses auto-dismiss
-                    timerPaused = true
-                    timer?.invalidate()
-                    withAnimation { dismissCountdown = 0 }
-                }
+                    // Header
+                    VStack(spacing: 12) {
+                        Text("Camp Reached!")
+                            .font(Theme.Typography.title)
+                            .foregroundColor(Theme.Colors.acTextDark)
 
-                Group {
-                    if dismissCountdown > 0 {
-                        Text("Skipping in \(dismissCountdown)s...")
-                            .transition(.opacity)
-                    } else {
-                        Text("Tap a mood to save your ride")
-                            .transition(.opacity)
+                        if moneySaved > 0 {
+                            Text("Safe travels! You avoided $\(Int(moneySaved)) in fines.")
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.acWood)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        } else {
+                            Text("A beautiful, safe journey.")
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.acTextMuted)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
                     }
+
+                    // Stats Card
+                    VStack(spacing: 16) {
+                        HStack {
+                            StatBox(title: "Safety Score", value: "\(zenScore)", icon: "shield.fill", color: Theme.Colors.acSky)
+                            if let ctx = rideContext {
+                                let miles = Double(ctx.routeDistanceMeters) * 0.000621371
+                                StatBox(title: "Distance", value: String(format: "%.1f mi", miles), icon: "ruler.fill", color: Theme.Colors.acCoral)
+                                let duration = Int(Date().timeIntervalSince(ctx.departureTime))
+                                StatBox(title: "Time", value: formatDuration(duration), icon: "clock.fill", color: Theme.Colors.acGold)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+
+                    // Journal Entry
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("How was the vibe?")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(Theme.Colors.acTextDark)
+                        
+                        HStack(spacing: 12) {
+                            MoodButton(emoji: "☀️", label: "Sunny", isSelected: selectedMood == "Sunny") { selectMood("Sunny") }
+                            MoodButton(emoji: "🌧️", label: "Moody", isSelected: selectedMood == "Moody") { selectMood("Moody") }
+                            MoodButton(emoji: "🎵", label: "Singing", isSelected: selectedMood == "Singing") { selectMood("Singing") }
+                            MoodButton(emoji: "☕️", label: "Cozy", isSelected: selectedMood == "Cozy") { selectMood("Cozy") }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+
+                    Spacer(minLength: 40)
+
+                    // Auto-close button
+                    Button(action: {
+                        complete()
+                    }) {
+                        HStack {
+                            Text("Close Journal")
+                            if !timerPaused {
+                                Text("(\(dismissCountdown))")
+                                    .opacity(0.8)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(ACButtonStyle(variant: .primary))
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 48)
                 }
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding(.bottom, 40)
-                .animation(.easeInOut(duration: 0.25), value: dismissCountdown == 0)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             startTimer()
         }
         .onDisappear {
             timer?.invalidate()
         }
-        .background(
-            LinearGradient(
-                colors: [.black, Color(white: 0.1)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-        )
     }
-
-    private func formattedDistance(_ ctx: RideContext) -> String {
-        if ctx.routeDistanceMeters < 1609 {
-            return "\(ctx.routeDistanceMeters)m"
-        } else {
-            return String(format: "%.1f mi", Double(ctx.routeDistanceMeters) / 1609.34)
-        }
-    }
-
-    private func formattedDuration(_ ctx: RideContext) -> String {
-        let minutes = Int((Double(ctx.routeDurationSeconds) / 60).rounded())
-        return "\(minutes) min"
+    
+    private func selectMood(_ mood: String) {
+        selectedMood = mood
+        timerPaused = true
+        timer?.invalidate()
     }
 
     private func startTimer() {
-        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            DispatchQueue.main.async {
-                guard !timerPaused else { return }
-                if dismissCountdown > 1 {
-                    dismissCountdown -= 1
-                } else {
-                    timer?.invalidate()
-                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                    onComplete("Focused")
-                }
+            if dismissCountdown > 1 {
+                dismissCountdown -= 1
+            } else {
+                complete()
             }
         }
     }
-}
 
-// MARK: - Camera Breakdown Card
-
-struct CameraBreakdownCard: View {
-    let events: [CameraZoneEvent]
-
-    var totalSaved: Double { events.reduce(0) { $0 + $1.moneySaved } }
-    var savedCount: Int { events.filter { $0.outcome == .saved }.count }
-    var ticketCount: Int { events.filter { $0.outcome == .potentialTicket }.count }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Camera Zones")
-                .font(.headline)
-                .foregroundColor(.white.opacity(0.8))
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
-
-            ForEach(Array(events.enumerated()), id: \.element.id) { idx, event in
-                VStack(spacing: 0) {
-                    HStack(spacing: 12) {
-                        // Outcome icon
-                        Image(systemName: event.outcome == .saved ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(event.outcome == .saved ? .green : .orange)
-                            .frame(width: 24)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(event.cameraStreet)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                            Text("\(event.speedLimitMph) mph zone  ·  entered at \(Int(event.userSpeedAtZone.rounded())) mph")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-
-                        Spacer()
-
-                        if event.outcome == .saved {
-                            Text("$100")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.green)
-                        } else {
-                            Text("⚠️")
-                                .font(.subheadline)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-
-                    if idx < events.count - 1 {
-                        Divider()
-                            .padding(.leading, 52)
-                    }
-                }
-            }
-
-            // Totals footer
-            Divider()
-            HStack {
-                Text("Net saved this ride")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
-                Spacer()
-                Text("$\(Int(totalSaved))")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(totalSaved > 0 ? .green : .white.opacity(0.5))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-        }
-        .background(.regularMaterial)
-        .cornerRadius(16)
-        .environment(\.colorScheme, .dark)
+    private func complete() {
+        timer?.invalidate()
+        onComplete(selectedMood ?? "Cozy")
+    }
+    
+    private func formatDuration(_ seconds: Int) -> String {
+        let m = seconds / 60
+        if m < 60 { return "\(m)m" }
+        return "\(m / 60)h \(m % 60)m"
     }
 }
 
-// MARK: - Mood Button
-
-struct MoodButton: View {
-    let symbol: String
-    let color: Color
+private struct StatBox: View {
     let title: String
-    let action: () -> Void
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(color)
+            
+            Text(value)
+                .font(Theme.Typography.headline)
+                .foregroundColor(Theme.Colors.acTextDark)
+            
+            Text(title)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextMuted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .acCardStyle(padding: 16)
+    }
+}
 
+private struct MoodButton: View {
+    let emoji: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+    
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 14) {
-                Image(systemName: symbol)
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundColor(color)
-                    .shadow(color: color.opacity(0.5), radius: 6)
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+            VStack(spacing: 6) {
+                Text(emoji)
+                    .font(.system(size: 32))
+                Text(label)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundColor(isSelected ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 100) // glove-friendly minimum height
-            .background(.regularMaterial)
-            .cornerRadius(22)
+            .padding(.vertical, 12)
+            .background(isSelected ? Theme.Colors.acLeaf.opacity(0.2) : Theme.Colors.acCream)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
-                RoundedRectangle(cornerRadius: 22)
-                    .strokeBorder(color.opacity(0.3), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder, lineWidth: 2)
             )
         }
+        .buttonStyle(.plain)
     }
 }

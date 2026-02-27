@@ -1,7 +1,4 @@
 import SwiftUI
-import MapKit
-import CoreLocation
-import Combine
 
 struct AlertOverlayView: View {
     let camera: SpeedCamera?
@@ -9,37 +6,38 @@ struct AlertOverlayView: View {
     var body: some View {
         if let camera = camera {
             HStack(spacing: 20) {
+                // Wooden Camp Sign style for Speed Limit
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
+                        .fill(Theme.Colors.acCream)
                         .frame(width: 70, height: 90)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.black, lineWidth: 3)
+                                .stroke(Theme.Colors.acBorder, lineWidth: 4)
                         )
 
                     VStack(spacing: 0) {
                         Text("SPEED\nLIMIT")
-                            .font(.system(size: 10, weight: .black))
+                            .font(.system(size: 10, weight: .black, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.black)
+                            .foregroundColor(Theme.Colors.acTextDark)
                             .padding(.top, 8)
 
                         Text("\(camera.speed_limit_mph)")
-                            .font(.system(size: 38, weight: .heavy))
-                            .foregroundColor(.black)
+                            .font(.system(size: 38, weight: .heavy, design: .rounded))
+                            .foregroundColor(Theme.Colors.acCoral)
                             .padding(.bottom, 4)
                     }
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("SPEED TRAP AHEAD")
-                        .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .white.opacity(0.5), radius: 2)
-                    Text("Roll off the throttle")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white.opacity(0.9))
+                    Text("Safety Stop Ahead!")
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                    
+                    Text("Time to slow down and enjoy the view.")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
                 }
                 Spacer()
             }
@@ -47,19 +45,13 @@ struct AlertOverlayView: View {
             .padding(.top, 64)
             .padding(.bottom, 24)
             .frame(maxWidth: .infinity)
-            .background(
-                ZStack {
-                    Color(red: 0.9, green: 0.1, blue: 0.2).opacity(0.9)
-                    LinearGradient(
-                        colors: [.white.opacity(0.3), .clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                }
-                .background(.ultraThinMaterial)
+            .background(Theme.Colors.acField)
+            .clipShape(RoundedCorner(radius: 32, corners: [.bottomLeft, .bottomRight]))
+            .overlay(
+                RoundedCorner(radius: 32, corners: [.bottomLeft, .bottomRight])
+                    .stroke(Theme.Colors.acBorder, lineWidth: 2)
             )
-            .clipShape(RoundedCorner(radius: 24, corners: [.bottomLeft, .bottomRight]))
-            .shadow(color: Color(red: 0.9, green: 0.1, blue: 0.2).opacity(0.6), radius: 20, x: 0, y: 10)
+            .shadow(color: Theme.Colors.acBorder.opacity(0.4), radius: 10, x: 0, y: 5)
             .transition(.move(edge: .top).combined(with: .opacity))
         }
     }

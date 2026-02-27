@@ -1,29 +1,6 @@
 import SwiftUI
 import PhotosUI
 
-// MARK: - Neon Colors
-
-private let neonColors: [(name: String, hex: String)] = [
-    ("Cyan",   "00FFFF"),
-    ("Green",  "00FF7F"),
-    ("Purple", "9B59B6"),
-    ("Orange", "FF6B35"),
-    ("Pink",   "FF1493"),
-    ("Blue",   "007AFF"),
-]
-
-extension Color {
-    init(hex: String) {
-        let h = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: h).scanHexInt64(&int)
-        let r = Double((int >> 16) & 0xFF) / 255
-        let g = Double((int >> 8)  & 0xFF) / 255
-        let b = Double(int         & 0xFF) / 255
-        self.init(red: r, green: g, blue: b)
-    }
-}
-
 // MARK: - VehicleGarageView
 
 struct VehicleGarageView: View {
@@ -36,16 +13,15 @@ struct VehicleGarageView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.05, green: 0.05, blue: 0.1)
+            Theme.Colors.acField
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Header
                 HStack {
                     Text("MY GARAGE")
-                        .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                        .kerning(2)
+                        .font(Theme.Typography.title)
+                        .foregroundColor(Theme.Colors.acTextDark)
 
                     Spacer()
 
@@ -58,13 +34,9 @@ struct VehicleGarageView: View {
                             Text("Add")
                                 .font(.system(size: 14, weight: .bold))
                         }
-                        .foregroundColor(.cyan)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.cyan.opacity(0.15))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().strokeBorder(Color.cyan.opacity(0.4), lineWidth: 1))
                     }
+                    .buttonStyle(ACButtonStyle(variant: .secondary))
+                    .frame(height: 36) // Override minHeight for a smaller header button
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 24)
@@ -100,26 +72,24 @@ struct VehicleGarageView: View {
     private var emptyState: some View {
         VStack(spacing: 24) {
             Spacer()
-            Image(systemName: "car.2.fill")
-                .font(.system(size: 64))
-                .foregroundColor(.cyan.opacity(0.5))
+            Image(systemName: "tent.fill")
+                .font(.system(size: 80))
+                .foregroundColor(Theme.Colors.acLeaf.opacity(0.8))
             Text("Your garage is empty")
-                .font(.title2.bold())
-                .foregroundColor(.white)
-            Text("Add your first vehicle to get started")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.5))
-            Button {
+                .font(Theme.Typography.headline)
+                .foregroundColor(Theme.Colors.acTextDark)
+            Text("Park a vehicle here to start your journey!")
+                .font(Theme.Typography.body)
+                .foregroundColor(Theme.Colors.acTextMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
+            Button("Add Vehicle") {
                 showAddVehicle = true
-            } label: {
-                Text("Add Vehicle")
-                    .font(.headline)
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 14)
-                    .background(Color.cyan)
-                    .clipShape(Capsule())
             }
+            .buttonStyle(ACButtonStyle(variant: .primary))
+            .padding(.top, 16)
+            
             Spacer()
         }
     }
@@ -135,10 +105,11 @@ struct VehicleGarageView: View {
                         VehicleCard(vehicle: vehicle, isDefault: vehicleStore.selectedVehicleId == vehicle.id)
                             .tag(Optional(vehicle.id))
                             .padding(.horizontal, 24)
+                            .padding(.vertical, 8)
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .automatic))
-                .frame(height: 200)
+                .tabViewStyle(.page(indexDisplayMode: .always))
+                .frame(height: 240)
 
                 // Action buttons for selected vehicle
                 if let vehicle = currentVehicle {
@@ -150,29 +121,11 @@ struct VehicleGarageView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: vehicleStore.selectedVehicleId == vehicle.id ? "checkmark.circle.fill" : "star.fill")
-                                    .font(.system(size: 14, weight: .bold))
                                 Text(vehicleStore.selectedVehicleId == vehicle.id ? "Active" : "Set Default")
-                                    .font(.system(size: 14, weight: .bold))
                             }
-                            .foregroundColor(vehicleStore.selectedVehicleId == vehicle.id ? .green : .white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                vehicleStore.selectedVehicleId == vehicle.id
-                                    ? Color.green.opacity(0.2)
-                                    : Color.white.opacity(0.1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .strokeBorder(
-                                        vehicleStore.selectedVehicleId == vehicle.id
-                                            ? Color.green.opacity(0.5)
-                                            : Color.white.opacity(0.2),
-                                        lineWidth: 1
-                                    )
-                            )
                         }
+                        .buttonStyle(ACButtonStyle(variant: vehicleStore.selectedVehicleId == vehicle.id ? .primary : .secondary))
                         .disabled(vehicleStore.selectedVehicleId == vehicle.id)
 
                         Button {
@@ -180,20 +133,11 @@ struct VehicleGarageView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "pencil")
-                                    .font(.system(size: 14, weight: .bold))
                                 Text("Edit")
-                                    .font(.system(size: 14, weight: .bold))
                             }
-                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.white.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
-                            )
                         }
+                        .buttonStyle(ACButtonStyle(variant: .secondary))
                     }
                     .padding(.horizontal, 24)
 
@@ -232,96 +176,87 @@ private struct VehicleCard: View {
     let vehicle: Vehicle
     let isDefault: Bool
 
-    @State private var glowPulse = false
-
-    var accentColor: Color { Color(hex: vehicle.colorHex) }
-
     var body: some View {
-        ZStack {
-            // Glow background
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [accentColor.opacity(0.3), Color(red: 0.07, green: 0.07, blue: 0.12)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [accentColor.opacity(glowPulse ? 0.9 : 0.5), accentColor.opacity(0.2)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: isDefault ? 2 : 1
-                )
-
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                // Vehicle Icon
+                ZStack {
+                    Circle()
+                        .fill(Theme.Colors.acLeaf.opacity(0.15))
+                        .frame(width: 56, height: 56)
                     Image(systemName: vehicle.type.icon)
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(accentColor)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(Theme.Colors.acLeaf)
+                }
 
-                    Spacer()
+                Spacer()
 
-                    VStack(alignment: .trailing, spacing: 4) {
-                        if isDefault {
-                            HStack(spacing: 4) {
-                                Image(systemName: "bolt.fill")
-                                    .font(.caption.bold())
-                                Text("ACTIVE")
-                                    .font(.system(size: 10, weight: .black))
-                                    .kerning(1)
-                            }
-                            .foregroundColor(.green)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.green.opacity(0.2))
-                            .clipShape(Capsule())
-                        }
-
-                        Text(vehicle.type.displayName.uppercased())
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(accentColor.opacity(0.8))
-                            .kerning(1)
+                if isDefault {
+                    HStack(spacing: 4) {
+                        Image(systemName: "leaf.fill")
+                            .font(.system(size: 10))
+                        Text("ACTIVE")
+                            .font(Theme.Typography.button)
+                            .font(.system(size: 10))
                     }
+                    .foregroundColor(Theme.Colors.acCream)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Theme.Colors.acLeaf)
+                    .clipShape(Capsule())
                 }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(vehicle.name)
-                        .font(.system(size: 22, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-
-                    Text("\(vehicle.make) \(vehicle.model) \(vehicle.year)")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                }
-
-                // Color bar
-                Capsule()
-                    .fill(accentColor)
-                    .frame(height: 3)
-                    .shadow(color: accentColor.opacity(0.8), radius: 4, x: 0, y: 0)
             }
-            .padding(20)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(vehicle.name)
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .lineLimit(1)
+
+                Text("\(vehicle.make) \(vehicle.model) (\(String(vehicle.year)))")
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextMuted)
+                    .lineLimit(1)
+            }
+            
+            Divider().background(Theme.Colors.acBorder.opacity(0.3))
+            
+            // Stats Bars
+            VStack(spacing: 8) {
+                StatBar(label: "Speed", value: vehicle.speedStat, color: Theme.Colors.acSky)
+                StatBar(label: "Handling", value: vehicle.handlingStat, color: Theme.Colors.acGold)
+                StatBar(label: "Safety", value: vehicle.safetyStat, color: Theme.Colors.acCoral)
+            }
+            .padding(.top, 4)
         }
-        .shadow(color: accentColor.opacity(isDefault ? 0.35 : 0.15), radius: 16, x: 0, y: 8)
-        .onAppear {
-            guard isDefault else { return }
-            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-                glowPulse = true
-            }
-        }
-        .onChange(of: isDefault) { active in
-            if active {
-                withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-                    glowPulse = true
+        .acCardStyle(padding: 20, interactive: false)
+    }
+}
+
+private struct StatBar: View {
+    let label: String
+    let value: Double
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextMuted)
+                .frame(width: 60, alignment: .leading)
+            
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Theme.Colors.acBorder.opacity(0.3))
+                        .frame(height: 8)
+                    
+                    Capsule()
+                        .fill(color)
+                        .frame(width: max(0, min(geo.size.width * (value / 10.0), geo.size.width)), height: 8)
                 }
-            } else {
-                glowPulse = false
             }
+            .frame(height: 8)
         }
     }
 }
@@ -334,12 +269,11 @@ private struct VehicleStatsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("STATS", icon: "chart.bar.fill")
+            sectionHeader("CAMPING STATS", icon: "map.fill")
 
             HStack(spacing: 12) {
-                GarageStatBox(title: "Total Miles", value: String(format: "%.0f mi", driveStore.totalDistanceMiles + vehicle.odometerMiles), color: .cyan)
-                GarageStatBox(title: "Rides", value: "\(driveStore.totalRideCount)", color: .purple)
-                GarageStatBox(title: "Zen Score", value: "\(driveStore.avgZenScore)/100", color: .green)
+                GarageStatBox(title: "Miles Explored", value: String(format: "%.0f mi", driveStore.totalDistanceMiles + vehicle.odometerMiles))
+                GarageStatBox(title: "Trips Taken", value: "\(driveStore.totalRideCount)")
             }
         }
     }
@@ -348,25 +282,21 @@ private struct VehicleStatsSection: View {
 private struct GarageStatBox: View {
     let title: String
     let value: String
-    let color: Color
 
     var body: some View {
         VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 15, weight: .black, design: .rounded))
-                .foregroundColor(.white)
+                .font(Theme.Typography.headline)
+                .foregroundColor(Theme.Colors.acTextDark)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
             Text(title)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.white.opacity(0.5))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextMuted)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(color.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(color.opacity(0.25), lineWidth: 1))
+        .acCardStyle(padding: 16)
     }
 }
 
@@ -382,7 +312,7 @@ private struct PhotoTimelineSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("PHOTO TIMELINE", icon: "camera.fill")
+            sectionHeader("SCRAPBOOK", icon: "photo.fill.on.rectangle.fill")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -395,20 +325,18 @@ private struct PhotoTimelineSection: View {
                     // Add photo button
                     PhotosPicker(selection: $selectedItem, matching: .images) {
                         VStack(spacing: 8) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(.cyan)
-                            Text("Add")
-                                .font(.caption.bold())
-                                .foregroundColor(.cyan.opacity(0.8))
+                            Image(systemName: "plus")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(Theme.Colors.acLeaf)
                         }
                         .frame(width: 80, height: 80)
-                        .background(Color.cyan.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cyan.opacity(0.3), lineWidth: 1, antialiased: true))
+                        .background(Theme.Colors.acCream)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
                     }
                 }
                 .padding(.horizontal, 2)
+                .padding(.bottom, 8)
             }
         }
         .onChange(of: selectedItem) { item in
@@ -443,29 +371,31 @@ private struct PhotoThumbnail: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 if let uiImage = UIImage(data: photo.imageData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
                         .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
                 } else {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.1))
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Theme.Colors.acCream)
                         .frame(width: 80, height: 80)
-                        .overlay(Image(systemName: "photo").foregroundColor(.white.opacity(0.4)))
+                        .overlay(Image(systemName: "photo").foregroundColor(Theme.Colors.acTextMuted))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
                 }
                 Text(shortDate(photo.date))
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundColor(Theme.Colors.acTextMuted)
             }
         }
     }
 
     private func shortDate(_ date: Date) -> String {
         let fmt = DateFormatter()
-        fmt.dateFormat = "MMM"
+        fmt.dateFormat = "MMM d"
         return fmt.string(from: date)
     }
 }
@@ -476,12 +406,13 @@ private struct FullScreenPhotoView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Theme.Colors.acField.ignoresSafeArea()
 
             if let uiImage = UIImage(data: photo.imageData) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFit()
+                    .padding()
             }
 
             VStack {
@@ -490,7 +421,7 @@ private struct FullScreenPhotoView: View {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 28))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(Theme.Colors.acTextDark)
                     }
                     .padding()
                 }
@@ -498,60 +429,20 @@ private struct FullScreenPhotoView: View {
 
                 if let note = photo.note, !note.isEmpty {
                     Text(note)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .font(Theme.Typography.body)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                        .padding()
+                        .background(Theme.Colors.acCream)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.acBorder, lineWidth: 2))
                         .padding(.bottom, 32)
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
 
 // MARK: - Maintenance Log Section
-
-private struct ServiceReminderBanner: View {
-    let vehicle: Vehicle
-    let currentMileage: Double
-
-    private var intervalMiles: Double { vehicle.type == .motorcycle ? 3_000 : 5_000 }
-
-    private var lastOilChange: MaintenanceRecord? {
-        vehicle.maintenanceLog.first(where: { $0.type == "Oil Change" })
-    }
-
-    var body: some View {
-        if let last = lastOilChange {
-            let remaining = (last.mileageAtService + intervalMiles) - currentMileage
-            let isOverdue = remaining <= 0
-            let isDueSoon = remaining > 0 && remaining <= 500
-            let color: Color = isOverdue ? .red : (isDueSoon ? .orange : .green)
-            let icon = isOverdue
-                ? "exclamationmark.triangle.fill"
-                : (isDueSoon ? "clock.badge.exclamationmark.fill" : "checkmark.shield.fill")
-            let label: String = isOverdue
-                ? "Oil change overdue by \(Int(abs(remaining))) mi"
-                : (isDueSoon
-                    ? "Oil change due in \(Int(remaining)) mi"
-                    : "Oil change OK · \(Int(remaining)) mi to go")
-
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(color)
-                Text(label)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(color)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(color.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(color.opacity(0.3), lineWidth: 1))
-        }
-    }
-}
 
 private struct MaintenanceLogSection: View {
     var vehicle: Vehicle
@@ -563,7 +454,7 @@ private struct MaintenanceLogSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                sectionHeader("MAINTENANCE LOG", icon: "wrench.and.screwdriver.fill")
+                sectionHeader("SERVICE LOG", icon: "wrench.and.screwdriver.fill")
                 Spacer()
                 Button {
                     showAddRecord = true
@@ -571,41 +462,31 @@ private struct MaintenanceLogSection: View {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
                             .font(.system(size: 11, weight: .bold))
-                        Text("Log Service")
+                        Text("Log")
                             .font(.system(size: 11, weight: .bold))
                     }
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.15))
-                    .clipShape(Capsule())
-                    .overlay(Capsule().strokeBorder(Color.orange.opacity(0.3), lineWidth: 1))
                 }
+                .buttonStyle(ACButtonStyle(variant: .secondary))
+                .frame(height: 30) // smaller footprint
             }
-
-            ServiceReminderBanner(vehicle: vehicle, currentMileage: currentMileage)
 
             if vehicle.maintenanceLog.isEmpty {
                 Text("No service records yet")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.4))
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextMuted)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 16)
-                    .background(Color.white.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .acCardStyle(padding: 16)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(vehicle.maintenanceLog.enumerated()), id: \.element.id) { idx, record in
                         MaintenanceRow(record: record)
                         if idx < vehicle.maintenanceLog.count - 1 {
-                            Divider()
+                            Divider().background(Theme.Colors.acBorder.opacity(0.3))
                                 .padding(.leading, 16)
-                                .opacity(0.2)
                         }
                     }
                 }
-                .background(Color.white.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .acCardStyle(padding: 0)
             }
         }
         .sheet(isPresented: $showAddRecord) {
@@ -624,34 +505,29 @@ private struct MaintenanceRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: maintenanceIcon(record.type))
-                .font(.system(size: 16))
-                .foregroundColor(.orange)
-                .frame(width: 24)
+                .font(.system(size: 18))
+                .foregroundColor(Theme.Colors.acWood)
+                .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(record.type)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextDark)
                 HStack(spacing: 8) {
                     Text(String(format: "%.0f mi", record.mileageAtService))
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
-                    if let cost = record.cost {
-                        Text("$\(Int(cost))")
-                            .font(.caption)
-                            .foregroundColor(.green.opacity(0.7))
-                    }
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
                 }
             }
 
             Spacer()
 
             Text(shortDate(record.date))
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.4))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextMuted)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
     }
 
     private func shortDate(_ date: Date) -> String {
@@ -686,58 +562,59 @@ struct AddMaintenanceSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Service Type") {
-                    Picker("Type", selection: $selectedType) {
-                        ForEach(serviceTypes, id: \.self) { Text($0) }
+            ZStack {
+                Theme.Colors.acField.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Service Type")
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.acTextDark)
+                            
+                            Picker("Type", selection: $selectedType) {
+                                ForEach(serviceTypes, id: \.self) { Text($0) }
+                            }
+                            .pickerStyle(.segmented)
+                            
+                            acTextField(title: "Mileage at Service", placeholder: "e.g. \(Int(currentMileage))", text: $mileageText, keyboard: .numberPad)
+                            acTextField(title: "Note (optional)", placeholder: "Any notes…", text: $noteText)
+                        }
+                        .acCardStyle(padding: 20)
+                        
+                        Button("Save Record") {
+                            let mileage = Double(mileageText) ?? currentMileage
+                            let cost = Double(costText)
+                            let record = MaintenanceRecord(
+                                type: selectedType,
+                                mileageAtService: mileage,
+                                note: noteText.isEmpty ? nil : noteText,
+                                cost: cost
+                            )
+                            onSave(record)
+                            dismiss()
+                        }
+                        .buttonStyle(ACButtonStyle(variant: .primary))
                     }
-                    .pickerStyle(.menu)
-                }
-
-                Section("Mileage at Service") {
-                    TextField("e.g. \(Int(currentMileage))", text: $mileageText)
-                        .keyboardType(.numberPad)
-                }
-
-                Section("Cost (optional)") {
-                    TextField("e.g. 45", text: $costText)
-                        .keyboardType(.decimalPad)
-                }
-
-                Section("Note (optional)") {
-                    TextField("Any notes…", text: $noteText)
+                    .padding()
                 }
             }
             .navigationTitle("Log Service")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let mileage = Double(mileageText) ?? currentMileage
-                        let cost = Double(costText)
-                        let record = MaintenanceRecord(
-                            type: selectedType,
-                            mileageAtService: mileage,
-                            note: noteText.isEmpty ? nil : noteText,
-                            cost: cost
-                        )
-                        onSave(record)
-                        dismiss()
-                    }
-                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundColor(Theme.Colors.acWood)
                 }
             }
         }
         .onAppear {
             mileageText = String(Int(currentMileage))
         }
-        .preferredColorScheme(.dark)
     }
 }
 
-// MARK: - Add Vehicle Sheet
+// MARK: - Add/Edit Vehicle Forms & VehicleSelectView
 
 struct AddVehicleSheet: View {
     let onSave: (Vehicle) -> Void
@@ -747,10 +624,7 @@ struct AddVehicleSheet: View {
     @State private var make = ""
     @State private var model = ""
     @State private var yearText = ""
-    @State private var selectedType: VehicleType = .motorcycle
-    @State private var selectedColorHex = "00FFFF"
-    @State private var licensePlate = ""
-    @State private var odometerText = ""
+    @State private var selectedType: VehicleType = .car
 
     var isValid: Bool {
         !name.isEmpty && !make.isEmpty && !model.isEmpty && (Int(yearText) != nil)
@@ -758,108 +632,57 @@ struct AddVehicleSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Vehicle Type") {
-                    HStack(spacing: 16) {
-                        ForEach(VehicleType.allCases, id: \.self) { type in
-                            Button {
-                                selectedType = type
-                            } label: {
-                                VStack(spacing: 8) {
-                                    Image(systemName: type.icon)
-                                        .font(.system(size: 28))
-                                        .foregroundColor(selectedType == type ? .cyan : .white.opacity(0.4))
-                                    Text(type.displayName)
-                                        .font(.caption.bold())
-                                        .foregroundColor(selectedType == type ? .cyan : .white.opacity(0.4))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(selectedType == type ? Color.cyan.opacity(0.15) : Color.white.opacity(0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .strokeBorder(selectedType == type ? Color.cyan.opacity(0.5) : Color.clear, lineWidth: 1.5)
-                                )
-                            }
-                            .buttonStyle(.plain)
+            ZStack {
+                Theme.Colors.acField.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        VehicleTypeSelector(selectedType: $selectedType)
+                        
+                        VStack(spacing: 16) {
+                            acTextField(title: "Nickname", placeholder: "e.g. Camp Cruiser", text: $name)
+                            acTextField(title: "Make", placeholder: "e.g. Subaru", text: $make)
+                            acTextField(title: "Model", placeholder: "e.g. Outback", text: $model)
+                            acTextField(title: "Year", placeholder: "e.g. 2024", text: $yearText, keyboard: .numberPad)
                         }
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                }
-
-                Section("Identity") {
-                    TextField("Nickname (e.g. Black Beast)", text: $name)
-                    TextField("Make (e.g. Honda)", text: $make)
-                    TextField("Model (e.g. CBR600RR)", text: $model)
-                    TextField("Year (e.g. 2021)", text: $yearText)
-                        .keyboardType(.numberPad)
-                }
-
-                Section("Color") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(neonColors, id: \.hex) { color in
-                                Button {
-                                    selectedColorHex = color.hex
-                                } label: {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color(hex: color.hex))
-                                            .frame(width: 36, height: 36)
-                                            .shadow(color: Color(hex: color.hex).opacity(0.6), radius: 6)
-                                        if selectedColorHex == color.hex {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 14, weight: .black))
-                                                .foregroundColor(.black)
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
+                        .acCardStyle(padding: 20)
+                        
+                        Button("Add to Garage") {
+                            let (spd, hnd, sft) = statsForType(selectedType)
+                            let vehicle = Vehicle(
+                                name: name,
+                                make: make,
+                                model: model,
+                                year: Int(yearText) ?? Calendar.current.component(.year, from: Date()),
+                                type: selectedType,
+                                colorHex: "FFFFFF",
+                                licensePlate: "",
+                                odometerMiles: 0,
+                                speedStat: spd,
+                                handlingStat: hnd,
+                                safetyStat: sft
+                            )
+                            onSave(vehicle)
+                            dismiss()
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(ACButtonStyle(variant: .primary))
+                        .disabled(!isValid)
+                        .opacity(isValid ? 1 : 0.5)
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                }
-
-                Section("Optional") {
-                    TextField("License Plate", text: $licensePlate)
-                    TextField("Starting Odometer (miles)", text: $odometerText)
-                        .keyboardType(.decimalPad)
+                    .padding()
                 }
             }
-            .navigationTitle("Add Vehicle")
+            .navigationTitle("New Ride")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let vehicle = Vehicle(
-                            name: name,
-                            make: make,
-                            model: model,
-                            year: Int(yearText) ?? Calendar.current.component(.year, from: Date()),
-                            type: selectedType,
-                            colorHex: selectedColorHex,
-                            licensePlate: licensePlate,
-                            odometerMiles: Double(odometerText) ?? 0
-                        )
-                        onSave(vehicle)
-                        dismiss()
-                    }
-                    .disabled(!isValid)
-                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundColor(Theme.Colors.acWood)
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
-
-// MARK: - Edit Vehicle Sheet
 
 struct EditVehicleSheet: View {
     let vehicle: Vehicle
@@ -871,9 +694,6 @@ struct EditVehicleSheet: View {
     @State private var model: String
     @State private var yearText: String
     @State private var selectedType: VehicleType
-    @State private var selectedColorHex: String
-    @State private var licensePlate: String
-    @State private var odometerText: String
 
     init(vehicle: Vehicle, onSave: @escaping (Vehicle) -> Void) {
         self.vehicle = vehicle
@@ -883,293 +703,129 @@ struct EditVehicleSheet: View {
         _model = State(initialValue: vehicle.model)
         _yearText = State(initialValue: "\(vehicle.year)")
         _selectedType = State(initialValue: vehicle.type)
-        _selectedColorHex = State(initialValue: vehicle.colorHex)
-        _licensePlate = State(initialValue: vehicle.licensePlate)
-        _odometerText = State(initialValue: "\(Int(vehicle.odometerMiles))")
     }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Vehicle Type") {
-                    HStack(spacing: 16) {
-                        ForEach(VehicleType.allCases, id: \.self) { type in
-                            Button {
-                                selectedType = type
-                            } label: {
-                                VStack(spacing: 8) {
-                                    Image(systemName: type.icon)
-                                        .font(.system(size: 28))
-                                        .foregroundColor(selectedType == type ? .cyan : .white.opacity(0.4))
-                                    Text(type.displayName)
-                                        .font(.caption.bold())
-                                        .foregroundColor(selectedType == type ? .cyan : .white.opacity(0.4))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(selectedType == type ? Color.cyan.opacity(0.15) : Color.white.opacity(0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .strokeBorder(selectedType == type ? Color.cyan.opacity(0.5) : Color.clear, lineWidth: 1.5)
-                                )
-                            }
-                            .buttonStyle(.plain)
+            ZStack {
+                Theme.Colors.acField.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        VehicleTypeSelector(selectedType: $selectedType)
+                        
+                        VStack(spacing: 16) {
+                            acTextField(title: "Nickname", placeholder: "e.g. Camp Cruiser", text: $name)
+                            acTextField(title: "Make", placeholder: "e.g. Subaru", text: $make)
+                            acTextField(title: "Model", placeholder: "e.g. Outback", text: $model)
+                            acTextField(title: "Year", placeholder: "e.g. 2024", text: $yearText, keyboard: .numberPad)
                         }
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                }
-
-                Section("Identity") {
-                    TextField("Nickname", text: $name)
-                    TextField("Make", text: $make)
-                    TextField("Model", text: $model)
-                    TextField("Year", text: $yearText).keyboardType(.numberPad)
-                }
-
-                Section("Color") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(neonColors, id: \.hex) { color in
-                                Button {
-                                    selectedColorHex = color.hex
-                                } label: {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color(hex: color.hex))
-                                            .frame(width: 36, height: 36)
-                                            .shadow(color: Color(hex: color.hex).opacity(0.6), radius: 6)
-                                        if selectedColorHex == color.hex {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 14, weight: .black))
-                                                .foregroundColor(.black)
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
+                        .acCardStyle(padding: 20)
+                        
+                        Button("Save Changes") {
+                            var updated = vehicle
+                            updated.name = name
+                            updated.make = make
+                            updated.model = model
+                            updated.year = Int(yearText) ?? vehicle.year
+                            updated.type = selectedType
+                            // If type changes, maybe we recalculate stats? Or leave them as "customized"
+                            // For simplicity we will re-assign defaults for the type.
+                            let (spd, hnd, sft) = statsForType(selectedType)
+                            updated.speedStat = spd
+                            updated.handlingStat = hnd
+                            updated.safetyStat = sft
+                            
+                            onSave(updated)
+                            dismiss()
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(ACButtonStyle(variant: .primary))
+                        .disabled(name.isEmpty || make.isEmpty || model.isEmpty)
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                }
-
-                Section("Optional") {
-                    TextField("License Plate", text: $licensePlate)
-                    TextField("Odometer (miles)", text: $odometerText).keyboardType(.decimalPad)
+                    .padding()
                 }
             }
-            .navigationTitle("Edit Vehicle")
+            .navigationTitle("Edit Ride")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        var updated = vehicle
-                        updated.name = name
-                        updated.make = make
-                        updated.model = model
-                        updated.year = Int(yearText) ?? vehicle.year
-                        updated.type = selectedType
-                        updated.colorHex = selectedColorHex
-                        updated.licensePlate = licensePlate
-                        updated.odometerMiles = Double(odometerText) ?? vehicle.odometerMiles
-                        onSave(updated)
-                        dismiss()
-                    }
-                    .disabled(name.isEmpty || make.isEmpty || model.isEmpty)
-                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-
-// MARK: - Vehicle Select View (full-screen, used as vehicleSelect AppState)
-
-struct VehicleSelectView: View {
-    @EnvironmentObject var vehicleStore: VehicleStore
-    let onComplete: () -> Void
-
-    @State private var selectedType: VehicleType = .motorcycle
-    @State private var name = ""
-    @State private var make = ""
-    @State private var model = ""
-    @State private var yearText = ""
-    @State private var selectedColorHex = "00FFFF"
-    @State private var appeared = false
-
-    var isValid: Bool { !name.isEmpty && !make.isEmpty && !model.isEmpty && Int(yearText) != nil }
-
-    var body: some View {
-        ZStack {
-            LinearGradient(colors: [.black, Color(white: 0.06)], startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 32) {
-                    Spacer(minLength: 48)
-
-                    VStack(spacing: 8) {
-                        Text("What do you ride?")
-                            .font(.system(size: 32, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                        Text("Add your first vehicle to the garage")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-
-                    // Type picker
-                    HStack(spacing: 16) {
-                        ForEach(VehicleType.allCases, id: \.self) { type in
-                            Button {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    selectedType = type
-                                }
-                            } label: {
-                                VStack(spacing: 12) {
-                                    Image(systemName: type.icon)
-                                        .font(.system(size: 40, weight: .bold))
-                                        .foregroundColor(selectedType == type ? .cyan : .white.opacity(0.3))
-                                    Text(type.displayName)
-                                        .font(.system(size: 15, weight: .bold))
-                                        .foregroundColor(selectedType == type ? .cyan : .white.opacity(0.3))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 24)
-                                .background(
-                                    selectedType == type
-                                        ? Color.cyan.opacity(0.15)
-                                        : Color.white.opacity(0.05)
-                                )
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .strokeBorder(
-                                            selectedType == type ? Color.cyan.opacity(0.6) : Color.clear,
-                                            lineWidth: 2
-                                        )
-                                )
-                                .shadow(color: selectedType == type ? Color.cyan.opacity(0.2) : .clear, radius: 12)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 24)
-
-                    // Details form
-                    VStack(spacing: 16) {
-                        onboardingField("Nickname", placeholder: "e.g. Black Beast", text: $name)
-                        onboardingField("Make", placeholder: "e.g. Honda", text: $make)
-                        onboardingField("Model", placeholder: "e.g. CBR600RR", text: $model)
-                        onboardingField("Year", placeholder: "e.g. 2021", text: $yearText, keyboard: .numberPad)
-                    }
-                    .padding(.horizontal, 24)
-
-                    // Color picker
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("COLOR")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white.opacity(0.4))
-                            .kerning(1.5)
-                            .padding(.leading, 4)
-
-                        HStack(spacing: 16) {
-                            ForEach(neonColors, id: \.hex) { color in
-                                Button {
-                                    selectedColorHex = color.hex
-                                } label: {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color(hex: color.hex))
-                                            .frame(width: 44, height: 44)
-                                            .shadow(color: Color(hex: color.hex).opacity(0.7), radius: 8)
-                                        if selectedColorHex == color.hex {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 16, weight: .black))
-                                                .foregroundColor(.black)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding(.horizontal, 24)
-
-                    // CTA
-                    Button {
-                        let vehicle = Vehicle(
-                            name: name,
-                            make: make,
-                            model: model,
-                            year: Int(yearText) ?? Calendar.current.component(.year, from: Date()),
-                            type: selectedType,
-                            colorHex: selectedColorHex,
-                            licensePlate: "",
-                            odometerMiles: 0
-                        )
-                        vehicleStore.addVehicle(vehicle)
-                        onComplete()
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: selectedType == .motorcycle ? "motorcycle" : "car.fill")
-                                .font(.system(size: 18, weight: .bold))
-                            Text("Let's Roll")
-                                .font(.system(size: 20, weight: .black, design: .rounded))
-                        }
-                        .foregroundColor(.black)
-                        .padding(.vertical, 20)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.cyan)
-                        .clipShape(Capsule())
-                        .shadow(color: Color.cyan.opacity(0.4), radius: 16, x: 0, y: 8)
-                    }
-                    .disabled(!isValid)
-                    .opacity(isValid ? 1 : 0.5)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 48)
+                        .foregroundColor(Theme.Colors.acWood)
                 }
             }
         }
     }
-
-    @ViewBuilder
-    private func onboardingField(_ label: String, placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(.white.opacity(0.4))
-                .kerning(1.5)
-            TextField(placeholder, text: text)
-                .keyboardType(keyboard)
-                .font(.system(size: 17))
-                .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(Color.white.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
-                )
-        }
-    }
 }
+
 
 // MARK: - Shared Helpers
 
 private func sectionHeader(_ title: String, icon: String) -> some View {
     HStack(spacing: 6) {
         Image(systemName: icon)
-            .font(.system(size: 12, weight: .bold))
-            .foregroundColor(.white.opacity(0.5))
+            .font(.system(size: 14, weight: .bold))
+            .foregroundColor(Theme.Colors.acWood)
         Text(title)
-            .font(.system(size: 11, weight: .black))
-            .foregroundColor(.white.opacity(0.5))
+            .font(.system(size: 12, weight: .black, design: .rounded))
+            .foregroundColor(Theme.Colors.acWood)
             .kerning(1.5)
+    }
+}
+
+private func acTextField(title: String, placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+        Text(title)
+            .font(Theme.Typography.body)
+            .foregroundColor(Theme.Colors.acTextDark)
+        
+        TextField(placeholder, text: text)
+            .keyboardType(keyboard)
+            .font(Theme.Typography.body)
+            .foregroundColor(Theme.Colors.acTextDark)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(Theme.Colors.acCream)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
+    }
+}
+
+private struct VehicleTypeSelector: View {
+    @Binding var selectedType: VehicleType
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            ForEach(VehicleType.allCases, id: \.self) { type in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedType = type
+                    }
+                } label: {
+                    VStack(spacing: 12) {
+                        Image(systemName: type.icon)
+                            .font(.system(size: 32, weight: .bold))
+                        Text(type.displayName)
+                            .font(Theme.Typography.button)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(selectedType == type ? Theme.Colors.acLeaf.opacity(0.15) : Theme.Colors.acCream)
+                    .foregroundColor(selectedType == type ? Theme.Colors.acLeaf : Theme.Colors.acTextMuted)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(selectedType == type ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.5), lineWidth: 2)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+private func statsForType(_ type: VehicleType) -> (Double, Double, Double) {
+    switch type {
+    case .motorcycle: return (9.0, 8.0, 2.0)
+    case .car:        return (6.0, 5.0, 9.0)
     }
 }

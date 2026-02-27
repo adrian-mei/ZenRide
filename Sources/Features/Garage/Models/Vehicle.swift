@@ -40,6 +40,12 @@ struct Vehicle: Codable, Identifiable {
     var colorHex: String        // e.g. "00FFFF"
     var licensePlate: String
     var odometerMiles: Double   // manually entered starting odometer
+    
+    // MARK: - Mario Kart Stats (0.0 to 10.0)
+    var speedStat: Double = 5.0
+    var handlingStat: Double = 5.0
+    var safetyStat: Double = 5.0
+    
     var photoTimeline: [VehiclePhoto] = []
     var maintenanceLog: [MaintenanceRecord] = []
     var addedDate: Date = Date()

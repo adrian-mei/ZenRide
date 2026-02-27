@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import CoreLocation
-@testable import ZenRide
+@testable import FashodaMap
 
 @MainActor
 struct NavigationEngineTests {

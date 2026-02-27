@@ -76,6 +76,7 @@ struct MapHomeView: View {
             HomeBottomSheet(
                 onProfileTap: { showProfile = true },
                 onDestinationSelected: onDestinationSelected,
+                onCruiseTap: onRollOut,
                 onSearchFocused: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                         bottomSheetDetent = .large
@@ -157,6 +158,7 @@ struct MapRoundButton: View {
 struct HomeBottomSheet: View {
     var onProfileTap: () -> Void
     var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
+    var onCruiseTap: () -> Void
     var onSearchFocused: (() -> Void)? = nil
 
     @EnvironmentObject var locationProvider: LocationProvider
@@ -284,6 +286,41 @@ struct HomeBottomSheet: View {
 
     private var idleContent: some View {
         VStack(alignment: .leading, spacing: 24) {
+            
+            // Just Drive / Cruise Button
+            Button(action: onCruiseTap) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Just Drive")
+                            .font(.system(size: 20, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                        Text("Cruise with Bunny Police alerts")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    Spacer()
+                    Image(systemName: "car.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(.white)
+                }
+                .padding(20)
+                .background(
+                    LinearGradient(
+                        colors: [.cyan.opacity(0.8), .blue.opacity(0.9)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(color: .cyan.opacity(0.3), radius: 8, x: 0, y: 4)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            
+            // FashodaMap: Daily Quests inject here!
+            QuestDashboardView()
+                
             // Places
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -708,67 +745,69 @@ struct MoodSelectionCard: View {
     ]
 
     var body: some View {
-        VStack(spacing: 24) {
-            Capsule()
-                .fill(Color.white.opacity(0.2))
-                .frame(width: 36, height: 4)
-                .padding(.top, 12)
+        ScrollView {
+            VStack(spacing: 24) {
+                Capsule()
+                    .fill(Color.white.opacity(0.2))
+                    .frame(width: 36, height: 4)
+                    .padding(.top, 12)
 
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                        .overlay(Circle().strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
-                    Text("🦉")
-                        .font(.system(size: 26))
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.2))
+                            .frame(width: 48, height: 48)
+                            .overlay(Circle().strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
+                        Text("🦉")
+                            .font(.system(size: 26))
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("BUNNY DEBRIEF")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundColor(.orange.opacity(0.8))
+                            .kerning(1.5)
+                        Text("How was the mission?")
+                            .font(.system(size: 18, weight: .black, design: .serif))
+                            .foregroundColor(.white)
+                    }
+                    Spacer()
                 }
+                .padding(.horizontal, 24)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("BUNNY DEBRIEF")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundColor(.orange.opacity(0.8))
-                        .kerning(1.5)
-                    Text("How was the mission?")
-                        .font(.system(size: 18, weight: .black, design: .serif))
-                        .foregroundColor(.white)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-
-            HStack(spacing: 16) {
-                ForEach(moods, id: \.label) { mood in
-                    Button {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        onSelect(mood.label)
-                    } label: {
-                        VStack(spacing: 8) {
-                            Text(mood.emoji)
-                                .font(.system(size: 32))
-                            Text(mood.label.uppercased())
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
-                                .foregroundColor(mood.color)
-                                .kerning(0.5)
+                HStack(spacing: 16) {
+                    ForEach(moods, id: \.label) { mood in
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            onSelect(mood.label)
+                        } label: {
+                            VStack(spacing: 8) {
+                                Text(mood.emoji)
+                                    .font(.system(size: 32))
+                                Text(mood.label.uppercased())
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .foregroundColor(mood.color)
+                                    .kerning(0.5)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(mood.color.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(mood.color.opacity(0.3), lineWidth: 1))
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(mood.color.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(mood.color.opacity(0.3), lineWidth: 1))
                     }
                 }
-            }
-            .padding(.horizontal, 24)
+                .padding(.horizontal, 24)
 
-            Button {
-                onDismiss()
-            } label: {
-                Text("Skip for now")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white.opacity(0.4))
+                Button {
+                    onDismiss()
+                } label: {
+                    Text("Skip for now")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+                .padding(.bottom, 20)
             }
-            .padding(.bottom, 20)
         }
         .background(Color(red: 0.08, green: 0.09, blue: 0.1).ignoresSafeArea())
         .preferredColorScheme(.dark)

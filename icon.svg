@@ -1,74 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-<defs>
-<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#FFB39A"/>
-    <stop offset="35%" stop-color="#FFCF9E"/>
-    <stop offset="70%" stop-color="#FFE8A1"/>
-    <stop offset="100%" stop-color="#FFF6D1"/>
-</linearGradient>
-<linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#A5DB7A"/>
-    <stop offset="100%" stop-color="#88C25B"/>
-</linearGradient>
-<linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#DCD0BD"/>
-    <stop offset="100%" stop-color="#BEAFA1"/>
-</linearGradient>
-<radialGradient id="sun" cx="50%" cy="50%" r="50%">
-    <stop offset="0%" stop-color="#FFFFFF"/>
-    <stop offset="40%" stop-color="#FFFDF0"/>
-    <stop offset="100%" stop-color="#FFF1B8" stop-opacity="0"/>
-</radialGradient>
-</defs>
-<rect width="1024" height="1024" fill="url(#sky)" />
-<circle cx="512" cy="460" r="160" fill="url(#sun)" />
-<path d="M 0 520 Q 150 450, 300 500 T 700 480 T 1024 520 L 1024 1024 L 0 1024 Z" fill="#B4DD8A" />
-<path d="M 0 540 Q 200 490, 450 540 T 850 510 T 1024 550 L 1024 1024 L 0 1024 Z" fill="url(#ground)" />
-<path d="M 480 520 Q 580 700, 200 1024 L 800 1024 Q 610 700, 540 520 Z" fill="url(#road)" />
-<path d="M 480 520 Q 580 700, 200 1024" stroke="#C5B6A3" stroke-width="12" fill="none" />
-<path d="M 540 520 Q 610 700, 800 1024" stroke="#C5B6A3" stroke-width="12" fill="none" />
-<path d="M 510 520 Q 595 700, 500 1024" stroke="#FFF8E7" stroke-width="16" stroke-dasharray="24,48" stroke-linecap="round" fill="none" opacity="0.9"/>
-<ellipse cx="380" cy="560" rx="30.0" ry="9.0" fill="#6C9E44" opacity="0.5" />\n<rect x="375.2" y="542.0" width="9.6" height="24.0" rx="2.4" fill="#8E6A51" />\n<circle cx="365.0" cy="524.0" r="21.0" fill="#4C8B47" />\n<circle cx="395.0" cy="524.0" r="21.0" fill="#4C8B47" />\n<circle cx="380" cy="509.0" r="24.0" fill="#5CAB56" />\n<circle cx="371.0" cy="533.0" r="18.0" fill="#6BD663" />\n<circle cx="389.0" cy="533.0" r="18.0" fill="#6BD663" />
-<ellipse cx="660" cy="550" rx="31.499999999999996" ry="10.5" fill="#6C9E44" opacity="0.5" />\n<rect x="655.8" y="536.0" width="8.399999999999999" height="21.0" rx="2.8" fill="#8E6A51" />\n<path d="M 628.5 543.0 Q 660 557.0 691.5 543.0 Q 695.0 536.0 688.0 525.5 L 667.0 494.0 Q 660 487.0 653.0 494.0 L 632.0 525.5 Q 625.0 536.0 628.5 543.0 Z" fill="#4C8B47" />\n<path d="M 635.5 522.0 Q 660 532.5 684.5 522.0 Q 688.0 515.0 681.0 504.5 L 667.0 476.5 Q 660 469.5 653.0 476.5 L 639.0 504.5 Q 632.0 515.0 635.5 522.0 Z" fill="#5CAB56" />\n<path d="M 642.5 497.5 Q 660 504.5 677.5 497.5 Q 681.0 490.5 674.0 480.0 L 665.6 459.0 Q 660 452.0 654.4 459.0 L 646.0 480.0 Q 639.0 490.5 642.5 497.5 Z" fill="#6BD663" />
-<ellipse cx="250" cy="630" rx="40.5" ry="13.5" fill="#6C9E44" opacity="0.5" />\n<rect x="244.6" y="612.0" width="10.8" height="27.0" rx="3.6" fill="#8E6A51" />\n<path d="M 209.5 621.0 Q 250 639.0 290.5 621.0 Q 295.0 612.0 286.0 598.5 L 259.0 558.0 Q 250 549.0 241.0 558.0 L 214.0 598.5 Q 205.0 612.0 209.5 621.0 Z" fill="#4C8B47" />\n<path d="M 218.5 594.0 Q 250 607.5 281.5 594.0 Q 286.0 585.0 277.0 571.5 L 259.0 535.5 Q 250 526.5 241.0 535.5 L 223.0 571.5 Q 214.0 585.0 218.5 594.0 Z" fill="#5CAB56" />\n<path d="M 227.5 562.5 Q 250 571.5 272.5 562.5 Q 277.0 553.5 268.0 540.0 L 257.2 513.0 Q 250 504.0 242.8 513.0 L 232.0 540.0 Q 223.0 553.5 227.5 562.5 Z" fill="#6BD663" />
-<ellipse cx="780" cy="620" rx="45.0" ry="13.5" fill="#6C9E44" opacity="0.5" />\n<rect x="772.8" y="593.0" width="14.4" height="36.0" rx="3.6" fill="#8E6A51" />\n<circle cx="757.5" cy="566.0" r="31.5" fill="#4C8B47" />\n<circle cx="802.5" cy="566.0" r="31.5" fill="#4C8B47" />\n<circle cx="780" cy="543.5" r="36.0" fill="#5CAB56" />\n<circle cx="766.5" cy="579.5" r="27.0" fill="#6BD663" />\n<circle cx="793.5" cy="579.5" r="27.0" fill="#6BD663" />
-<ellipse cx="120" cy="760" rx="70.0" ry="21.0" fill="#6C9E44" opacity="0.5" />\n<rect x="108.8" y="718.0" width="22.4" height="56.0" rx="5.6" fill="#8E6A51" />\n<circle cx="85.0" cy="676.0" r="49.0" fill="#4C8B47" />\n<circle cx="155.0" cy="676.0" r="49.0" fill="#4C8B47" />\n<circle cx="120" cy="641.0" r="56.0" fill="#5CAB56" />\n<circle cx="99.0" cy="697.0" r="42.0" fill="#6BD663" />\n<circle cx="141.0" cy="697.0" r="42.0" fill="#6BD663" />
-<ellipse cx="880" cy="740" rx="67.5" ry="22.5" fill="#6C9E44" opacity="0.5" />\n<rect x="871.0" y="710.0" width="18.0" height="45.0" rx="6.0" fill="#8E6A51" />\n<path d="M 812.5 725.0 Q 880 755.0 947.5 725.0 Q 955.0 710.0 940.0 687.5 L 895.0 620.0 Q 880 605.0 865.0 620.0 L 820.0 687.5 Q 805.0 710.0 812.5 725.0 Z" fill="#4C8B47" />\n<path d="M 827.5 680.0 Q 880 702.5 932.5 680.0 Q 940.0 665.0 925.0 642.5 L 895.0 582.5 Q 880 567.5 865.0 582.5 L 835.0 642.5 Q 820.0 665.0 827.5 680.0 Z" fill="#5CAB56" />\n<path d="M 842.5 627.5 Q 880 642.5 917.5 627.5 Q 925.0 612.5 910.0 590.0 L 892.0 545.0 Q 880 530.0 868.0 545.0 L 850.0 590.0 Q 835.0 612.5 842.5 627.5 Z" fill="#6BD663" />
-<ellipse cx="20" cy="960" rx="90.0" ry="30.0" fill="#6C9E44" opacity="0.5" />\n<rect x="8.0" y="920.0" width="24.0" height="60.0" rx="8.0" fill="#8E6A51" />\n<path d="M -70.0 940.0 Q 20 980.0 110.0 940.0 Q 120.0 920.0 100.0 890.0 L 40.0 800.0 Q 20 780.0 0.0 800.0 L -60.0 890.0 Q -80.0 920.0 -70.0 940.0 Z" fill="#4C8B47" />\n<path d="M -50.0 880.0 Q 20 910.0 90.0 880.0 Q 100.0 860.0 80.0 830.0 L 40.0 750.0 Q 20 730.0 0.0 750.0 L -40.0 830.0 Q -60.0 860.0 -50.0 880.0 Z" fill="#5CAB56" />\n<path d="M -30.0 810.0 Q 20 830.0 70.0 810.0 Q 80.0 790.0 60.0 760.0 L 36.0 700.0 Q 20 680.0 4.0 700.0 L -20.0 760.0 Q -40.0 790.0 -30.0 810.0 Z" fill="#6BD663" />
-<ellipse cx="960" cy="940" rx="95.0" ry="28.5" fill="#6C9E44" opacity="0.5" />\n<rect x="944.8" y="883.0" width="30.4" height="76.0" rx="7.6" fill="#8E6A51" />\n<circle cx="912.5" cy="826.0" r="66.5" fill="#4C8B47" />\n<circle cx="1007.5" cy="826.0" r="66.5" fill="#4C8B47" />\n<circle cx="960" cy="778.5" r="76.0" fill="#5CAB56" />\n<circle cx="931.5" cy="854.5" r="57.0" fill="#6BD663" />\n<circle cx="988.5" cy="854.5" r="57.0" fill="#6BD663" />
-
-<g transform="translate(390, 640) scale(2.6)">
+<rect width="1024" height="1024" fill="#A8D8A8" />
+<path d="M 200 1100 C 400 800, 100 500, 512 400 C 800 300, 900 100, 1100 0" fill="none" stroke="#F5E6C8" stroke-width="180" stroke-linecap="round" />
+<path d="M 200 1100 C 400 800, 100 500, 512 400 C 800 300, 900 100, 1100 0" fill="none" stroke="#FFF9E6" stroke-width="20" stroke-dasharray="60, 80" stroke-linecap="round" />
+<circle cx="250" cy="250" r="90" fill="#5BAD6F" />
+<circle cx="210" cy="220" r="50" fill="#84C794" />
+<rect x="235" y="320" width="30" height="60" fill="#8B5E3C" rx="10" />
+<circle cx="800" cy="750" r="110" fill="#5BAD6F" />
+<circle cx="750" cy="710" r="60" fill="#84C794" />
+<rect x="785" y="840" width="30" height="70" fill="#8B5E3C" rx="10" />
+<path d="M 750 300 C 750 244.7, 705.3 200, 650 200 C 594.7 200, 550 244.7, 550 300 C 550 375, 650 480, 650 480 C 650 480, 750 375, 750 300 Z" fill="#FF8C7A" />
+<circle cx="650" cy="300" r="35" fill="#FFF9E6" />
+<g transform="translate(380, 550) rotate(-15)">
     <!-- Shadow -->
-    <ellipse cx="50" cy="85" rx="30" ry="10" fill="#BCAE9B" opacity="0.8" />
-    
-    <!-- Rear Tire -->
-    <rect x="35" y="55" width="30" height="30" rx="12" fill="#4A4A4A" />
-    <path d="M 38 60 Q 50 50, 62 60 L 60 80 Q 50 85, 40 80 Z" fill="#333333" />
-    
-    <!-- Fender/Tail -->
-    <path d="M 25 45 Q 50 25, 75 45 Q 65 60, 50 55 Q 35 60, 25 45 Z" fill="#FF8D6D" />
-    
-    <!-- Seat -->
-    <rect x="38" y="30" width="24" height="15" rx="8" fill="#5C4033" />
-    
-    <!-- Taillight -->
-    <rect x="42" y="46" width="16" height="6" rx="3" fill="#FF5252" />
-    
-    <!-- Rider -->
-    <!-- Torso / Jacket -->
-    <path d="M 30 35 C 30 -5, 70 -5, 70 35 Z" fill="#6A9E96" />
-    
-    <!-- Arms -->
-    <path d="M 35 20 Q 20 30, 25 45" stroke="#6A9E96" stroke-width="8" stroke-linecap="round" fill="none" />
-    <path d="M 65 20 Q 80 30, 75 45" stroke="#6A9E96" stroke-width="8" stroke-linecap="round" fill="none" />
-    
-    <!-- Helmet -->
-    <circle cx="50" cy="0" r="18" fill="#F4E8C1" />
-    <!-- Helmet Stripe -->
-    <path d="M 42 -17 L 58 -17 L 55 17 L 45 17 Z" fill="#E6A15C" />
-    <!-- Helmet Bottom Trim -->
-    <path d="M 32 0 A 18 18 0 0 0 68 0 L 32 0 Z" fill="#E6A15C" />
+    <rect x="10" y="150" width="220" height="30" fill="#8B5E3C" opacity="0.2" rx="15" />
+    <!-- Body Base -->
+    <rect x="0" y="40" width="240" height="120" fill="#FFF9E6" rx="40" />
+    <!-- Body Bottom Color (AC Gold) -->
+    <path d="M 0 100 L 240 100 L 240 120 C 240 142 222 160 200 160 L 40 160 C 18 160 0 142 0 120 Z" fill="#F4C430" />
+    <!-- Windows -->
+    <rect x="30" y="55" width="50" height="40" fill="#87CEEB" rx="10" />
+    <rect x="90" y="55" width="70" height="40" fill="#87CEEB" rx="10" />
+    <!-- Wheels -->
+    <circle cx="50" cy="160" r="25" fill="#2D4A3E" />
+    <circle cx="50" cy="160" r="10" fill="#FFF9E6" />
+    <circle cx="190" cy="160" r="25" fill="#2D4A3E" />
+    <circle cx="190" cy="160" r="10" fill="#FFF9E6" />
+    <!-- Headlight -->
+    <circle cx="225" cy="110" r="12" fill="#FF8C7A" />
+    <!-- Roof Rack / Luggage -->
+    <rect x="80" y="20" width="80" height="20" fill="#8B5E3C" rx="5" />
+    <rect x="90" y="5" width="60" height="15" fill="#5BAD6F" rx="5" />
 </g>
-
 </svg>

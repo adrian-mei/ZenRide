@@ -93,6 +93,10 @@ struct TomTomRoute: Decodable, Identifiable {
     var isLessTraffic: Bool {
         tags?.contains("less_traffic") == true
     }
+    
+    var hasTolls: Bool {
+        tags?.contains("has_tolls") == true
+    }
 }
 
 struct TomTomLeg: Decodable {
@@ -115,7 +119,7 @@ class RoutingService: ObservableObject {
 
     @Published var routeDistanceMeters: Int = 0
     @Published var routeTimeSeconds: Int = 0
-    @Published var instructions: [TomTomInstruction] = []
+    @Published var instructions: [NavigationInstruction] = []
     @Published var currentInstructionIndex: Int = 0 {
         didSet {
             hasWarned500ft = false
@@ -123,6 +127,10 @@ class RoutingService: ObservableObject {
         }
     }
     @Published var isCalculatingRoute = false
+
+    // MARK: - Multi-Leg Quest State
+    @Published var activeQuest: DailyQuest?
+    @Published var currentLegIndex: Int = 0
 
     // MARK: - Vehicle Mode
 
@@ -219,6 +227,15 @@ class RoutingService: ObservableObject {
 
     // MARK: - Route Selection
 
+    private func mapTurnType(from tomtomType: String?) -> TurnType {
+        guard let type = tomtomType else { return .straight }
+        if type == "TURN_LEFT" || type == "KEEP_LEFT" { return .left }
+        if type == "TURN_RIGHT" || type == "KEEP_RIGHT" { return .right }
+        if type == "ARRIVE" { return .arrive }
+        if type.contains("UTURN") { return .uturn }
+        return .straight
+    }
+    
     func selectRoute(at index: Int) {
         guard index >= 0 && index < availableRoutes.count else { return }
         selectedRouteIndex = index
@@ -245,13 +262,11 @@ class RoutingService: ObservableObject {
             if let oldInstructions = route.guidance?.instructions {
                 instructions = oldInstructions.map { inst in
                     let trueOffset = inst.pointIndex < coordinateDistances.count ? Int(coordinateDistances[inst.pointIndex]) : Int(totalCalculatedDistance)
-                    return TomTomInstruction(
+                    return NavigationInstruction(
+                        text: inst.message ?? "Continue",
+                        distanceInMeters: 50,
                         routeOffsetInMeters: trueOffset,
-                        travelTimeInSeconds: Int(Double(trueOffset) / 15.0),
-                        pointIndex: inst.pointIndex,
-                        instructionType: inst.instructionType,
-                        street: inst.street,
-                        message: inst.message
+                        turnType: self.mapTurnType(from: inst.instructionType)
                     )
                 }
             } else {
@@ -260,7 +275,18 @@ class RoutingService: ObservableObject {
         } else {
             routeDistanceMeters = route.summary.lengthInMeters
             routeTimeSeconds = route.summary.travelTimeInSeconds
-            instructions = route.guidance?.instructions ?? []
+            if let tomtom = route.guidance?.instructions {
+                instructions = tomtom.map { inst in
+                    NavigationInstruction(
+                        text: inst.message ?? "Continue",
+                        distanceInMeters: 50,
+                        routeOffsetInMeters: inst.routeOffsetInMeters,
+                        turnType: self.mapTurnType(from: inst.instructionType)
+                    )
+                }
+            } else {
+                instructions = []
+            }
         }
         currentInstructionIndex = 0
         routeProgressIndex = 0
@@ -405,17 +431,19 @@ class RoutingService: ObservableObject {
                 if !isDuplicate { combined.append(safe) }
             }
 
+            // Swift 6 capture workaround: safely bind the value before hopping to the MainActor
+            let finalCombined = combined
             await MainActor.run {
-                self.availableRoutes = combined
-                self.activeAlternativeRoutes = combined.compactMap { route in
+                self.availableRoutes = finalCombined
+                self.activeAlternativeRoutes = finalCombined.compactMap { route in
                     route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
                 }
                 // Default: camera-free if avoiding cameras, else fastest
                 let defaultIndex = self.avoidSpeedCameras
-                    ? (combined.firstIndex(where: { $0.isSafeRoute }) ?? 0)
+                    ? (finalCombined.firstIndex(where: { $0.isSafeRoute }) ?? 0)
                     : 0
                 self.selectRoute(at: defaultIndex)
-                Log.info("Routing", "Got \(combined.count) routes (tolls:\(self.avoidTolls) hwy:\(self.avoidHighways) cams:\(self.avoidSpeedCameras))")
+                Log.info("Routing", "Got \(finalCombined.count) routes (tolls:\(self.avoidTolls) hwy:\(self.avoidHighways) cams:\(self.avoidSpeedCameras))")
             }
 
         } catch {

@@ -17,7 +17,8 @@ struct NavigationBottomPanel: View {
 
     var routeProgress: Double {
         guard routingService.routeDistanceMeters > 0 else { return 0 }
-        return min(1, locationProvider.distanceTraveledInSimulationMeters / Double(routingService.routeDistanceMeters))
+        let traveled = locationProvider.isSimulating ? locationProvider.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+        return min(1, traveled / Double(routingService.routeDistanceMeters))
     }
 
     var remainingTimeSeconds: Int {
@@ -26,7 +27,8 @@ struct NavigationBottomPanel: View {
     }
 
     var remainingDistanceMeters: Double {
-        max(0, Double(routingService.routeDistanceMeters) - locationProvider.distanceTraveledInSimulationMeters)
+        let traveled = locationProvider.isSimulating ? locationProvider.distanceTraveledInSimulationMeters : routingService.distanceTraveledMeters
+        return max(0, Double(routingService.routeDistanceMeters) - traveled)
     }
 
     var isArriving: Bool { remainingDistanceMeters < 320 }
@@ -47,19 +49,29 @@ struct NavigationBottomPanel: View {
         remainingDistanceMeters < 1609 ? "m" : "mi"
     }
 
+    var isCruiseMode: Bool {
+        routingService.activeRoute.isEmpty
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Drag handle
             Capsule()
-                .fill(Color.white.opacity(0.25))
-                .frame(width: 36, height: 4)
+                .fill(Theme.Colors.acWood.opacity(0.3))
+                .frame(width: 36, height: 6)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
 
-            if isArriving {
-                Text("Arriving")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(.green)
+            if isCruiseMode {
+                HStack(spacing: 0) {
+                    metricsColumn(value: "Cruising", label: "mode", fontSize: 32)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            } else if isArriving {
+                Text("Almost there!")
+                    .font(Theme.Typography.title)
+                    .foregroundColor(Theme.Colors.acLeaf)
                     .opacity(arrivingPulse ? 1.0 : 0.5)
                     .padding(.vertical, 24)
             } else {
@@ -76,20 +88,23 @@ struct NavigationBottomPanel: View {
             }
 
             Button(action: onEnd) {
-                Text("End Route")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.red.opacity(0.75))
+                Text(isCruiseMode ? "End Drive" : "End Route")
+                    .font(Theme.Typography.button)
+                    .foregroundColor(Theme.Colors.acCoral)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 32)
+                    .background(Theme.Colors.acCream)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Theme.Colors.acCoral, lineWidth: 2))
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 32)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(.thinMaterial)
-                .environment(\.colorScheme, .dark)
-        )
+        .background(Theme.Colors.acField)
+        .cornerRadius(32, corners: [.topLeft, .topRight])
+        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
         .ignoresSafeArea(edges: .bottom)
         .onChange(of: isArriving) { arriving in
-            if arriving {
+            if !isCruiseMode && arriving {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
                     arrivingPulse = true
@@ -100,22 +115,22 @@ struct NavigationBottomPanel: View {
         }
     }
 
-    private func metricsColumn(value: String, label: String) -> some View {
+    private func metricsColumn(value: String, label: String, fontSize: CGFloat = 40) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 52, weight: .bold))
-                .foregroundColor(.white)
+                .font(.system(size: fontSize, weight: .black, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextDark)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.55))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextMuted)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var columnDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.12))
-            .frame(width: 1, height: 44)
+            .fill(Theme.Colors.acBorder.opacity(0.4))
+            .frame(width: 2, height: 44)
     }
 }

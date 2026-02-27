@@ -35,6 +35,7 @@ struct ContentView: View {
             case .garage:
                 MapHomeView(
                     onRollOut: {
+                        initialDestinationName = ""
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .riding }
                     },
                     onDestinationSelected: { name, _ in

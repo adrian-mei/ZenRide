@@ -19,7 +19,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>The Owl Police needs your location to gently warn you about upcoming speed cameras.</string>
+	<string>The map needs your location to follow your custom daily routine.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
