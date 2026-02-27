@@ -1,140 +1,55 @@
 import math
+import os
 
 svg = []
 svg.append('<?xml version="1.0" encoding="utf-8"?>')
 svg.append('<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">')
 
-svg.append('<defs>')
+# Background (AC Mint)
+svg.append('<rect width="1024" height="1024" fill="#A8D8A8" />')
 
-# AC Sky Gradient - soft sunset
-svg.append('''<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#FFB39A"/>
-    <stop offset="35%" stop-color="#FFCF9E"/>
-    <stop offset="70%" stop-color="#FFE8A1"/>
-    <stop offset="100%" stop-color="#FFF6D1"/>
-</linearGradient>''')
+# Winding Road
+svg.append('<path d="M 200 1100 C 400 800, 100 500, 512 400 C 800 300, 900 100, 1100 0" fill="none" stroke="#F5E6C8" stroke-width="180" stroke-linecap="round" />')
 
-# AC Ground Gradient - soft, warm grass
-svg.append('''<linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#A5DB7A"/>
-    <stop offset="100%" stop-color="#88C25B"/>
-</linearGradient>''')
+# Road Dashes
+svg.append('<path d="M 200 1100 C 400 800, 100 500, 512 400 C 800 300, 900 100, 1100 0" fill="none" stroke="#FFF9E6" stroke-width="20" stroke-dasharray="60, 80" stroke-linecap="round" />')
 
-# AC Road Gradient - warm light brown/gray
-svg.append('''<linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#DCD0BD"/>
-    <stop offset="100%" stop-color="#BEAFA1"/>
-</linearGradient>''')
+# Tree 1
+svg.append('<circle cx="250" cy="250" r="90" fill="#5BAD6F" />')
+svg.append('<circle cx="210" cy="220" r="50" fill="#84C794" />')
+svg.append('<rect x="235" y="320" width="30" height="60" fill="#8B5E3C" rx="10" />')
 
-# Soft Sun
-svg.append('''<radialGradient id="sun" cx="50%" cy="50%" r="50%">
-    <stop offset="0%" stop-color="#FFFFFF"/>
-    <stop offset="40%" stop-color="#FFFDF0"/>
-    <stop offset="100%" stop-color="#FFF1B8" stop-opacity="0"/>
-</radialGradient>''')
+# Tree 2
+svg.append('<circle cx="800" cy="750" r="110" fill="#5BAD6F" />')
+svg.append('<circle cx="750" cy="710" r="60" fill="#84C794" />')
+svg.append('<rect x="785" y="840" width="30" height="70" fill="#8B5E3C" rx="10" />')
 
-svg.append('</defs>')
+# Map Pin (AC Coral)
+svg.append('''<path d="M 750 300 C 750 244.7, 705.3 200, 650 200 C 594.7 200, 550 244.7, 550 300 C 550 375, 650 480, 650 480 C 650 480, 750 375, 750 300 Z" fill="#FF8C7A" />''')
+svg.append('<circle cx="650" cy="300" r="35" fill="#FFF9E6" />')
 
-# Background (Sky)
-svg.append('<rect width="1024" height="1024" fill="url(#sky)" />')
-
-# Sun
-svg.append('<circle cx="512" cy="460" r="160" fill="url(#sun)" />')
-
-# Distant Hills (overlapping soft curves)
-svg.append('<path d="M 0 520 Q 150 450, 300 500 T 700 480 T 1024 520 L 1024 1024 L 0 1024 Z" fill="#B4DD8A" />')
-svg.append('<path d="M 0 540 Q 200 490, 450 540 T 850 510 T 1024 550 L 1024 1024 L 0 1024 Z" fill="url(#ground)" />')
-
-# Road (Curved, cute)
-svg.append('<path d="M 480 520 Q 580 700, 200 1024 L 800 1024 Q 610 700, 540 520 Z" fill="url(#road)" />')
-
-# Road details (edges, dashes)
-svg.append('<path d="M 480 520 Q 580 700, 200 1024" stroke="#C5B6A3" stroke-width="12" fill="none" />')
-svg.append('<path d="M 540 520 Q 610 700, 800 1024" stroke="#C5B6A3" stroke-width="12" fill="none" />')
-svg.append('<path d="M 510 520 Q 595 700, 500 1024" stroke="#FFF8E7" stroke-width="16" stroke-dasharray="24,48" stroke-linecap="round" fill="none" opacity="0.9"/>')
-
-
-# Trees
-# AC style: Cedar and Oak
-def get_cedar(x, y, scale):
-    out = []
-    # Shadow
-    out.append(f'<ellipse cx="{x}" cy="{y}" rx="{45*scale}" ry="{15*scale}" fill="#6C9E44" opacity="0.5" />')
-    # Trunk
-    out.append(f'<rect x="{x-6*scale}" y="{y-20*scale}" width="{12*scale}" height="{30*scale}" rx="{4*scale}" fill="#8E6A51" />')
-    # Tiers of leaves (from bottom to top)
-    d1 = f"M {x-45*scale} {y-10*scale} Q {x} {y+10*scale} {x+45*scale} {y-10*scale} Q {x+50*scale} {y-20*scale} {x+40*scale} {y-35*scale} L {x+10*scale} {y-80*scale} Q {x} {y-90*scale} {x-10*scale} {y-80*scale} L {x-40*scale} {y-35*scale} Q {x-50*scale} {y-20*scale} {x-45*scale} {y-10*scale} Z"
-    
-    d2 = f"M {x-35*scale} {y-40*scale} Q {x} {y-25*scale} {x+35*scale} {y-40*scale} Q {x+40*scale} {y-50*scale} {x+30*scale} {y-65*scale} L {x+10*scale} {y-105*scale} Q {x} {y-115*scale} {x-10*scale} {y-105*scale} L {x-30*scale} {y-65*scale} Q {x-40*scale} {y-50*scale} {x-35*scale} {y-40*scale} Z"
-    
-    d3 = f"M {x-25*scale} {y-75*scale} Q {x} {y-65*scale} {x+25*scale} {y-75*scale} Q {x+30*scale} {y-85*scale} {x+20*scale} {y-100*scale} L {x+8*scale} {y-130*scale} Q {x} {y-140*scale} {x-8*scale} {y-130*scale} L {x-20*scale} {y-100*scale} Q {x-30*scale} {y-85*scale} {x-25*scale} {y-75*scale} Z"
-    
-    out.append(f'<path d="{d1}" fill="#4C8B47" />')
-    out.append(f'<path d="{d2}" fill="#5CAB56" />')
-    out.append(f'<path d="{d3}" fill="#6BD663" />')
-    return "\\n".join(out)
-
-def get_oak(x, y, scale):
-    out = []
-    out.append(f'<ellipse cx="{x}" cy="{y}" rx="{50*scale}" ry="{15*scale}" fill="#6C9E44" opacity="0.5" />')
-    out.append(f'<rect x="{x-8*scale}" y="{y-30*scale}" width="{16*scale}" height="{40*scale}" rx="{4*scale}" fill="#8E6A51" />')
-    # Clusters of circles
-    out.append(f'<circle cx="{x-25*scale}" cy="{y-60*scale}" r="{35*scale}" fill="#4C8B47" />')
-    out.append(f'<circle cx="{x+25*scale}" cy="{y-60*scale}" r="{35*scale}" fill="#4C8B47" />')
-    out.append(f'<circle cx="{x}" cy="{y-85*scale}" r="{40*scale}" fill="#5CAB56" />')
-    out.append(f'<circle cx="{x-15*scale}" cy="{y-45*scale}" r="{30*scale}" fill="#6BD663" />')
-    out.append(f'<circle cx="{x+15*scale}" cy="{y-45*scale}" r="{30*scale}" fill="#6BD663" />')
-    return "\\n".join(out)
-
-# Place trees (back to front)
-svg.append(get_oak(380, 560, 0.6))
-svg.append(get_cedar(660, 550, 0.7))
-
-svg.append(get_cedar(250, 630, 0.9))
-svg.append(get_oak(780, 620, 0.9))
-
-svg.append(get_oak(120, 760, 1.4))
-svg.append(get_cedar(880, 740, 1.5))
-
-svg.append(get_cedar(20, 960, 2.0))
-svg.append(get_oak(960, 940, 1.9))
-
-
-# Motorcycle Silhouette (Scooter/Cruiser style, cute rear view)
-svg.append('''
-<g transform="translate(390, 640) scale(2.6)">
+# Cute Retro Camper Van
+svg.append('''<g transform="translate(380, 550) rotate(-15)">
     <!-- Shadow -->
-    <ellipse cx="50" cy="85" rx="30" ry="10" fill="#BCAE9B" opacity="0.8" />
-    
-    <!-- Rear Tire -->
-    <rect x="35" y="55" width="30" height="30" rx="12" fill="#4A4A4A" />
-    <path d="M 38 60 Q 50 50, 62 60 L 60 80 Q 50 85, 40 80 Z" fill="#333333" />
-    
-    <!-- Fender/Tail -->
-    <path d="M 25 45 Q 50 25, 75 45 Q 65 60, 50 55 Q 35 60, 25 45 Z" fill="#FF8D6D" />
-    
-    <!-- Seat -->
-    <rect x="38" y="30" width="24" height="15" rx="8" fill="#5C4033" />
-    
-    <!-- Taillight -->
-    <rect x="42" y="46" width="16" height="6" rx="3" fill="#FF5252" />
-    
-    <!-- Rider -->
-    <!-- Torso / Jacket -->
-    <path d="M 30 35 C 30 -5, 70 -5, 70 35 Z" fill="#6A9E96" />
-    
-    <!-- Arms -->
-    <path d="M 35 20 Q 20 30, 25 45" stroke="#6A9E96" stroke-width="8" stroke-linecap="round" fill="none" />
-    <path d="M 65 20 Q 80 30, 75 45" stroke="#6A9E96" stroke-width="8" stroke-linecap="round" fill="none" />
-    
-    <!-- Helmet -->
-    <circle cx="50" cy="0" r="18" fill="#F4E8C1" />
-    <!-- Helmet Stripe -->
-    <path d="M 42 -17 L 58 -17 L 55 17 L 45 17 Z" fill="#E6A15C" />
-    <!-- Helmet Bottom Trim -->
-    <path d="M 32 0 A 18 18 0 0 0 68 0 L 32 0 Z" fill="#E6A15C" />
-</g>
-''')
+    <rect x="10" y="150" width="220" height="30" fill="#8B5E3C" opacity="0.2" rx="15" />
+    <!-- Body Base -->
+    <rect x="0" y="40" width="240" height="120" fill="#FFF9E6" rx="40" />
+    <!-- Body Bottom Color (AC Gold) -->
+    <path d="M 0 100 L 240 100 L 240 120 C 240 142 222 160 200 160 L 40 160 C 18 160 0 142 0 120 Z" fill="#F4C430" />
+    <!-- Windows -->
+    <rect x="30" y="55" width="50" height="40" fill="#87CEEB" rx="10" />
+    <rect x="90" y="55" width="70" height="40" fill="#87CEEB" rx="10" />
+    <!-- Wheels -->
+    <circle cx="50" cy="160" r="25" fill="#2D4A3E" />
+    <circle cx="50" cy="160" r="10" fill="#FFF9E6" />
+    <circle cx="190" cy="160" r="25" fill="#2D4A3E" />
+    <circle cx="190" cy="160" r="10" fill="#FFF9E6" />
+    <!-- Headlight -->
+    <circle cx="225" cy="110" r="12" fill="#FF8C7A" />
+    <!-- Roof Rack / Luggage -->
+    <rect x="80" y="20" width="80" height="20" fill="#8B5E3C" rx="5" />
+    <rect x="90" y="5" width="60" height="15" fill="#5BAD6F" rx="5" />
+</g>''')
 
 svg.append('</svg>')
 
