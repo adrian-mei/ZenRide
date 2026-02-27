@@ -7,6 +7,7 @@ struct RouteSelectionSheet: View {
     var onCancel: () -> Void
 
     @EnvironmentObject var routingService: RoutingService
+    @EnvironmentObject var savedRoutes: SavedRoutesStore
     @State private var showAvoidSheet = false
 
     var body: some View {
@@ -78,16 +79,39 @@ struct RouteSelectionSheet: View {
                 }
 
                 // MARK: Action Buttons
-                HStack(spacing: 16) {
-                    Button("Simulate") {
-                        onSimulate()
+                VStack(spacing: 16) {
+                    Button(action: {
+                        guard routingService.selectedRouteIndex < routingService.availableRoutes.count else { return }
+                        let selectedRoute = routingService.availableRoutes[routingService.selectedRouteIndex]
+                        if let lastCoord = routingService.activeRoute.last {
+                            // Using the destination name provided to the sheet
+                            let name = destinationName.isEmpty ? "Saved Route" : destinationName
+                            // Calling savedRoutesStore (needs to be available in Environment)
+                            // We will add @EnvironmentObject var savedRoutes: SavedRoutesStore at the top
+                            savedRoutes.savePlace(name: name, coordinate: lastCoord, offlineRoute: selectedRoute)
+                            // Optional: provide some haptic feedback
+                            let generator = UINotificationFeedbackGenerator()
+                            generator.notificationOccurred(.success)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.down.circle.fill")
+                            Text("Save for Offline Mode")
+                        }
                     }
                     .buttonStyle(ACButtonStyle(variant: .secondary))
 
-                    Button("Start Drive") {
-                        onDrive()
+                    HStack(spacing: 16) {
+                        Button("Simulate") {
+                            onSimulate()
+                        }
+                        .buttonStyle(ACButtonStyle(variant: .secondary))
+
+                        Button("Start Drive") {
+                            onDrive()
+                        }
+                        .buttonStyle(ACButtonStyle(variant: .primary))
                     }
-                    .buttonStyle(ACButtonStyle(variant: .primary))
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)

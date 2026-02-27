@@ -11,6 +11,7 @@ struct SavedRoute: Codable, Identifiable {
     var typicalDepartureHours: [Int]   // capped at 50
     var averageDurationSeconds: Int
     var isPinned: Bool = false         // user explicitly saved this place
+    var offlineRoute: TomTomRoute?     // the saved route data for offline navigation
 }
 
 struct RecentSearch: Codable, Identifiable {
@@ -91,11 +92,14 @@ class SavedRoutesStore: ObservableObject {
         routes.filter(\.isPinned).sorted { $0.destinationName < $1.destinationName }
     }
 
-    /// Manually save a place the user hasn't visited yet
-    func savePlace(name: String, coordinate: CLLocationCoordinate2D) {
+    /// Manually save a place the user hasn't visited yet, optionally with an offline route
+    func savePlace(name: String, coordinate: CLLocationCoordinate2D, offlineRoute: TomTomRoute? = nil) {
         if let idx = findExistingIndex(near: coordinate, name: name) {
             routes[idx].isPinned = true
             routes[idx].lastUsedDate = Date()
+            if let offlineRoute = offlineRoute {
+                routes[idx].offlineRoute = offlineRoute
+            }
         } else {
             let route = SavedRoute(
                 destinationName: name,
@@ -105,7 +109,8 @@ class SavedRoutesStore: ObservableObject {
                 lastUsedDate: Date(),
                 typicalDepartureHours: [],
                 averageDurationSeconds: 0,
-                isPinned: true
+                isPinned: true,
+                offlineRoute: offlineRoute
             )
             routes.insert(route, at: 0)
         }

@@ -85,9 +85,12 @@ struct ZenMapView: UIViewRepresentable {
                 coordinator.simulatedCarAnnotation = newCar
                 uiView.addAnnotation(newCar)
             } else {
-                let duration = locationProvider.isSimulating ? (1.0 / 60.0) : 1.0
-                UIView.animate(withDuration: duration, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                if locationProvider.isSimulating {
                     coordinator.simulatedCarAnnotation?.coordinate = location.coordinate
+                } else {
+                    UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                        coordinator.simulatedCarAnnotation?.coordinate = location.coordinate
+                    }
                 }
             }
 
@@ -98,9 +101,12 @@ struct ZenMapView: UIViewRepresentable {
                 if let carAnnotation = coordinator.simulatedCarAnnotation,
                    let carView = uiView.view(for: carAnnotation) {
                     let radians = CGFloat(bearing * .pi / 180.0)
-                    let duration = locationProvider.isSimulating ? (1.0 / 60.0) : 1.0
-                    UIView.animate(withDuration: duration, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                    if locationProvider.isSimulating {
                         carView.transform = CGAffineTransform(rotationAngle: radians)
+                    } else {
+                        UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                            carView.transform = CGAffineTransform(rotationAngle: radians)
+                        }
                     }
                 }
             }
@@ -145,18 +151,35 @@ struct ZenMapView: UIViewRepresentable {
                     }
                 }
                 
-                let camera = MKMapCamera(
-                    lookingAtCenter: lookAheadCoord,
-                    fromDistance: dynamicDistance,
-                    pitch: dynamicPitch,
-                    heading: bearing
-                )
-                if !locationProvider.isSimulating {
-                    UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                // Only update camera if changed significantly to prevent MKMapView lag
+                let currentCenter = lookAheadCoord
+                let lastCenter = coordinator.lastCameraCenter ?? currentCenter
+                let centerDistance = CLLocation(latitude: currentCenter.latitude, longitude: currentCenter.longitude)
+                    .distance(from: CLLocation(latitude: lastCenter.latitude, longitude: lastCenter.longitude))
+                
+                let bearingDiff = abs(bearing - coordinator.lastCameraBearing)
+                
+                if centerDistance > 1.0 || bearingDiff > 1.0 || abs(dynamicDistance - coordinator.lastCameraDistance) > 10.0 || abs(dynamicPitch - coordinator.lastCameraPitch) > 1.0 || coordinator.lastCameraCenter == nil {
+                    
+                    coordinator.lastCameraCenter = currentCenter
+                    coordinator.lastCameraBearing = bearing
+                    coordinator.lastCameraDistance = dynamicDistance
+                    coordinator.lastCameraPitch = dynamicPitch
+                    
+                    let camera = MKMapCamera(
+                        lookingAtCenter: lookAheadCoord,
+                        fromDistance: dynamicDistance,
+                        pitch: dynamicPitch,
+                        heading: bearing
+                    )
+                    
+                    if !locationProvider.isSimulating {
+                        UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                            uiView.setCamera(camera, animated: false)
+                        }
+                    } else {
                         uiView.setCamera(camera, animated: false)
                     }
-                } else {
-                    uiView.setCamera(camera, animated: false)
                 }
             } else {
                 // Overview Mode - Show the entire route from top down
@@ -195,7 +218,7 @@ struct ZenMapView: UIViewRepresentable {
         }
 
         // Only redraw overlays when route or state actually changes
-        let cacheKey = "\(routingService.activeRoute.count)_\(routeState.hashValue)_\(routingService.routeProgressIndex)"
+        let cacheKey = "\(routingService.activeRoute.count)_\(routeState.hashValue)"
         guard coordinator.lastOverlayCacheKey != cacheKey else { return }
         coordinator.lastOverlayCacheKey = cacheKey
 
@@ -213,12 +236,7 @@ struct ZenMapView: UIViewRepresentable {
         }
 
         if !routingService.activeRoute.isEmpty {
-            let startIndex = min(routingService.routeProgressIndex, routingService.activeRoute.count - 1)
-            var route = Array(routingService.activeRoute[startIndex...])
-
-            if routeState == .navigating, let carLoc = locationProvider.currentLocation?.coordinate, route.count > 1 {
-                route[0] = carLoc
-            }
+            let route = routingService.activeRoute
 
             let outlinePolyline = BorderedPolyline(coordinates: route, count: route.count)
             outlinePolyline.isBorder = true
@@ -252,6 +270,12 @@ struct ZenMapView: UIViewRepresentable {
         var lastRouteState: RouteState = .search
         var parkingAnnotationsLoaded = false
         var simulatedCarAnnotation: SimulatedCarAnnotation?
+        
+        var lastCameraCenter: CLLocationCoordinate2D? = nil
+        var lastCameraBearing: Double = 0
+        var lastCameraDistance: Double = 0
+        var lastCameraPitch: Double = 0
+        
         weak var mapView: MKMapView?
 
         init(_ parent: ZenMapView) {

@@ -30,16 +30,16 @@ enum RoutingError: Error {
     case apiError(String)
 }
 
-struct TomTomRouteResponse: Decodable {
+struct TomTomRouteResponse: Codable {
     let routes: [TomTomRoute]
 }
 
-struct TomTomSummary: Decodable {
+struct TomTomSummary: Codable {
     let lengthInMeters: Int
     let travelTimeInSeconds: Int
 }
 
-struct TomTomGuidance: Decodable {
+struct TomTomGuidance: Codable {
     let instructions: [TomTomInstruction]?
 }
 
@@ -52,7 +52,7 @@ enum RoadFeature {
     case none
 }
 
-struct TomTomInstruction: Decodable {
+struct TomTomInstruction: Codable {
     let routeOffsetInMeters: Int
     let travelTimeInSeconds: Int
     let pointIndex: Int
@@ -71,7 +71,7 @@ struct TomTomInstruction: Decodable {
     }
 }
 
-struct TomTomRoute: Decodable, Identifiable {
+struct TomTomRoute: Codable, Identifiable {
     var id = UUID()
     let summary: TomTomSummary
     let tags: [String]?
@@ -83,7 +83,29 @@ struct TomTomRoute: Decodable, Identifiable {
     var savedFines: Int { cameraCount * 100 }
 
     enum CodingKeys: String, CodingKey {
-        case summary, tags, legs, guidance
+        case id, summary, tags, legs, guidance, cameraCount, isSafeRoute
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.summary = try container.decode(TomTomSummary.self, forKey: .summary)
+        self.tags = try container.decodeIfPresent([String].self, forKey: .tags)
+        self.legs = try container.decode([TomTomLeg].self, forKey: .legs)
+        self.guidance = try container.decodeIfPresent(TomTomGuidance.self, forKey: .guidance)
+        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        self.cameraCount = try container.decodeIfPresent(Int.self, forKey: .cameraCount) ?? 0
+        self.isSafeRoute = try container.decodeIfPresent(Bool.self, forKey: .isSafeRoute) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(summary, forKey: .summary)
+        try container.encodeIfPresent(tags, forKey: .tags)
+        try container.encode(legs, forKey: .legs)
+        try container.encodeIfPresent(guidance, forKey: .guidance)
+        try container.encode(cameraCount, forKey: .cameraCount)
+        try container.encode(isSafeRoute, forKey: .isSafeRoute)
     }
 
     var isZeroCameras: Bool {
@@ -99,11 +121,11 @@ struct TomTomRoute: Decodable, Identifiable {
     }
 }
 
-struct TomTomLeg: Decodable {
+struct TomTomLeg: Codable {
     let points: [TomTomPoint]
 }
 
-struct TomTomPoint: Decodable {
+struct TomTomPoint: Codable {
     let latitude: Double
     let longitude: Double
 }
@@ -170,6 +192,18 @@ class RoutingService: ObservableObject {
 
     private let apiKey = Secrets.tomTomAPIKey
     var useMockData = false
+
+    // MARK: - Offline Route
+    func loadOfflineRoute(_ route: TomTomRoute) {
+        Task { @MainActor in
+            self.availableRoutes = [route]
+            self.activeAlternativeRoutes = [route].compactMap { r in
+                r.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            }
+            self.selectRoute(at: 0)
+            Log.info("Routing", "Loaded offline route from storage.")
+        }
+    }
 
     // MARK: - Recalculate with stored params (called on preference change)
 
