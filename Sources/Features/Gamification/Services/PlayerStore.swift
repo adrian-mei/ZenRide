@@ -27,7 +27,7 @@ class PlayerStore: ObservableObject {
     @Published var selectedCharacterId: String = "camper_fox"
     @Published var showLevelUpToast: Bool = false
     @Published var newlyUnlockedCharacters: [Character] = []
-    @Published var newlyEarnedAchievement: Achievement?
+    @Published var newlyEarnedAchievement: Achievement? = nil
 
     private let xpKey = "PlayerStore_TotalXP_v1"
     private let charKey = "PlayerStore_Character_v1"

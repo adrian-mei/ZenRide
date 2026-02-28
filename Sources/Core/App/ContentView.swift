@@ -5,7 +5,7 @@ import Combine
 
 struct ContentView: View {
     @State private var appState: AppState = {
-        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return .garage }
+        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return .onboarding }
         return .garage
     }()
 
