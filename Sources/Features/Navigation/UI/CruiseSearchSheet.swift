@@ -8,6 +8,7 @@ struct CruiseSearchSheet: View {
 
     @EnvironmentObject var locationProvider: LocationProvider
 
+    @EnvironmentObject var savedRoutes: SavedRoutesStore
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var focused: Bool
     @State private var searchTask: Task<Void, Never>?
@@ -57,13 +58,13 @@ struct CruiseSearchSheet: View {
                         searchTask = Task {
                             try? await Task.sleep(nanoseconds: 200_000_000)
                             guard !Task.isCancelled else { return }
-                            searcher.search(for: query, near: locationProvider.currentLocation?.coordinate)
+                            searcher.search(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
                         }
                     }
                     .onSubmit {
                         let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
                         guard !q.isEmpty else { return }
-                        searcher.search(for: q, near: locationProvider.currentLocation?.coordinate)
+                        searcher.search(for: q, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
                     }
 
                 if !searcher.searchQuery.isEmpty {
@@ -186,7 +187,7 @@ struct CruiseSearchSheet: View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             searcher.searchQuery = label
-            searcher.search(for: label, near: locationProvider.currentLocation?.coordinate)
+            searcher.search(for: label, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)

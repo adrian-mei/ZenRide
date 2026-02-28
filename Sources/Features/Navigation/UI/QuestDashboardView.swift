@@ -75,7 +75,7 @@ struct QuestDashboardView: View {
                 // Fixed height + scrollClipDisabled so shadows are not clipped at the edge
                 // scrollTargetBehavior ensures snappy card-by-card paging
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
+                    HStack(spacing: 16) {
                         ForEach(questStore.quests) { quest in
                             QuestCard(quest: quest,
                                       onStart: {
@@ -91,9 +91,9 @@ struct QuestDashboardView: View {
                     }
                     .scrollTargetLayout()
                     .padding(.horizontal)
-                    .padding(.vertical, 6) // breathing room for shadows
+                    .padding(.vertical, 8) // breathing room for shadows
                 }
-                .frame(height: 216) // explicit height = card 200 + vertical padding 16
+                .frame(height: 224) // explicit height = card 200 + vertical padding 24
                 .scrollTargetBehavior(.viewAligned)
                 .scrollClipDisabled()
             }

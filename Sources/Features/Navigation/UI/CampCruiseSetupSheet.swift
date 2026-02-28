@@ -308,7 +308,7 @@ private struct CruiseStopPickerSheet: View {
                     searchTask = Task {
                         try? await Task.sleep(nanoseconds: 200_000_000)
                         guard !Task.isCancelled else { return }
-                        searcher.search(for: query, near: locationProvider.currentLocation?.coordinate)
+                        searcher.search(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
                     }
                 }
                 .onSubmit {
@@ -316,7 +316,7 @@ private struct CruiseStopPickerSheet: View {
                     let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
                     guard !q.isEmpty else { return }
                     searcher.isSearching = true
-                    searcher.search(for: q, near: locationProvider.currentLocation?.coordinate)
+                    searcher.search(for: q, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
                 }
             if !searcher.searchQuery.isEmpty {
                 Button { searcher.searchQuery = ""; searcher.searchResults = []; searcher.isSearching = false } label: {
