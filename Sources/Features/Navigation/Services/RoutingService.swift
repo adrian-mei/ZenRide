@@ -68,6 +68,17 @@ enum VehicleMode: String, CaseIterable {
         default: return false
         }
     }
+
+    /// TomTom specific travel mode string
+    var tomTomTravelMode: String {
+        switch self {
+        case .car, .sportsCar, .electricCar, .suv: return "car"
+        case .truck: return "truck"
+        case .motorcycle, .scooter: return "motorcycle"
+        case .bicycle, .mountainBike: return "bicycle"
+        case .walking, .running, .skateboard: return "pedestrian"
+        }
+    }
 }
 
 enum RoutingError: Error {
@@ -454,7 +465,8 @@ class RoutingService: ObservableObject {
             URLQueryItem(name: "routeType", value: "fastest"),
             URLQueryItem(name: "traffic", value: "true"),
             URLQueryItem(name: "instructionsType", value: "text"),
-            URLQueryItem(name: "language", value: "en-US")
+            URLQueryItem(name: "language", value: "en-US"),
+            URLQueryItem(name: "travelMode", value: vehicleMode.tomTomTravelMode)
         ]
 
         if !avoidAreas.isEmpty {
