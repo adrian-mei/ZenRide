@@ -225,26 +225,16 @@ struct DriveDetailView: View {
                             }
                             .buttonStyle(ACButtonStyle(variant: record.isBookmarked ? .primary : .secondary))
                             
-                            Button(role: .destructive) {
+                            ACDangerButton(title: "Delete", icon: "trash") {
                                 driveStore.deleteRecord(id: record.id)
                                 dismiss()
-                            } label: {
-                                HStack {
-                                    Image(systemName: "trash")
-                                    Text("Delete")
-                                }
-                                .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(ACButtonStyle(variant: .secondary))
                         }
                         .padding(.horizontal)
                         
                         // Legs / Sessions
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("TRIP LEGS")
-                                .font(.system(size: 14, weight: .black, design: .rounded))
-                                .foregroundColor(Theme.Colors.acWood)
-                                .kerning(1.5)
+                            ACSectionHeader(title: "TRIP LEGS", icon: "list.bullet")
                             
                             ForEach(Array(record.sessions.enumerated()), id: \.element.id) { index, session in
                                 SessionRow(session: session, index: index + 1)

@@ -60,12 +60,7 @@ struct CampCruiseSetupSheet: View {
     private var routePlannerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Image(systemName: "map.fill")
-                    .foregroundColor(Theme.Colors.acLeaf)
-                Text("ROUTE STOPS")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acLeaf)
-                    .kerning(1.5)
+                ACSectionHeader(title: "ROUTE STOPS", icon: "map.fill", color: Theme.Colors.acLeaf)
                 Spacer()
                 Text("optional")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
@@ -167,7 +162,7 @@ struct CampCruiseSetupSheet: View {
             .padding(16)
 
             if saveOffline {
-                Divider().background(Theme.Colors.acBorder.opacity(0.4)).padding(.horizontal, 16)
+                ACSectionDivider(leadingInset: 16)
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(Theme.Colors.acLeaf)
@@ -188,14 +183,7 @@ struct CampCruiseSetupSheet: View {
     @ViewBuilder
     private var crewCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "person.2.fill")
-                    .foregroundColor(Theme.Colors.acWood)
-                Text("INVITE CREW")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acWood)
-                    .kerning(1.5)
-            }
+            ACSectionHeader(title: "INVITE CREW", icon: "person.2.fill")
 
             Text("Share your route and cruise together. Friends join using your invite code after you start.")
                 .font(Theme.Typography.body)
@@ -365,7 +353,7 @@ private struct CruiseStopPickerSheet: View {
                             dismiss()
                         } onSave: {}
                         if idx < min(searcher.searchResults.count, 12) - 1 {
-                            Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.leading, 66)
+                            ACSectionDivider(leadingInset: 66)
                         }
                     }
                 }

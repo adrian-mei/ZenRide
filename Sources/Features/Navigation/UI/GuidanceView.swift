@@ -47,7 +47,7 @@ struct GuidanceView: View {
                     if currentInstructionIndex + 1 < routingService.instructions.count {
                         let nextInst = routingService.instructions[currentInstructionIndex + 1]
                         if nextInst.turnType != .arrive {
-                            Divider().background(Theme.Colors.acBorder.opacity(0.3))
+                            ACSectionDivider(leadingInset: 0)
                             HStack(spacing: 12) {
                                 Text("THEN")
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
