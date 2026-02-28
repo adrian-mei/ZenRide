@@ -29,7 +29,6 @@ struct MapHomeView: View {
     var pendingMoodSave: ((String) -> Void)?
 
     @State private var showGarage = false
-    @State private var showHistory = false
     @State private var showMoodCard = false
     @State private var showProfile = false
     @State private var toastVisible = false
@@ -276,9 +275,6 @@ struct MapHomeView: View {
             ProfileView()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showHistory) {
-            DriveHistoryView()
         }
         .sheet(isPresented: $showMoodCard) {
             if let moodSave = pendingMoodSave {
@@ -724,9 +720,28 @@ struct HomeBottomSheet: View {
 
             // Actions
             VStack(spacing: 12) {
-                ActionButton(icon: "square.and.arrow.up", title: "Share My Location", color: Theme.Colors.acSky)
-                ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location", color: Theme.Colors.acCoral)
-                ActionButton(icon: "exclamationmark.bubble", title: "Report an Issue", color: Theme.Colors.acGold)
+                ActionButton(icon: "square.and.arrow.up", title: "Share My Location", color: Theme.Colors.acSky) {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    guard let loc = locationProvider.currentLocation else { return }
+                    let lat = loc.coordinate.latitude
+                    let lng = loc.coordinate.longitude
+                    let text = "My location: https://maps.apple.com/?ll=\(lat),\(lng)"
+                    let vc = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+                    UIApplication.shared.firstKeyWindow?.rootViewController?.present(vc, animated: true)
+                }
+                ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location", color: Theme.Colors.acCoral) {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    guard let loc = locationProvider.currentLocation else { return }
+                    let coord = loc.coordinate
+                    let name = "Marked \(markedLocationTimestamp())"
+                    savedRoutes.savePlace(name: name, coordinate: coord)
+                }
+                ActionButton(icon: "exclamationmark.bubble", title: "Report an Issue", color: Theme.Colors.acGold) {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if let url = URL(string: "https://github.com/anthropics/claude-code/issues") {
+                        UIApplication.shared.open(url)
+                    }
+                }
             }
             .padding(.horizontal)
             .padding(.bottom, 40)
@@ -872,6 +887,23 @@ struct HomeBottomSheet: View {
         default: return "\(days) days ago"
         }
     }
+
+    private func markedLocationTimestamp() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, h:mm a"
+        return f.string(from: Date())
+    }
+}
+
+// MARK: - UIApplication helper
+
+private extension UIApplication {
+    var firstKeyWindow: UIWindow? {
+        connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }
+    }
 }
 
 // MARK: - Supporting Views
@@ -1006,9 +1038,10 @@ struct ActionButton: View {
     let icon: String
     let title: String
     var color: Color = Theme.Colors.acWood
+    var action: () -> Void = {}
 
     var body: some View {
-        Button(action: {}) {
+        Button(action: action) {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)

@@ -11,7 +11,10 @@ struct ProfileView: View {
     @State private var subscription = "Pro Rider"
     
     @State private var showGarage = false
-    
+    @State private var showDriveHistory = false
+    @State private var showPrivacyAlert = false
+    @State private var showSignOutAlert = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -20,7 +23,7 @@ struct ProfileView: View {
                     UserHeaderView(name: name, email: email, subscription: subscription, driveStore: driveStore)
                         .padding(.horizontal)
                         .padding(.top, 16)
-                    
+
                     // Bike Cards Section
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -28,57 +31,64 @@ struct ProfileView: View {
                                 .font(Theme.Typography.headline)
                                 .foregroundColor(Theme.Colors.acTextDark)
                             Spacer()
-                            Button("Manage") {
-                                showGarage = true
-                            }
-                            .font(.subheadline.bold())
-                            .foregroundColor(Theme.Colors.acLeaf)
+                            Button("Manage") { showGarage = true }
+                                .font(.subheadline.bold())
+                                .foregroundColor(Theme.Colors.acLeaf)
                         }
                         .padding(.horizontal)
-                        
+
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(vehicleStore.vehicles) { vehicle in
-                                    Button {
-                                        showGarage = true
-                                    } label: {
-                                        BikePassCard(vehicle: vehicle)
-                                    }
+                                    Button { showGarage = true } label: { BikePassCard(vehicle: vehicle) }
+                                        .buttonStyle(.plain)
+                                }
+                                Button { showGarage = true } label: { AddBikeCard() }
                                     .buttonStyle(.plain)
-                                }
-                                
-                                Button {
-                                    showGarage = true
-                                } label: {
-                                    AddBikeCard()
-                                }
-                                .buttonStyle(.plain)
                             }
                             .padding(.horizontal)
                             .padding(.bottom, 8)
                         }
                     }
-                    
+
                     // Settings List
                     VStack(spacing: 0) {
                         NavigationLink(destination: VoiceSettingsView()) {
                             SettingsRow(icon: "speaker.wave.2.fill", title: "Voice Settings", color: Theme.Colors.acSky)
                         }
                         Divider().padding(.leading, 50)
-                        Button(action: {}) {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            showDriveHistory = true
+                        } label: {
+                            SettingsRow(icon: "clock.arrow.circlepath", title: "Drive History", color: Theme.Colors.acLeaf)
+                        }
+                        Divider().padding(.leading, 50)
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
                             SettingsRow(icon: "bell.badge.fill", title: "Notifications", color: Theme.Colors.acCoral)
                         }
                         Divider().padding(.leading, 50)
-                        Button(action: {}) {
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            showPrivacyAlert = true
+                        } label: {
                             SettingsRow(icon: "lock.fill", title: "Privacy", color: Theme.Colors.acWood)
                         }
                     }
                     .acCardStyle(padding: 0)
                     .padding(.horizontal)
                     .buttonStyle(.plain)
-                    
+
                     // Sign out
-                    Button(action: {}) {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        showSignOutAlert = true
+                    } label: {
                         Text("Sign Out")
                             .font(.body.bold())
                             .foregroundColor(Theme.Colors.acCoral)
@@ -95,15 +105,32 @@ struct ProfileView: View {
             .background(Theme.Colors.acField.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .font(.body.bold())
-                    .foregroundColor(Theme.Colors.acLeaf)
+                    Button("Done") { dismiss() }
+                        .font(.body.bold())
+                        .foregroundColor(Theme.Colors.acLeaf)
                 }
             }
-            .sheet(isPresented: $showGarage) {
-                VehicleGarageView()
+            .sheet(isPresented: $showGarage) { VehicleGarageView() }
+            .sheet(isPresented: $showDriveHistory) {
+                DriveHistoryView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
+            .alert("Privacy", isPresented: $showPrivacyAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("FashodaMap stores all your data privately on this device. Nothing is sent to external servers. Your routes, trips, and preferences never leave your iPhone.")
+            }
+            .alert("Sign Out", isPresented: $showSignOutAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset App Data", role: .destructive) {
+                    UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+                    UserDefaults.standard.removeObject(forKey: "FashodaMap_Quests_v2")
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    dismiss()
+                }
+            } message: {
+                Text("Your data is stored locally on this device. 'Reset App Data' will clear your saved quests and restart onboarding on next launch.")
             }
             .preferredColorScheme(.light)
         }
