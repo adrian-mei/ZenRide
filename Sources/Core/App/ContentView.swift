@@ -23,6 +23,7 @@ struct ContentView: View {
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var playerStore: PlayerStore
+    @EnvironmentObject var cameraStore: CameraStore
 
     var body: some View {
         Group {
@@ -171,8 +172,19 @@ struct ContentView: View {
             }
         }
         // Sync vehicleMode whenever selected vehicle changes
-        .onChange(of: vehicleStore.selectedVehicleMode) { mode in
+        .onChange(of: vehicleStore.selectedVehicleMode) { _, mode in
             routingService.vehicleMode = mode
+        }
+        .onChange(of: locationProvider.currentLocation) { _, loc in
+            if let loc = loc {
+                // If the user isn't in SF, give them some dynamic speed cameras to avoid!
+                cameraStore.generateGlobalMockCameras(around: loc.coordinate)
+                
+                // Keep the radar system in sync with any newly generated cameras
+                if bunnyPolice.cameras.count != cameraStore.cameras.count {
+                    bunnyPolice.cameras = cameraStore.cameras
+                }
+            }
         }
     }
 }
