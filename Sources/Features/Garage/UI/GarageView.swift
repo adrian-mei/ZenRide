@@ -239,6 +239,7 @@ struct MapHomeView: View {
                 onProfileTap: { showProfile = true },
                 onDestinationSelected: onDestinationSelected,
                 onCruiseTap: onRollOut,
+                onRollOut: onRollOut,
                 onSearchFocused: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                         bottomSheetDetent = .large
@@ -332,6 +333,7 @@ struct HomeBottomSheet: View {
     var onProfileTap: () -> Void
     var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
     var onCruiseTap: () -> Void
+    var onRollOut: () -> Void
     var onSearchFocused: (() -> Void)? = nil
 
     @EnvironmentObject var locationProvider: LocationProvider
@@ -346,6 +348,8 @@ struct HomeBottomSheet: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var justSavedIndex: Int? = nil
     @State private var nearbyParking: [ParkingSpot] = []
+    @State private var showQuestBuilder = false
+    @State private var questBuilderPreloaded: [QuestWaypoint] = []
 
     var body: some View {
         ScrollView {
@@ -458,6 +462,17 @@ struct HomeBottomSheet: View {
             if focused { onSearchFocused?() }
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
+        .sheet(isPresented: $showQuestBuilder) {
+            QuestBuilderView(
+                preloadedWaypoints: questBuilderPreloaded,
+                onStartTrip: onRollOut
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .onChange(of: showQuestBuilder) { isShowing in
+            if !isShowing { questBuilderPreloaded = [] }
+        }
     }
 
     // MARK: - Idle Content
@@ -532,7 +547,37 @@ struct HomeBottomSheet: View {
             .padding(.horizontal)
             .padding(.top, 8)
             .padding(.bottom, 6) // For shadow
-            
+
+            // Plan a Trip Button
+            Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                questBuilderPreloaded = []
+                showQuestBuilder = true
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Plan a Trip")
+                            .font(Theme.Typography.title)
+                            .foregroundColor(Theme.Colors.acTextDark)
+                        Text("Build a custom multi-stop route")
+                            .font(Theme.Typography.body)
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                    }
+                    Spacer()
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(Theme.Colors.acWood)
+                }
+                .padding(20)
+                .background(Theme.Colors.acField)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 3))
+                .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 6)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal)
+            .padding(.bottom, 6) // For shadow
+
             // FashodaMap: Daily Quests inject here!
             QuestDashboardView()
             
@@ -721,22 +766,40 @@ struct HomeBottomSheet: View {
                         let miles = userLoc.distance(from: placeLoc) / 1609.34
                         return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
                     }()
-                    SearchResultRow(
-                        item: item,
-                        isSaved: justSavedIndex == idx,
-                        distanceString: distanceString
-                    ) {
-                        routeTo(item: item)
-                    } onSave: {
-                        guard let coord = item.placemark.location?.coordinate else { return }
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            justSavedIndex = idx
+                    HStack(spacing: 0) {
+                        SearchResultRow(
+                            item: item,
+                            isSaved: justSavedIndex == idx,
+                            distanceString: distanceString
+                        ) {
+                            routeTo(item: item)
+                        } onSave: {
+                            guard let coord = item.placemark.location?.coordinate else { return }
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                justSavedIndex = idx
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                                withAnimation { justSavedIndex = nil }
+                            }
                         }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                            withAnimation { justSavedIndex = nil }
+
+                        // "+" pill — add to trip builder
+                        Button {
+                            guard let coord = item.placemark.location?.coordinate else { return }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            let wp = QuestWaypoint(name: item.name ?? "Stop", coordinate: coord, icon: "mappin.circle.fill")
+                            questBuilderPreloaded = [wp]
+                            showQuestBuilder = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(Theme.Colors.acLeaf)
+                                .frame(width: 44, height: 44)
                         }
+                        .buttonStyle(.plain)
+                        .padding(.trailing, 10)
                     }
 
                     if idx < min(searcher.searchResults.count, 12) - 1 {

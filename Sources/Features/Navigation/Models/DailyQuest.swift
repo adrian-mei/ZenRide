@@ -3,7 +3,8 @@ import CoreLocation
 import MapKit
 
 /// Represents a specific stop/waypoint in a user's Daily Quest
-struct QuestWaypoint: Identifiable, Codable {
+struct QuestWaypoint: Identifiable, Codable, Equatable {
+    static func == (lhs: QuestWaypoint, rhs: QuestWaypoint) -> Bool { lhs.id == rhs.id }
     var id: UUID = UUID()
     var name: String
     var coordinate: CLLocationCoordinate2D
