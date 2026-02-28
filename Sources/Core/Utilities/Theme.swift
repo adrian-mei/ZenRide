@@ -117,21 +117,32 @@ public struct ACButtonStyle: ButtonStyle {
     var variant: Variant
     
     public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(Theme.Typography.button)
-            .padding(.horizontal, 24)
-            .frame(minHeight: 48)
-            .background(backgroundColor(isPressed: configuration.isPressed))
-            .foregroundColor(textColor)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(borderColor, lineWidth: 2)
-            )
-            .shadow(color: shadowColor, radius: 0, x: 0, y: configuration.isPressed ? 0 : 6)
-            .offset(y: configuration.isPressed ? 6 : 0)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+        let liftY: CGFloat = configuration.isPressed ? 0 : 4
+
+        ZStack {
+            // Bottom depth slab (stationary — creates the chunky 3D base)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(shadowColor)
+
+            // Top face (lifts when idle, snaps down when pressed)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(backgroundColor(isPressed: configuration.isPressed))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .offset(y: -liftY)
+        }
+        .frame(minHeight: 52) // 48pt face + 4pt slab peeking below
+        .overlay(
+            configuration.label
+                .font(Theme.Typography.button)
+                .foregroundColor(textColor)
+                .padding(.horizontal, 24)
+                .offset(y: -liftY)
+        )
+        .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
     }
     
     private func backgroundColor(isPressed: Bool) -> Color {
