@@ -19,11 +19,20 @@ final class SavedRoute {
     @Transient var offlineRoute: TomTomRoute? {
         get {
             guard let data = offlineRouteData else { return nil }
-            return try? JSONDecoder().decode(TomTomRoute.self, from: data)
+            do {
+                return try JSONDecoder().decode(TomTomRoute.self, from: data)
+            } catch {
+                Log.error("SavedRoute", "Failed to decode offline route: \(error)")
+                return nil
+            }
         }
         set {
             if let value = newValue {
-                offlineRouteData = try? JSONEncoder().encode(value)
+                do {
+                    offlineRouteData = try JSONEncoder().encode(value)
+                } catch {
+                    Log.error("SavedRoute", "Failed to encode offline route: \(error)")
+                }
             } else {
                 offlineRouteData = nil
             }
@@ -41,7 +50,11 @@ final class SavedRoute {
         self.averageDurationSeconds = averageDurationSeconds
         self.isPinned = isPinned
         if let offlineRoute = offlineRoute {
-            self.offlineRouteData = try? JSONEncoder().encode(offlineRoute)
+            do {
+                self.offlineRouteData = try JSONEncoder().encode(offlineRoute)
+            } catch {
+                Log.error("SavedRoute", "Failed to encode offline route in init: \(error)")
+            }
         }
     }
 }

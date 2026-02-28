@@ -20,7 +20,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     // User Header
-                    UserHeaderView(name: name, email: email, subscription: subscription, driveStore: driveStore)
+                    UserHeaderView(name: name, email: email, subscription: subscription)
                         .padding(.horizontal)
                         .padding(.top, 16)
 
@@ -56,14 +56,14 @@ struct ProfileView: View {
                         NavigationLink(destination: VoiceSettingsView()) {
                             SettingsRow(icon: "speaker.wave.2.fill", title: "Voice Settings", color: Theme.Colors.acSky)
                         }
-                        Divider().padding(.leading, 50)
+                        ACSectionDivider(leadingInset: 50)
                         Button {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             showDriveHistory = true
                         } label: {
                             SettingsRow(icon: "clock.arrow.circlepath", title: "Drive History", color: Theme.Colors.acLeaf)
                         }
-                        Divider().padding(.leading, 50)
+                        ACSectionDivider(leadingInset: 50)
                         Button {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -72,7 +72,7 @@ struct ProfileView: View {
                         } label: {
                             SettingsRow(icon: "bell.badge.fill", title: "Notifications", color: Theme.Colors.acCoral)
                         }
-                        Divider().padding(.leading, 50)
+                        ACSectionDivider(leadingInset: 50)
                         Button {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             showPrivacyAlert = true
@@ -143,7 +143,7 @@ struct UserHeaderView: View {
     let name: String
     let email: String
     let subscription: String
-    @ObservedObject var driveStore: DriveStore
+    @EnvironmentObject var driveStore: DriveStore
     
     var body: some View {
         HStack(spacing: 16) {
@@ -166,19 +166,13 @@ struct UserHeaderView: View {
                     .foregroundColor(Theme.Colors.acTextMuted)
                 
                 HStack {
-                    HStack {
-                        Image(systemName: "leaf.fill")
-                            .foregroundColor(Theme.Colors.acLeaf)
-                        Text("Camp Resident")
-                            .font(.caption.bold())
-                            .foregroundColor(Theme.Colors.acTextDark)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Theme.Colors.acCream)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 1))
-                    
+                    ACBadge(
+                        text: "Camp Resident",
+                        textColor: Theme.Colors.acTextDark,
+                        backgroundColor: Theme.Colors.acCream,
+                        icon: "leaf.fill"
+                    )
+
                     Text("\(driveStore.totalRideCount) Trips · \(Int(driveStore.totalDistanceMiles)) mi")
                         .font(.caption)
                         .foregroundColor(Theme.Colors.acTextMuted)

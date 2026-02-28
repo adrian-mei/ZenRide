@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct DigitalDashSpeedometer: View {
-    @ObservedObject var bunnyPolice: BunnyPolice
-    @ObservedObject var locationProvider: LocationProvider
+    @EnvironmentObject var bunnyPolice: BunnyPolice
+    @EnvironmentObject var locationProvider: LocationProvider
 
     var speedLimit: Double { Double(bunnyPolice.nearestCamera?.speed_limit_mph ?? 45) }
 

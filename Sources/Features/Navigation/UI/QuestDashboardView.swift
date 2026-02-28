@@ -129,13 +129,11 @@ struct QuestCard: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text("\(quest.waypoints.count) stops")
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundColor(Theme.Colors.acWood)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Theme.Colors.acWood.opacity(0.12))
-                        .clipShape(Capsule())
+                    ACBadge(
+                        text: "\(quest.waypoints.count) stops",
+                        textColor: Theme.Colors.acWood,
+                        backgroundColor: Theme.Colors.acWood.opacity(0.12)
+                    )
 
                     Text("+\(quest.waypoints.count * 25) XP")
                         .font(.system(size: 10, weight: .bold, design: .rounded))

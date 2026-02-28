@@ -16,7 +16,13 @@ class SharedModelContainer {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             return container
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            Log.error("SharedModelContainer", "Persistent store failed, falling back to in-memory: \(error)")
+            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                return try ModelContainer(for: schema, configurations: [fallbackConfig])
+            } catch {
+                fatalError("Could not create in-memory ModelContainer: \(error)")
+            }
         }
     }()
 }

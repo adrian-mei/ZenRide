@@ -139,7 +139,7 @@ struct RideView: View {
     private var controlsRow: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 16) {
-                DigitalDashSpeedometer(bunnyPolice: bunnyPolice, locationProvider: locationProvider)
+                DigitalDashSpeedometer()
                     .transition(.scale.combined(with: .opacity))
             }
             .padding(.leading, 16)

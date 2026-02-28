@@ -82,31 +82,14 @@ struct QuestBuilderView: View {
 
     @ViewBuilder
     private var nameCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quest Name")
-                .font(Theme.Typography.headline)
-                .foregroundColor(Theme.Colors.acTextDark)
-            TextField("e.g. Morning Run", text: $questName)
-                .font(Theme.Typography.body)
-                .padding()
-                .background(Theme.Colors.acCream)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.acBorder, lineWidth: 2))
-        }
-        .acCardStyle(padding: 20)
+        ACTextField(title: "Quest Name", placeholder: "e.g. Morning Run", text: $questName)
+            .acCardStyle(padding: 20)
     }
 
     @ViewBuilder
     private var startLocationCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "location.circle.fill")
-                    .foregroundColor(Theme.Colors.acSky)
-                Text("STARTING FROM")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acSky)
-                    .kerning(1.5)
-            }
+            ACSectionHeader(title: "STARTING FROM", icon: "location.circle.fill", color: Theme.Colors.acSky)
             HStack(spacing: 10) {
                 Button { startLocation = .currentLocation } label: {
                     HStack(spacing: 6) {
@@ -141,13 +124,7 @@ struct QuestBuilderView: View {
     @ViewBuilder
     private var stopsCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "map.fill").foregroundColor(Theme.Colors.acWood)
-                Text("YOUR STOPS")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acWood)
-                    .kerning(1.5)
-            }
+            ACSectionHeader(title: "YOUR STOPS", icon: "map.fill")
             if waypoints.isEmpty {
                 Text("Add stops to build your route.")
                     .font(Theme.Typography.body)
@@ -367,9 +344,7 @@ private struct AddStopSheet: View {
                                     } onSave: {}
 
                                     if idx < min(searcher.searchResults.count, 12) - 1 {
-                                        Divider()
-                                            .background(Theme.Colors.acBorder.opacity(0.3))
-                                            .padding(.leading, 66)
+                                        ACSectionDivider(leadingInset: 66)
                                     }
                                 }
                             }

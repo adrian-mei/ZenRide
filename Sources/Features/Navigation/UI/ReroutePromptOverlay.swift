@@ -25,29 +25,10 @@ struct ReroutePromptOverlay: View {
                     .padding(.horizontal)
                 
                 VStack(spacing: 12) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("Stick to Filters")
-                            .font(Theme.Typography.button)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Theme.Colors.acLeaf)
-                            .foregroundColor(.white)
-                            .clipShape(Capsule())
-                    }
-                    
-                    Button(action: {
-                        removeFiltersAndRecalculate()
-                    }) {
-                        Text("Remove Filters")
-                            .font(Theme.Typography.button)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Theme.Colors.acWood)
-                            .foregroundColor(Theme.Colors.acCream)
-                            .clipShape(Capsule())
-                    }
+                    Button("Stick to Filters", action: dismiss)
+                        .buttonStyle(ACButtonStyle(variant: .primary))
+
+                    ACDangerButton(title: "Remove Filters", action: removeFiltersAndRecalculate)
                 }
                 .padding(.top, 10)
             }

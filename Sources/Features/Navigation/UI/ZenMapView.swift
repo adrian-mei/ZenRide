@@ -564,13 +564,13 @@ struct ZenMapView: UIViewRepresentable {
             NotificationCenter.default.addObserver(
                 self,
                 selector: #selector(recenter),
-                name: NSNotification.Name("RecenterMap"),
+                name: AppNotification.recenterMap,
                 object: nil
             )
             NotificationCenter.default.addObserver(
                 self,
                 selector: #selector(toggle3D(_:)),
-                name: NSNotification.Name("Toggle3DMap"),
+                name: AppNotification.toggle3DMap,
                 object: nil
             )
         }
@@ -680,7 +680,7 @@ struct ZenMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
             if let poiAnnotation = view.annotation as? POIAnnotation {
                 NotificationCenter.default.post(
-                    name: NSNotification.Name("AddPOIToRoute"),
+                    name: AppNotification.addPOIToRoute,
                     object: poiAnnotation
                 )
             }

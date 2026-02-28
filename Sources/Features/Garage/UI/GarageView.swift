@@ -39,16 +39,22 @@ struct MapHomeView: View {
     @State private var isTracking = true
     @State private var is3DMap = false
     @State private var bottomSheetDetent: PresentationDetent = .fraction(0.35)
-    
+    @State private var mapRouteState: RouteState = .search
+
     @State private var questWaypoints: [QuestWaypoint] = []
     @State private var showQuestBuilderFloating = false
+
+    private func performRollOut() {
+        mapRouteState = .navigating
+        onRollOut()
+    }
 
     var body: some View {
         ZStack {
             // Full-screen interactive map
-            ZenMapView(routeState: .constant(.search), isTracking: $isTracking)
-                .edgesIgnoringSafeArea(.all)
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("AddPOIToRoute"))) { notif in
+            ZenMapView(routeState: $mapRouteState, isTracking: $isTracking)
+                .ignoresSafeArea()
+                .onReceive(NotificationCenter.default.publisher(for: AppNotification.addPOIToRoute)) { notif in
                     if let poi = notif.object as? POIAnnotation {
                         let wp = QuestWaypoint(
                             name: poi.title ?? "Stop \(questWaypoints.count + 1)",
@@ -63,40 +69,42 @@ struct MapHomeView: View {
                 }
 
             // Right side buttons
-            VStack {
-                Spacer()
-                VStack(spacing: 8) {
-                    ACMapRoundButton(
-                        icon: is3DMap ? "view.3d" : "map",
-                        label: is3DMap ? "Switch to 2D map" : "Switch to 3D map",
-                        isActive: is3DMap,
-                        action: {
-                            is3DMap.toggle()
-                            NotificationCenter.default.post(name: NSNotification.Name("Toggle3DMap"), object: is3DMap)
-                        }
-                    )
-                    ACMapRoundButton(
-                        icon: vehicleStore.selectedVehicleMode.icon,
-                        label: "Open vehicle garage",
-                        action: {
-                            activeSheet = .garage
-                        }
-                    )
-                    ACMapRoundButton(
-                        icon: isTracking ? "location.fill" : "location",
-                        label: isTracking ? "Location tracking active" : "Center map on my location",
-                        isActive: isTracking,
-                        action: {
-                            isTracking = true
-                            NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
-                        }
-                    )
+            GeometryReader { geo in
+                VStack {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        ACMapRoundButton(
+                            icon: is3DMap ? "view.3d" : "map",
+                            label: is3DMap ? "Switch to 2D map" : "Switch to 3D map",
+                            isActive: is3DMap,
+                            action: {
+                                is3DMap.toggle()
+                                NotificationCenter.default.post(name: AppNotification.toggle3DMap, object: is3DMap)
+                            }
+                        )
+                        ACMapRoundButton(
+                            icon: vehicleStore.selectedVehicleMode.icon,
+                            label: "Open vehicle garage",
+                            action: {
+                                activeSheet = .garage
+                            }
+                        )
+                        ACMapRoundButton(
+                            icon: isTracking ? "location.fill" : "location",
+                            label: isTracking ? "Location tracking active" : "Center map on my location",
+                            isActive: isTracking,
+                            action: {
+                                isTracking = true
+                                NotificationCenter.default.post(name: AppNotification.recenterMap, object: nil)
+                            }
+                        )
+                    }
+                    .padding(.trailing, 16)
+                    // Positioned above the default 0.35 sheet detent so buttons remain visible
+                    .padding(.bottom, geo.size.height * 0.38)
                 }
-                .padding(.trailing, 16)
-                // Positioned above the default 0.35 sheet detent so buttons remain visible
-                .padding(.bottom, UIScreen.main.bounds.height * 0.38)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
 
             // Post-ride toast
             if toastVisible, let info = postRideInfo {
@@ -144,6 +152,7 @@ struct MapHomeView: View {
             }
             
             if showQuestBuilderFloating && !questWaypoints.isEmpty {
+                GeometryReader { geo in
                 VStack {
                     Spacer()
                     VStack(spacing: 12) {
@@ -190,7 +199,7 @@ struct MapHomeView: View {
                                         questWaypoints.removeAll()
                                         showQuestBuilderFloating = false
                                     }
-                                    onRollOut() // Go to RideView
+                                    performRollOut() // Go to RideView
                                 } else {
                                     // Handle single destination
                                     if let first = questWaypoints.first {
@@ -215,8 +224,9 @@ struct MapHomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
                     .padding(.horizontal)
-                    .padding(.bottom, UIScreen.main.bounds.height * 0.15 + 20)
+                    .padding(.bottom, geo.size.height * 0.15 + 20)
                 }
+                } // GeometryReader
                 .zIndex(60)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -225,8 +235,8 @@ struct MapHomeView: View {
             HomeBottomSheet(
                 onProfileTap: { activeSheet = .profile },
                 onDestinationSelected: onDestinationSelected,
-                onCruiseTap: onRollOut,
-                onRollOut: onRollOut,
+                onCruiseTap: performRollOut,
+                onRollOut: performRollOut,
                 onSearchFocused: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                         bottomSheetDetent = .large
@@ -241,6 +251,7 @@ struct MapHomeView: View {
         }
         .onAppear {
             if postRideInfo != nil {
+                mapRouteState = .search
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
                     toastVisible = true
                 }
