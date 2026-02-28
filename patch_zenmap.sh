@@ -1,0 +1,2 @@
+sed -i '' 's/let cacheKey = "\\(routingService.activeRoute.count\\)_\\(routeState.hashValue\\)_\\(routingService.routeProgressIndex\\)"/let cacheKey = "\\(routingService.activeRoute.count\\)_\\(routeState.hashValue\\)"/' Sources/Features/Navigation/UI/ZenMapView.swift
+sed -i '' 's/let startIndex = min(routingService.routeProgressIndex, routingService.activeRoute.count - 1)/let startIndex = 0/' Sources/Features/Navigation/UI/ZenMapView.swift

@@ -28,15 +28,24 @@ struct RideEntry: Codable, Identifiable {
 }
 
 class RideJournal: ObservableObject {
-    @Published var entries: [RideEntry] = []
-
-    var totalSaved: Int {
-        entries.reduce(0) { $0 + ($1.ticketsAvoided * 100) }
+    @Published var entries: [RideEntry] = [] {
+        didSet { updateStats() }
     }
 
-    var totalDistanceMiles: Double {
-        let meters = entries.compactMap { $0.routeDistanceMeters }.reduce(0, +)
-        return Double(meters) / 1609.34
+    @Published private(set) var totalSaved: Int = 0
+    @Published private(set) var totalDistanceMiles: Double = 0
+
+    private func updateStats() {
+        var saved = 0
+        var meters = 0
+        for entry in entries {
+            saved += (entry.ticketsAvoided * 100)
+            if let dist = entry.routeDistanceMeters {
+                meters += dist
+            }
+        }
+        totalSaved = saved
+        totalDistanceMiles = Double(meters) / 1609.34
     }
 
     init() {

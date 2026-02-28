@@ -86,6 +86,20 @@ struct TomTomRoute: Codable, Identifiable {
         case id, summary, tags, legs, guidance, cameraCount, isSafeRoute
     }
 
+    var isZeroCameras: Bool {
+        tags?.contains("zero_cameras") == true || isSafeRoute || cameraCount == 0
+    }
+
+    var isLessTraffic: Bool {
+        tags?.contains("less_traffic") == true
+    }
+    
+    var hasTolls: Bool {
+        tags?.contains("has_tolls") == true
+    }
+}
+
+extension TomTomRoute {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.summary = try container.decode(TomTomSummary.self, forKey: .summary)
@@ -106,18 +120,6 @@ struct TomTomRoute: Codable, Identifiable {
         try container.encodeIfPresent(guidance, forKey: .guidance)
         try container.encode(cameraCount, forKey: .cameraCount)
         try container.encode(isSafeRoute, forKey: .isSafeRoute)
-    }
-
-    var isZeroCameras: Bool {
-        tags?.contains("zero_cameras") == true || isSafeRoute || cameraCount == 0
-    }
-
-    var isLessTraffic: Bool {
-        tags?.contains("less_traffic") == true
-    }
-    
-    var hasTolls: Bool {
-        tags?.contains("has_tolls") == true
     }
 }
 
@@ -149,6 +151,7 @@ class RoutingService: ObservableObject {
         }
     }
     @Published var isCalculatingRoute = false
+    @Published var showReroutePrompt = false
 
     // MARK: - Multi-Leg Quest State
     @Published var activeQuest: DailyQuest?
@@ -216,8 +219,16 @@ class RoutingService: ObservableObject {
 
     // MARK: - Rerouting
 
+    private var lastRerouteCheckTime: Date?
+    
     func checkReroute(currentLocation: CLLocation) {
         guard activeRoute.count > 1 else { return }
+        
+        let now = Date()
+        if let last = lastRerouteCheckTime, now.timeIntervalSince(last) < 1.0 {
+            return // Throttle reroute checks to max 1 per second
+        }
+        lastRerouteCheckTime = now
 
         let currentCoord = currentLocation.coordinate
         var minDistance = Double.greatestFiniteMagnitude
@@ -249,11 +260,15 @@ class RoutingService: ObservableObject {
         }
 
         if minDistance > 100 {
-            Log.info("Routing", "Off route — switching to next alternative")
-            DispatchQueue.main.async {
-                if self.availableRoutes.count > 1 {
-                    let newIndex = (self.selectedRouteIndex + 1) % self.availableRoutes.count
-                    self.selectRoute(at: newIndex)
+            if !isCalculatingRoute && !showReroutePrompt {
+                Log.info("Routing", "Off route — triggering reroute recalculation")
+                DispatchQueue.main.async {
+                    self.showReroutePrompt = true
+                }
+                Task {
+                    if let dest = self.lastDestination, let cams = self.lastCameras {
+                        await self.calculateSafeRoute(from: currentCoord, to: dest, avoiding: cams)
+                    }
                 }
             }
         }
@@ -300,6 +315,7 @@ class RoutingService: ObservableObject {
                         text: inst.message ?? "Continue",
                         distanceInMeters: 50,
                         routeOffsetInMeters: trueOffset,
+                        pointIndex: inst.pointIndex,
                         turnType: self.mapTurnType(from: inst.instructionType)
                     )
                 }
@@ -315,6 +331,7 @@ class RoutingService: ObservableObject {
                         text: inst.message ?? "Continue",
                         distanceInMeters: 50,
                         routeOffsetInMeters: inst.routeOffsetInMeters,
+                        pointIndex: inst.pointIndex,
                         turnType: self.mapTurnType(from: inst.instructionType)
                     )
                 }
@@ -331,11 +348,37 @@ class RoutingService: ObservableObject {
     func countCameras(on route: TomTomRoute, cameras: [SpeedCamera]) -> Int {
         var count = 0
         guard let leg = route.legs.first else { return 0 }
+        
+        let legPoints = leg.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        guard let first = legPoints.first else { return 0 }
+        
+        // Find route bounding box for fast pre-filtering
+        var minLat = first.latitude
+        var maxLat = first.latitude
+        var minLng = first.longitude
+        var maxLng = first.longitude
+        
+        for p in legPoints {
+            if p.latitude < minLat { minLat = p.latitude }
+            if p.latitude > maxLat { maxLat = p.latitude }
+            if p.longitude < minLng { minLng = p.longitude }
+            if p.longitude > maxLng { maxLng = p.longitude }
+        }
+        
+        // Pad bounding box by ~100 meters (approx 0.001 degrees)
+        minLat -= 0.001
+        maxLat += 0.001
+        minLng -= 0.001
+        maxLng += 0.001
 
         for camera in cameras {
+            // Fast bounding box check
+            if camera.lat < minLat || camera.lat > maxLat || camera.lng < minLng || camera.lng > maxLng {
+                continue
+            }
+            
             let camLoc = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
-            for point in leg.points {
-                let pLoc = CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude)
+            for pLoc in legPoints {
                 if pLoc.distance(to: camLoc) < 70 {
                     count += 1
                     break

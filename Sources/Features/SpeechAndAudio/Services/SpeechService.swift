@@ -197,4 +197,16 @@ final class SpeechService: NSObject, ObservableObject {
         synthesizer.stopSpeaking(at: .immediate)
         GoogleTTSClient.shared.stopSpeaking()
     }
+    
+    /// Prefetches a list of texts for offline or delayed playback.
+    /// Only works if the selected voice is a Google TTS voice, as Apple voices synthesize on device instantly.
+    func prefetch(texts: [String]) {
+        guard !isRunningTests else { return }
+        
+        if selectedVoiceId?.starts(with: "google-tts") == true {
+            for text in texts {
+                GoogleTTSClient.shared.prefetch(text)
+            }
+        }
+    }
 }

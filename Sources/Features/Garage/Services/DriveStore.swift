@@ -1,13 +1,20 @@
 import Foundation
 import CoreLocation
+import SwiftData
 
+@MainActor
 class DriveStore: ObservableObject {
-    @Published var records: [DriveRecord] = []
+    @Published var records: [DriveRecord] = [] {
+        didSet {
+            computeStats()
+        }
+    }
     private let key = "DriveStoreRecords_v1"
-    private let defaults: UserDefaults
+    private let context: ModelContext
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+    init() {
+        self.context = SharedModelContainer.shared.mainContext
+        migrateIfNecessary()
         load()
     }
 
@@ -33,6 +40,7 @@ class DriveStore: ObservableObject {
         let fp = DriveStore.makeFingerprint(origin: originCoord, dest: destCoord)
         if let idx = records.firstIndex(where: { $0.routeFingerprint == fp }) {
             records[idx].sessions.insert(session, at: 0)
+            records[idx].updateComputedAggregates()
             Log.info("DriveStore", "Appended session to existing record '\(records[idx].destinationName)' (×\(records[idx].sessionCount))")
         } else {
             let record = DriveRecord(
@@ -44,6 +52,7 @@ class DriveStore: ObservableObject {
                 destinationLongitude: destCoord.longitude,
                 sessions: [session]
             )
+            context.insert(record)
             records.insert(record, at: 0)
             Log.info("DriveStore", "Created new drive record '\(destinationName)' (fingerprint: \(fp))")
         }
@@ -61,48 +70,61 @@ class DriveStore: ObservableObject {
         records[idx].isBookmarked.toggle()
         Log.info("DriveStore", "Bookmark toggled for '\(records[idx].destinationName)'")
         save()
+        // Ensure UI updates
+        objectWillChange.send()
     }
 
     func deleteRecord(id: UUID) {
+        if let record = records.first(where: { $0.id == id }) {
+            context.delete(record)
+        }
         records.removeAll { $0.id == id }
         save()
     }
 
-    // MARK: - Aggregate Stats
-
-    var totalSavedAllTime: Double {
-        records.reduce(0) { $0 + $1.allTimeMoneySaved }
-    }
-
-    var totalRideCount: Int {
-        records.reduce(0) { $0 + $1.sessionCount }
-    }
-
-    var totalDistanceMiles: Double {
-        records.reduce(0) { $0 + $1.totalDistanceMiles }
-    }
-
-    var allTimeTopSpeedMph: Double {
-        records.map(\.allTimeTopSpeedMph).max() ?? 0
-    }
+    // MARK: - Aggregate Stats (Cached)
+    @Published private(set) var totalSavedAllTime: Double = 0
+    @Published private(set) var totalRideCount: Int = 0
+    @Published private(set) var totalDistanceMiles: Double = 0
+    @Published private(set) var allTimeTopSpeedMph: Double = 0
+    @Published private(set) var avgZenScore: Int = 0
+    @Published private(set) var currentStreak: Int = 0
+    @Published private(set) var todayMiles: Double = 0
 
     var mostDrivenRecord: DriveRecord? {
         records.max(by: { $0.sessionCount < $1.sessionCount })
     }
 
-    var avgZenScore: Int {
-        let sessions = records.flatMap(\.sessions)
-        guard !sessions.isEmpty else { return 0 }
-        return sessions.reduce(0) { $0 + $1.zenScore } / sessions.count
-    }
-
-    /// Consecutive days with at least one completed ride (including today).
-    var currentStreak: Int {
+    private func computeStats() {
+        var saved: Double = 0
+        var rides: Int = 0
+        var distance: Double = 0
+        var topSpeed: Double = 0
+        var totalZen: Int = 0
+        var sessionCount: Int = 0
+        
+        for record in records {
+            saved += record.allTimeMoneySaved
+            rides += record.sessionCount
+            distance += record.totalDistanceMiles
+            if record.allTimeTopSpeedMph > topSpeed {
+                topSpeed = record.allTimeTopSpeedMph
+            }
+            for session in record.sessions {
+                totalZen += session.zenScore
+                sessionCount += 1
+            }
+        }
+        
+        self.totalSavedAllTime = saved
+        self.totalRideCount = rides
+        self.totalDistanceMiles = distance
+        self.allTimeTopSpeedMph = topSpeed
+        self.avgZenScore = sessionCount > 0 ? totalZen / sessionCount : 0
+        
         let calendar = Calendar.current
-        let allDays = records
-            .flatMap(\.sessions)
-            .map { calendar.startOfDay(for: $0.date) }
-        let uniqueDays = Array(Set(allDays)).sorted(by: >)   // newest first
+        let allDays = records.flatMap(\.sessions).compactMap { $0.date }.map { calendar.startOfDay(for: $0) }
+        let uniqueDays = Array(Set(allDays)).sorted(by: >)
 
         var streak = 0
         var cursor = calendar.startOfDay(for: Date())
@@ -115,13 +137,9 @@ class DriveStore: ObservableObject {
                 break
             }
         }
-        return streak
-    }
-
-    /// Miles ridden today.
-    var todayMiles: Double {
-        let calendar = Calendar.current
-        return records
+        self.currentStreak = streak
+        
+        self.todayMiles = records
             .flatMap(\.sessions)
             .filter { calendar.isDateInToday($0.date) }
             .reduce(0) { $0 + $1.distanceMiles }
@@ -131,20 +149,79 @@ class DriveStore: ObservableObject {
 
     private func save() {
         do {
-            let data = try JSONEncoder().encode(records)
-            defaults.set(data, forKey: key)
+            try context.save()
+            computeStats()
         } catch {
-            Log.error("DriveStore", "Failed to encode records: \(error)")
+            Log.error("DriveStore", "Failed to save to SwiftData: \(error)")
         }
     }
 
     private func load() {
-        guard let data = defaults.data(forKey: key) else { return }
         do {
-            records = try JSONDecoder().decode([DriveRecord].self, from: data)
-            Log.info("DriveStore", "Loaded \(records.count) drive records")
+            let descriptor = FetchDescriptor<DriveRecord>(sortBy: [SortDescriptor(\.lastDrivenDate, order: .reverse)])
+            records = try context.fetch(descriptor)
+            Log.info("DriveStore", "Loaded \(records.count) drive records from SwiftData")
         } catch {
-            Log.error("DriveStore", "Failed to decode records: \(error)")
+            Log.error("DriveStore", "Failed to load records from SwiftData: \(error)")
+        }
+    }
+    
+    // Fallback struct for JSON migration
+    struct OldDriveRecord: Codable {
+        let routeFingerprint: String
+        let destinationName: String
+        let originLatitude: Double
+        let originLongitude: Double
+        let destinationLatitude: Double
+        let destinationLongitude: Double
+        let isBookmarked: Bool?
+        let sessions: [OldDriveSession]
+    }
+    struct OldDriveSession: Codable {
+        let date: Date
+        let departureHour: Int
+        let avgSpeedMph: Double
+        let topSpeedMph: Double
+        let speedReadings: [Float]
+        let cameraZoneEvents: [OldCameraZoneEvent]
+        let moneySaved: Double
+        let trafficDelaySeconds: Int
+        let timeOfDayCategory: TimeOfDay
+        let durationSeconds: Int
+        let distanceMiles: Double
+        let mood: String?
+        let zenScore: Int
+    }
+    struct OldCameraZoneEvent: Codable {
+        let cameraId: String
+        let cameraStreet: String
+        let speedLimitMph: Int
+        let userSpeedAtZone: Double
+        let didSlowDown: Bool
+        let outcome: CameraOutcome
+    }
+    
+    private func migrateIfNecessary() {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return }
+        Log.info("DriveStore", "Migrating old UserDefaults data to SwiftData...")
+        do {
+            let oldRecords = try JSONDecoder().decode([OldDriveRecord].self, from: data)
+            for old in oldRecords {
+                let sessions = old.sessions.map { oldSession in
+                    let events = oldSession.cameraZoneEvents.map { oldEvent in
+                        CameraZoneEvent(cameraId: oldEvent.cameraId, cameraStreet: oldEvent.cameraStreet, speedLimitMph: oldEvent.speedLimitMph, userSpeedAtZone: oldEvent.userSpeedAtZone, didSlowDown: oldEvent.didSlowDown, outcome: oldEvent.outcome)
+                    }
+                    return DriveSession(date: oldSession.date, departureHour: oldSession.departureHour, avgSpeedMph: oldSession.avgSpeedMph, topSpeedMph: oldSession.topSpeedMph, speedReadings: oldSession.speedReadings, cameraZoneEvents: events, moneySaved: oldSession.moneySaved, trafficDelaySeconds: oldSession.trafficDelaySeconds, timeOfDayCategory: oldSession.timeOfDayCategory, durationSeconds: oldSession.durationSeconds, distanceMiles: oldSession.distanceMiles, mood: oldSession.mood, zenScore: oldSession.zenScore)
+                }
+                
+                let newRecord = DriveRecord(routeFingerprint: old.routeFingerprint, destinationName: old.destinationName, originLatitude: old.originLatitude, originLongitude: old.originLongitude, destinationLatitude: old.destinationLatitude, destinationLongitude: old.destinationLongitude, isBookmarked: old.isBookmarked ?? false, sessions: sessions)
+                context.insert(newRecord)
+            }
+            try context.save()
+            UserDefaults.standard.removeObject(forKey: key)
+            Log.info("DriveStore", "Migration complete")
+        } catch {
+            Log.error("DriveStore", "Migration failed: \(error)")
         }
     }
 }

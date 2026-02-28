@@ -25,13 +25,14 @@ struct ProfileView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Garage")
-                                .font(.title3.bold())
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.acTextDark)
                             Spacer()
                             Button("Manage") {
                                 showGarage = true
                             }
                             .font(.subheadline.bold())
-                            .foregroundColor(.cyan)
+                            .foregroundColor(Theme.Colors.acLeaf)
                         }
                         .padding(.horizontal)
                         
@@ -61,19 +62,18 @@ struct ProfileView: View {
                     // Settings List
                     VStack(spacing: 0) {
                         NavigationLink(destination: VoiceSettingsView()) {
-                            SettingsRow(icon: "speaker.wave.2.fill", title: "Voice Settings", color: .blue)
+                            SettingsRow(icon: "speaker.wave.2.fill", title: "Voice Settings", color: Theme.Colors.acSky)
                         }
                         Divider().padding(.leading, 50)
                         Button(action: {}) {
-                            SettingsRow(icon: "bell.badge.fill", title: "Notifications", color: .red)
+                            SettingsRow(icon: "bell.badge.fill", title: "Notifications", color: Theme.Colors.acCoral)
                         }
                         Divider().padding(.leading, 50)
                         Button(action: {}) {
-                            SettingsRow(icon: "lock.fill", title: "Privacy", color: .gray)
+                            SettingsRow(icon: "lock.fill", title: "Privacy", color: Theme.Colors.acWood)
                         }
                     }
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .cornerRadius(16)
+                    .acCardStyle(padding: 0)
                     .padding(.horizontal)
                     .buttonStyle(.plain)
                     
@@ -81,32 +81,31 @@ struct ProfileView: View {
                     Button(action: {}) {
                         Text("Sign Out")
                             .font(.body.bold())
-                            .foregroundColor(.red)
+                            .foregroundColor(Theme.Colors.acCoral)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(16)
+                            .acCardStyle()
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 32)
                 }
             }
-            .navigationTitle("Profile")
+            .navigationTitle("NookPhone Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            .background(Theme.Colors.acField.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
                     .font(.body.bold())
-                    .foregroundColor(.cyan)
+                    .foregroundColor(Theme.Colors.acLeaf)
                 }
             }
             .sheet(isPresented: $showGarage) {
                 VehicleGarageView()
             }
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(.light)
         }
     }
 }
@@ -123,42 +122,45 @@ struct UserHeaderView: View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Color.cyan.opacity(0.15))
+                    .fill(Theme.Colors.acCream)
                     .frame(width: 72, height: 72)
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .frame(width: 72, height: 72)
-                    .foregroundColor(.cyan)
+                    .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                Text("🦊")
+                    .font(.system(size: 40))
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(name)
-                    .font(.title2.bold())
-                    .foregroundColor(.primary)
+                Text("Villager \(name)")
+                    .font(Theme.Typography.title)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                
                 Text(email)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Theme.Colors.acTextMuted)
                 
                 HStack {
-                    Text(subscription)
-                        .font(.caption.bold())
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.cyan)
-                        .clipShape(Capsule())
+                    HStack {
+                        Image(systemName: "leaf.fill")
+                            .foregroundColor(Theme.Colors.acLeaf)
+                        Text("Camp Resident")
+                            .font(.caption.bold())
+                            .foregroundColor(Theme.Colors.acTextDark)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Theme.Colors.acCream)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 1))
                     
-                    Text("\(driveStore.totalRideCount) Rides · \(Int(driveStore.totalDistanceMiles)) mi")
+                    Text("\(driveStore.totalRideCount) Trips · \(Int(driveStore.totalDistanceMiles)) mi")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Theme.Colors.acTextMuted)
                 }
                 .padding(.top, 2)
             }
             Spacer()
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .acCardStyle()
     }
 }
 
@@ -214,7 +216,6 @@ struct BikePassCard: View {
             }
         }
         .padding()
-        .frame(width: 280, height: 160)
         .background(
             ZStack {
                 LinearGradient(
@@ -226,6 +227,7 @@ struct BikePassCard: View {
             }
         )
         .cornerRadius(20)
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.Colors.acBorder, lineWidth: 2))
         .shadow(color: Color(hex: vehicle.colorHex).opacity(0.3), radius: 8, x: 0, y: 4)
     }
     
@@ -249,19 +251,19 @@ struct AddBikeCard: View {
         VStack {
             Image(systemName: "plus.circle.fill")
                 .font(.system(size: 32))
-                .foregroundColor(.cyan)
+                .foregroundColor(Theme.Colors.acLeaf)
             Text("Add Bike")
-                .font(.subheadline.bold())
-                .foregroundColor(.cyan)
+                .font(Theme.Typography.button)
+                .foregroundColor(Theme.Colors.acTextDark)
                 .padding(.top, 8)
         }
         .frame(width: 140, height: 160)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Theme.Colors.acCream)
         .cornerRadius(20)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8]))
-                .foregroundColor(.cyan.opacity(0.5))
+                .foregroundColor(Theme.Colors.acBorder)
         )
     }
 }

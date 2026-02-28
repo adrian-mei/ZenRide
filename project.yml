@@ -6,7 +6,7 @@ targets:
   FashodaMap:
     type: application
     platform: iOS
-    deploymentTarget: '16.4'
+    deploymentTarget: '17.0'
     sources:
     - Sources
     - Resources
@@ -29,7 +29,7 @@ targets:
   FashodaMapTests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: '16.4'
+    deploymentTarget: '17.0'
     sources:
     - Tests
     dependencies:

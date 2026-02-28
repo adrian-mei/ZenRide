@@ -22,6 +22,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        locationManager.distanceFilter = 2.0 // Only update if moved > 2 meters to avoid UI thrash on noisy GPS
         locationManager.requestWhenInUseAuthorization()
     }
     
@@ -82,7 +83,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         let targetSpeedMPH: Double = 65
         
-        let tickInterval: TimeInterval = 0.5
+        let tickInterval: TimeInterval = 0.1 // Increase tick rate from 0.5s to 0.1s for 10FPS map updates
         
         simulationTimer?.invalidate()
         simulationTimer = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { [weak self] _ in
@@ -106,9 +107,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
             let targetCoord = self.simulationRoute[self.nextSimulationIndex]
             
             // Math helper logic to avoid 'distance' not found error (using CLLocation distance logic)
-            let currentLoc = CLLocation(latitude: currentCoord.latitude, longitude: currentCoord.longitude)
-            let targetLoc = CLLocation(latitude: targetCoord.latitude, longitude: targetCoord.longitude)
-            let distanceToTarget = currentLoc.distance(from: targetLoc)
+            let distanceToTarget = currentCoord.distance(to: targetCoord)
             
             let bearing = currentCoord.bearing(to: targetCoord)
             

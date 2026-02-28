@@ -70,6 +70,7 @@ extension RoutingService {
                         text: step.instructions,
                         distanceInMeters: Int(step.distance),
                         routeOffsetInMeters: 0, // Simplified for now
+                        pointIndex: 0,
                         turnType: .straight
                     )
                 }

@@ -14,6 +14,7 @@ struct Achievement: Identifiable {
 
 // MARK: - Achievement Engine
 
+@MainActor
 struct AchievementEngine {
 
     static func compute(from store: DriveStore) -> [Achievement] {
@@ -125,11 +126,11 @@ struct AchievementEngine {
         ]
     }
 
-    static func earnedCount(from store: DriveStore) -> Int {
+    @MainActor static func earnedCount(from store: DriveStore) -> Int {
         compute(from: store).filter(\.isEarned).count
     }
 
-    static func recentlyEarned(from store: DriveStore, previous earnedCount: Int) -> Achievement? {
+    @MainActor static func recentlyEarned(from store: DriveStore, previous earnedCount: Int) -> Achievement? {
         let all = compute(from: store)
         let nowCount = all.filter(\.isEarned).count
         guard nowCount > earnedCount else { return nil }

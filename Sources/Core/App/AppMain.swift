@@ -2,6 +2,7 @@ import SwiftUI
 import MapKit
 import CoreLocation
 import Combine
+import SwiftData
 
 @main
 struct FashodaMapApp: App {
@@ -35,6 +36,7 @@ struct FashodaMapApp: App {
                     bunnyPolice.cameras = cameraStore.cameras
                 }
         }
+        .modelContainer(SharedModelContainer.shared)
     }
 }
 

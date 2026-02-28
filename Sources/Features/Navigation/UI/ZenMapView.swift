@@ -1,40 +1,58 @@
 import SwiftUI
 import MapKit
+import UIKit
 
 private let carChevronImage: UIImage = {
-    let size = CGSize(width: 44, height: 44)
+    let size = CGSize(width: 50, height: 60)
     let renderer = UIGraphicsImageRenderer(size: size)
     return renderer.image { ctx in
         let context = ctx.cgContext
-        context.setShadow(offset: CGSize(width: 0, height: 2), blur: 4,
+        context.setShadow(offset: CGSize(width: 0, height: 4), blur: 6,
                           color: UIColor.black.withAlphaComponent(0.3).cgColor)
         
-        let path = UIBezierPath()
+        // Cute Camper Van Body
+        let bodyPath = UIBezierPath(roundedRect: CGRect(x: 10, y: 15, width: 30, height: 40), cornerRadius: 10)
+        UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0).setFill() // AC Mint Green
+        bodyPath.fill()
         
-        // A cute, rounded 3D van/car shape for the Animal Crossing look
-        path.move(to: CGPoint(x: 22, y: 6)) // Top tip (nose)
-        path.addLine(to: CGPoint(x: 36, y: 34)) // Bottom right
-        path.addLine(to: CGPoint(x: 22, y: 28)) // Inner indent
-        path.addLine(to: CGPoint(x: 8, y: 34))  // Bottom left
-        path.close()
+        // Camper Top (White / Cream)
+        let topPath = UIBezierPath(
+            roundedRect: CGRect(x: 10, y: 10, width: 30, height: 20),
+            byRoundingCorners: [.topLeft, .topRight],
+            cornerRadii: CGSize(width: 10, height: 10)
+        )
+        UIColor(red: 1.0, green: 0.98, blue: 0.90, alpha: 1.0).setFill() // AC Cream
+        topPath.fill()
         
-        // Cute green body
-        UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0).setFill()
-        path.fill()
+        // Windshield
+        let glassPath = UIBezierPath(roundedRect: CGRect(x: 14, y: 16, width: 22, height: 10), cornerRadius: 4)
+        UIColor(red: 0.53, green: 0.81, blue: 0.92, alpha: 1.0).setFill() // AC Sky Blue
+        glassPath.fill()
         
-        // White stroke outlining the car
+        // Surfboard / Camp Gear on roof
+        let boardPath = UIBezierPath(roundedRect: CGRect(x: 22, y: 4, width: 6, height: 36), cornerRadius: 3)
+        UIColor(red: 0.96, green: 0.77, blue: 0.19, alpha: 1.0).setFill() // AC Gold
+        boardPath.fill()
+        
+        // White border around whole camper for map contrast
+        let borderPath = UIBezierPath(roundedRect: CGRect(x: 10, y: 10, width: 30, height: 45), cornerRadius: 10)
         UIColor.white.setStroke()
-        path.lineWidth = 3.0
-        path.stroke()
+        borderPath.lineWidth = 3.0
+        borderPath.stroke()
+        
+        // Headlights
+        let leftLight = UIBezierPath(ovalIn: CGRect(x: 14, y: 48, width: 6, height: 4))
+        let rightLight = UIBezierPath(ovalIn: CGRect(x: 30, y: 48, width: 6, height: 4))
+        UIColor(red: 1.0, green: 0.98, blue: 0.8, alpha: 1.0).setFill()
+        leftLight.fill()
+        rightLight.fill()
     }
 }()
 
 struct ZenMapView: UIViewRepresentable {
-    @EnvironmentObject var cameraStore: CameraStore
-    @EnvironmentObject var parkingStore: ParkingStore
-    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
+    @EnvironmentObject var bunnyPolice: BunnyPolice
     @Binding var routeState: RouteState
     @Binding var isTracking: Bool
     var mapMode: MapMode = .turnByTurn // Defaults to 3D driving
@@ -78,6 +96,17 @@ struct ZenMapView: UIViewRepresentable {
             uiView.showsUserLocation = shouldShowNativeGPS
         }
 
+        // Add Cameras from BunnyPolice (only if not added yet)
+        if coordinator.lastCameraCount != bunnyPolice.cameras.count {
+            coordinator.lastCameraCount = bunnyPolice.cameras.count
+            
+            let oldCameras = uiView.annotations.compactMap { $0 as? CameraAnnotation }
+            uiView.removeAnnotations(oldCameras)
+            
+            let newCameras = bunnyPolice.cameras.map { CameraAnnotation(camera: $0) }
+            uiView.addAnnotations(newCameras)
+        }
+
         // Handle Car Annotation (Simulated OR Real Navigation)
         if routeState == .navigating || locationProvider.isSimulating, let location = locationProvider.currentLocation {
             if coordinator.simulatedCarAnnotation == nil {
@@ -85,13 +114,7 @@ struct ZenMapView: UIViewRepresentable {
                 coordinator.simulatedCarAnnotation = newCar
                 uiView.addAnnotation(newCar)
             } else {
-                if locationProvider.isSimulating {
-                    coordinator.simulatedCarAnnotation?.coordinate = location.coordinate
-                } else {
-                    UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
-                        coordinator.simulatedCarAnnotation?.coordinate = location.coordinate
-                    }
-                }
+                coordinator.simulatedCarAnnotation?.coordinate = location.coordinate
             }
 
             // Rotate car chevron — only when bearing changes by more than 2°
@@ -101,12 +124,8 @@ struct ZenMapView: UIViewRepresentable {
                 if let carAnnotation = coordinator.simulatedCarAnnotation,
                    let carView = uiView.view(for: carAnnotation) {
                     let radians = CGFloat(bearing * .pi / 180.0)
-                    if locationProvider.isSimulating {
+                    UIView.animate(withDuration: 0.1, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
                         carView.transform = CGAffineTransform(rotationAngle: radians)
-                    } else {
-                        UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
-                            carView.transform = CGAffineTransform(rotationAngle: radians)
-                        }
                     }
                 }
             }
@@ -118,7 +137,7 @@ struct ZenMapView: UIViewRepresentable {
         }
 
         // Dynamic 3D camera during navigation
-        if routeState == .navigating, let location = locationProvider.currentLocation {
+        if routeState == .navigating, let location = locationProvider.currentLocation, isTracking {
             if mapMode == .turnByTurn {
                 let bearing = location.course >= 0 ? location.course : 0
                 let speedMph = max(0, locationProvider.currentSpeedMPH)
@@ -154,8 +173,7 @@ struct ZenMapView: UIViewRepresentable {
                 // Only update camera if changed significantly to prevent MKMapView lag
                 let currentCenter = lookAheadCoord
                 let lastCenter = coordinator.lastCameraCenter ?? currentCenter
-                let centerDistance = CLLocation(latitude: currentCenter.latitude, longitude: currentCenter.longitude)
-                    .distance(from: CLLocation(latitude: lastCenter.latitude, longitude: lastCenter.longitude))
+                let centerDistance = currentCenter.distance(to: lastCenter)
                 
                 let bearingDiff = abs(bearing - coordinator.lastCameraBearing)
                 
@@ -173,13 +191,7 @@ struct ZenMapView: UIViewRepresentable {
                         heading: bearing
                     )
                     
-                    if !locationProvider.isSimulating {
-                        UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
-                            uiView.setCamera(camera, animated: false)
-                        }
-                    } else {
-                        uiView.setCamera(camera, animated: false)
-                    }
+                    uiView.setCamera(camera, animated: true)
                 }
             } else {
                 // Overview Mode - Show the entire route from top down
@@ -202,19 +214,49 @@ struct ZenMapView: UIViewRepresentable {
             uiView.setCamera(camera, animated: true)
         }
 
-        // Add Quest Waypoints
-        if let quest = routingService.activeQuest {
-            let existingQuestIds = Set(uiView.annotations.compactMap { ($0 as? QuestWaypointAnnotation)?.id })
-            let newWaypoints = quest.waypoints
-                .filter { !existingQuestIds.contains($0.id) }
-                .map { QuestWaypointAnnotation(waypoint: $0) }
-            if !newWaypoints.isEmpty {
-                uiView.addAnnotations(newWaypoints)
-            }
-        } else {
-            // Clean up quest annotations when quest ends
+        // Add Quest Waypoints (Cached to avoid O(N) annotations filtering per frame)
+        let questCacheKey = routingService.activeQuest?.id.uuidString ?? "no_quest"
+        if coordinator.lastQuestCacheKey != questCacheKey {
+            coordinator.lastQuestCacheKey = questCacheKey
+            
+            // First clean up old quest annotations
             let toRemove = uiView.annotations.filter { $0 is QuestWaypointAnnotation }
             if !toRemove.isEmpty { uiView.removeAnnotations(toRemove) }
+            
+            // Then add new ones if a quest is active
+            if let quest = routingService.activeQuest {
+                let newWaypoints = quest.waypoints.map { QuestWaypointAnnotation(waypoint: $0) }
+                uiView.addAnnotations(newWaypoints)
+            }
+        }
+
+        // Add Freeway Entries
+        let instructionCount = routingService.instructions.count
+        if coordinator.lastInstructionCount != instructionCount && !routingService.activeRoute.isEmpty {
+            coordinator.lastInstructionCount = instructionCount
+            
+            let oldFreewayAnnotations = uiView.annotations.compactMap { $0 as? POIAnnotation }.filter { $0.type == .freeway }
+            uiView.removeAnnotations(oldFreewayAnnotations)
+            
+            var newFreewayAnnotations: [POIAnnotation] = []
+            
+            for inst in routingService.instructions {
+                let msg = inst.text.lowercased()
+                if msg.contains("motorway") || msg.contains("highway") || msg.contains("freeway") {
+                    let idx = min(inst.pointIndex, routingService.activeRoute.count - 1)
+                    if idx >= 0 && idx < routingService.activeRoute.count {
+                        let coord = routingService.activeRoute[idx]
+                        let ann = POIAnnotation(
+                            coordinate: coord,
+                            title: "Freeway Entry",
+                            subtitle: inst.text,
+                            type: .freeway
+                        )
+                        newFreewayAnnotations.append(ann)
+                    }
+                }
+            }
+            uiView.addAnnotations(newFreewayAnnotations)
         }
 
         // Only redraw overlays when route or state actually changes
@@ -266,6 +308,7 @@ struct ZenMapView: UIViewRepresentable {
     class Coordinator: NSObject, MKMapViewDelegate {
         var parent: ZenMapView
         var lastOverlayCacheKey: String = ""
+        var lastQuestCacheKey: String = ""
         var lastBearing: Double = 0
         var lastRouteState: RouteState = .search
         var parkingAnnotationsLoaded = false
@@ -275,8 +318,13 @@ struct ZenMapView: UIViewRepresentable {
         var lastCameraBearing: Double = 0
         var lastCameraDistance: Double = 0
         var lastCameraPitch: Double = 0
+        var lastCameraCount: Int = -1
+        var lastInstructionCount: Int = -1
         
         weak var mapView: MKMapView?
+
+        var lastSearchRegion: MKCoordinateRegion?
+        var isSearchingPOIs = false
 
         init(_ parent: ZenMapView) {
             self.parent = parent
@@ -300,6 +348,87 @@ struct ZenMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, didChange mode: MKUserTrackingMode, animated: Bool) {
             DispatchQueue.main.async {
                 self.parent.isTracking = (mode == .followWithHeading || mode == .follow)
+            }
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            let currentRegion = mapView.region
+            
+            // Only search if region center moved significantly (> 500 meters) to avoid spamming
+            if let last = lastSearchRegion {
+                let currentLoc = CLLocation(latitude: currentRegion.center.latitude, longitude: currentRegion.center.longitude)
+                let lastLoc = CLLocation(latitude: last.center.latitude, longitude: last.center.longitude)
+                if currentLoc.distance(from: lastLoc) < 500 {
+                    return
+                }
+            }
+            
+            guard !isSearchingPOIs else { return }
+            isSearchingPOIs = true
+            lastSearchRegion = currentRegion
+            
+            Task {
+                await searchPOIs(in: currentRegion)
+                DispatchQueue.main.async {
+                    self.isSearchingPOIs = false
+                }
+            }
+        }
+        
+        private func searchPOIs(in region: MKCoordinateRegion) async {
+            let queries = [
+                ("Police", POIAnnotation.POIType.emergency),
+                ("Fire Station", POIAnnotation.POIType.emergency),
+                ("Hospital", POIAnnotation.POIType.emergency),
+                ("Post Office", POIAnnotation.POIType.emergency), // Treating as same tier for now
+                ("School", POIAnnotation.POIType.school),
+                ("Kindergarten", POIAnnotation.POIType.school),
+                ("Daycare", POIAnnotation.POIType.school),
+                ("College", POIAnnotation.POIType.school),
+                ("Park", POIAnnotation.POIType.park)
+            ]
+            
+            var newAnnotations: [POIAnnotation] = []
+            
+            for (query, type) in queries {
+                let request = MKLocalSearch.Request()
+                request.naturalLanguageQuery = query
+                request.region = region
+                
+                do {
+                    let search = MKLocalSearch(request: request)
+                    let response = try await search.start()
+                    
+                    for item in response.mapItems {
+                        let ann = POIAnnotation(
+                            coordinate: item.placemark.coordinate,
+                            title: item.name,
+                            subtitle: query,
+                            type: type,
+                            mapItem: item
+                        )
+                        newAnnotations.append(ann)
+                    }
+                } catch {
+                    // Ignore errors, just skip
+                }
+            }
+            
+            await MainActor.run {
+                guard let mapView = self.mapView else { return }
+                // Remove old POIs to prevent clutter
+                let oldAnnotations = mapView.annotations.compactMap { $0 as? POIAnnotation }
+                mapView.removeAnnotations(oldAnnotations)
+                mapView.addAnnotations(newAnnotations)
+            }
+        }
+
+        func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
+            if let poiAnnotation = view.annotation as? POIAnnotation {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("AddPOIToRoute"),
+                    object: poiAnnotation
+                )
             }
         }
 
@@ -345,6 +474,47 @@ struct ZenMapView: UIViewRepresentable {
                 }
                 annotationView?.glyphImage = UIImage(systemName: "camera.fill")
                 annotationView?.markerTintColor = UIColor.systemOrange
+                return annotationView
+            }
+
+            if let poiAnnotation = annotation as? POIAnnotation {
+                let identifier = "POI_\(poiAnnotation.type)"
+                var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+                if annotationView == nil {
+                    annotationView = MKMarkerAnnotationView(annotation: poiAnnotation, reuseIdentifier: identifier)
+                    annotationView?.canShowCallout = true
+                    
+                    let addButton = UIButton(type: .contactAdd)
+                    addButton.tintColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
+                    annotationView?.rightCalloutAccessoryView = addButton
+                } else {
+                    annotationView?.annotation = poiAnnotation
+                }
+                
+                switch poiAnnotation.type {
+                case .emergency:
+                    if poiAnnotation.title?.lowercased().contains("fire") == true {
+                        annotationView?.glyphImage = UIImage(systemName: "flame.fill")
+                        annotationView?.markerTintColor = .systemRed
+                    } else if poiAnnotation.title?.lowercased().contains("police") == true {
+                        annotationView?.glyphImage = UIImage(systemName: "shield.fill")
+                        annotationView?.markerTintColor = .systemBlue
+                    } else {
+                        annotationView?.glyphImage = UIImage(systemName: "cross.case.fill")
+                        annotationView?.markerTintColor = .white
+                        annotationView?.glyphTintColor = .systemRed
+                    }
+                case .school:
+                    annotationView?.glyphImage = UIImage(systemName: "figure.child")
+                    annotationView?.markerTintColor = .systemYellow
+                case .park:
+                    annotationView?.glyphImage = UIImage(systemName: "tree.fill")
+                    annotationView?.markerTintColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
+                case .freeway:
+                    annotationView?.glyphImage = UIImage(systemName: "car.fill")
+                    annotationView?.markerTintColor = .systemBlue
+                }
+                
                 return annotationView
             }
 
@@ -418,6 +588,27 @@ class CameraAnnotation: NSObject, MKAnnotation {
         self.coordinate = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
         self.title = "Speed Camera"
         self.subtitle = "Speed Limit: \(camera.speed_limit_mph) MPH"
+        super.init()
+    }
+}
+
+class POIAnnotation: NSObject, MKAnnotation {
+    let coordinate: CLLocationCoordinate2D
+    let title: String?
+    let subtitle: String?
+    let type: POIType
+    let mapItem: MKMapItem?
+    
+    enum POIType {
+        case emergency, school, park, freeway
+    }
+    
+    init(coordinate: CLLocationCoordinate2D, title: String?, subtitle: String?, type: POIType, mapItem: MKMapItem? = nil) {
+        self.coordinate = coordinate
+        self.title = title
+        self.subtitle = subtitle
+        self.type = type
+        self.mapItem = mapItem
         super.init()
     }
 }

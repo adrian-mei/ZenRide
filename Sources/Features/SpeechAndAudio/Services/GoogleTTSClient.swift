@@ -45,14 +45,28 @@ final class GoogleTTSClient: NSObject, AVAudioPlayerDelegate {
             playAudio(url: fileURL)
         } else {
             Log.info("GoogleTTS", "Synthesizing audio from Google for text: \(text)")
-            synthesizeAndCache(text: text, fileURL: fileURL, fallback: fallback)
+            synthesizeAndCache(text: text, fileURL: fileURL, playAfter: true, fallback: fallback)
         }
     }
     
-    private func synthesizeAndCache(text: String, fileURL: URL, fallback: @escaping () -> Void) {
+    /// Prefetches and caches the audio for the given text without playing it.
+    func prefetch(_ text: String) {
+        guard !text.isEmpty else { return }
+        guard !Secrets.googleTTSAPIKey.isEmpty else { return }
+        
+        let safeFilename = text.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? UUID().uuidString
+        let fileURL = cacheDirectory.appendingPathComponent("\(safeFilename)-\(voiceName).mp3")
+        
+        if !fileManager.fileExists(atPath: fileURL.path) {
+            Log.info("GoogleTTS", "Prefetching audio from Google for text: \(text)")
+            synthesizeAndCache(text: text, fileURL: fileURL, playAfter: false, fallback: {})
+        }
+    }
+    
+    private func synthesizeAndCache(text: String, fileURL: URL, playAfter: Bool, fallback: @escaping () -> Void) {
         let urlString = "https://texttospeech.googleapis.com/v1/text:synthesize?key=\(Secrets.googleTTSAPIKey)"
         guard let url = URL(string: urlString) else {
-            fallback()
+            if playAfter { fallback() }
             return
         }
         
@@ -75,7 +89,7 @@ final class GoogleTTSClient: NSObject, AVAudioPlayerDelegate {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         } catch {
             Log.error("GoogleTTS", "Failed to encode payload: \(error)")
-            fallback()
+            if playAfter { fallback() }
             return
         }
         
@@ -84,12 +98,12 @@ final class GoogleTTSClient: NSObject, AVAudioPlayerDelegate {
             
             if let error = error {
                 Log.error("GoogleTTS", "Network error: \(error)")
-                DispatchQueue.main.async { fallback() }
+                if playAfter { DispatchQueue.main.async { fallback() } }
                 return
             }
             
             guard let data = data else {
-                DispatchQueue.main.async { fallback() }
+                if playAfter { DispatchQueue.main.async { fallback() } }
                 return
             }
             
@@ -99,16 +113,20 @@ final class GoogleTTSClient: NSObject, AVAudioPlayerDelegate {
                    let audioData = Data(base64Encoded: audioContentBase64, options: .ignoreUnknownCharacters) {
                     
                     try audioData.write(to: fileURL)
-                    DispatchQueue.main.async {
-                        self.playAudio(url: fileURL)
+                    if playAfter {
+                        DispatchQueue.main.async {
+                            self.playAudio(url: fileURL)
+                        }
+                    } else {
+                        Log.info("GoogleTTS", "Successfully prefetched audio for text: \(text)")
                     }
                 } else {
                     Log.error("GoogleTTS", "Failed to parse Google TTS response or decode Base64")
-                    DispatchQueue.main.async { fallback() }
+                    if playAfter { DispatchQueue.main.async { fallback() } }
                 }
             } catch {
                 Log.error("GoogleTTS", "JSON/File error: \(error)")
-                DispatchQueue.main.async { fallback() }
+                if playAfter { DispatchQueue.main.async { fallback() } }
             }
         }
         task.resume()

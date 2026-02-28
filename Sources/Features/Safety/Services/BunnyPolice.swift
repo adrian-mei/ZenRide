@@ -13,7 +13,6 @@ class BunnyPolice: ObservableObject {
     // MARK: - Published State
     
     @Published var nearestCamera: SpeedCamera?
-    @Published var distanceToNearestFT: Double = 0
     @Published var currentZone: ZoneStatus = .safe
     @Published var camerasPassedThisRide: Int = 0
     @Published var zenScore: Int = 100
@@ -23,6 +22,9 @@ class BunnyPolice: ObservableObject {
     
     @Published var speedReadings: [Float] = []
     @Published var cameraZoneEvents: [CameraZoneEvent] = []
+    
+    // Internal tracking (non-published to prevent UI thrashing)
+    private var distanceToNearestFT: Double = 0
     
     private var speedSampleTimer: Timer?
     private var _sessionTopSpeedMph: Double = 0
@@ -139,29 +141,47 @@ class BunnyPolice: ObservableObject {
         var closestDist = Double.greatestFiniteMagnitude
         var closestCam: SpeedCamera?
         
+        // Fast approximate distance pre-filter
+        let lat = location.coordinate.latitude
+        let lng = location.coordinate.longitude
+        let latDegreeInMeters = 111320.0
+        let lngDegreeInMeters = 111320.0 * cos(lat * .pi / 180.0)
+        
         for camera in cameras {
-            let camLoc = CLLocation(latitude: camera.lat, longitude: camera.lng)
-            let distance = location.distance(from: camLoc) * 3.28084 // meters → feet
-            if distance < closestDist {
-                closestDist = distance
-                closestCam = camera
+            let dLat = (camera.lat - lat) * latDegreeInMeters
+            let dLng = (camera.lng - lng) * lngDegreeInMeters
+            let approxDistMetersSq = dLat * dLat + dLng * dLng
+            
+            // 4,000,000 m^2 is 2000 meters squared. Skip real check if far away.
+            if approxDistMetersSq < 4_000_000 {
+                let camLoc = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
+                let distance = location.coordinate.distance(to: camLoc) * 3.28084 // meters → feet
+                if distance < closestDist {
+                    closestDist = distance
+                    closestCam = camera
+                }
             }
         }
         
         guard let nearest = closestCam else { return }
         
         DispatchQueue.main.async {
-            self.nearestCamera = nearest
-            self.distanceToNearestFT = closestDist
-            self.updateZone(distance: closestDist, camera: nearest, speedNow: speedMPH)
+            // Only update if something visually or logically changed to avoid rapid SwiftUI invalidations
+            if self.nearestCamera?.id != nearest.id || abs(self.distanceToNearestFT - closestDist) > 5.0 {
+                self.nearestCamera = nearest
+                self.distanceToNearestFT = closestDist
+                self.updateZone(distance: closestDist, camera: nearest, speedNow: speedMPH)
+            }
         }
     }
     
     private func updateZone(distance: Double, camera: SpeedCamera, speedNow: Double) {
         let previousZone = currentZone
         
+        var newZone = previousZone
+        
         if distance <= dangerThresholdFT {
-            currentZone = .danger
+            newZone = .danger
             
             // Begin zone entry tracking if not started, or promote from approach
             if activeZoneEntry == nil {
@@ -181,7 +201,7 @@ class BunnyPolice: ObservableObject {
             }
             
         } else if distance <= approachThresholdFT {
-            currentZone = .approach
+            newZone = .approach
             
             // Start tracking on approach (may or may not enter danger)
             if activeZoneEntry == nil {
@@ -192,11 +212,15 @@ class BunnyPolice: ObservableObject {
                 triggerApproachWarning(for: camera)
             }
         } else {
-            currentZone = .safe
+            newZone = .safe
             if previousZone == .approach || previousZone == .danger {
                 triggerExitMessage(for: camera)
                 finalizeActiveZoneEntry()
             }
+        }
+        
+        if newZone != previousZone {
+            currentZone = newZone
         }
     }
     
@@ -251,7 +275,7 @@ class BunnyPolice: ObservableObject {
         }
         approachCooldowns[camera.id] = now
         
-        let speech = "Hop hop... Officer Bunny here. There's a sleepy speed trap down this stretch. Roll off the throttle, let's just enjoy the breeze for a minute."
+        let speech = "There's a speed camera coming up ahead. Please slow down and enjoy the ride."
         speak(speech)
     }
     
@@ -266,7 +290,7 @@ class BunnyPolice: ObservableObject {
             self.camerasPassedThisRide += 1
         }
         
-        let speech = "Trap cleared. The road is yours again. Ride safe."
+        let speech = "You've safely passed the camera zone. The road is yours again. Ride safe!"
         speak(speech)
     }
     

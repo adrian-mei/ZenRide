@@ -1,6 +1,7 @@
 import Foundation
 
 struct SmartSuggestionService {
+    @MainActor
     static func suggestions(from store: SavedRoutesStore) -> [SavedRoute] {
         let hour = Calendar.current.component(.hour, from: Date())
         return store.suggestions(for: hour)

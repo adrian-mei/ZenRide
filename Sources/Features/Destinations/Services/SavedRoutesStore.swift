@@ -1,8 +1,10 @@
 import Foundation
 import CoreLocation
+import SwiftData
 
-struct SavedRoute: Codable, Identifiable {
-    var id = UUID()
+@Model
+final class SavedRoute {
+    @Attribute(.unique) var id: UUID = UUID()
     var destinationName: String
     var latitude: Double
     var longitude: Double
@@ -10,8 +12,38 @@ struct SavedRoute: Codable, Identifiable {
     var lastUsedDate: Date
     var typicalDepartureHours: [Int]   // capped at 50
     var averageDurationSeconds: Int
-    var isPinned: Bool = false         // user explicitly saved this place
-    var offlineRoute: TomTomRoute?     // the saved route data for offline navigation
+    var isPinned: Bool
+    
+    @Attribute(.externalStorage) var offlineRouteData: Data?
+
+    @Transient var offlineRoute: TomTomRoute? {
+        get {
+            guard let data = offlineRouteData else { return nil }
+            return try? JSONDecoder().decode(TomTomRoute.self, from: data)
+        }
+        set {
+            if let value = newValue {
+                offlineRouteData = try? JSONEncoder().encode(value)
+            } else {
+                offlineRouteData = nil
+            }
+        }
+    }
+
+    init(id: UUID = UUID(), destinationName: String, latitude: Double, longitude: Double, useCount: Int, lastUsedDate: Date, typicalDepartureHours: [Int], averageDurationSeconds: Int, isPinned: Bool = false, offlineRoute: TomTomRoute? = nil) {
+        self.id = id
+        self.destinationName = destinationName
+        self.latitude = latitude
+        self.longitude = longitude
+        self.useCount = useCount
+        self.lastUsedDate = lastUsedDate
+        self.typicalDepartureHours = typicalDepartureHours
+        self.averageDurationSeconds = averageDurationSeconds
+        self.isPinned = isPinned
+        if let offlineRoute = offlineRoute {
+            self.offlineRouteData = try? JSONEncoder().encode(offlineRoute)
+        }
+    }
 }
 
 struct RecentSearch: Codable, Identifiable {
@@ -27,16 +59,19 @@ extension Notification.Name {
     static let zenRideNavigateTo = Notification.Name("zenRideNavigateTo")
 }
 
+@MainActor
 class SavedRoutesStore: ObservableObject {
     @Published var routes: [SavedRoute] = []
     @Published var recentSearches: [RecentSearch] = []
     
     private let key = "SavedRoutes"
     private let recentSearchesKey = "RecentSearches_v1"
-    private let defaults: UserDefaults
+    private let defaults: UserDefaults = .standard
+    private let context: ModelContext
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+    init() {
+        self.context = SharedModelContainer.shared.mainContext
+        migrateIfNecessary()
         load()
         loadRecentSearches()
     }
@@ -112,6 +147,7 @@ class SavedRoutesStore: ObservableObject {
                 isPinned: true,
                 offlineRoute: offlineRoute
             )
+            context.insert(route)
             routes.insert(route, at: 0)
         }
         save()
@@ -121,9 +157,13 @@ class SavedRoutesStore: ObservableObject {
         guard let idx = routes.firstIndex(where: { $0.id == id }) else { return }
         routes[idx].isPinned.toggle()
         save()
+        objectWillChange.send()
     }
 
     func deleteRoute(id: UUID) {
+        if let route = routes.first(where: { $0.id == id }) {
+            context.delete(route)
+        }
         routes.removeAll { $0.id == id }
         save()
     }
@@ -151,6 +191,7 @@ class SavedRoutesStore: ObservableObject {
                 typicalDepartureHours: [hour],
                 averageDurationSeconds: durationSeconds
             )
+            context.insert(route)
             routes.insert(route, at: 0)
         }
         save()
@@ -182,10 +223,9 @@ class SavedRoutesStore: ObservableObject {
     // MARK: - Private
 
     private func findExistingIndex(near coord: CLLocationCoordinate2D, name: String) -> Int? {
-        let target = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
         for (i, route) in routes.enumerated() {
-            let existing = CLLocation(latitude: route.latitude, longitude: route.longitude)
-            let distance = existing.distance(from: target)
+            let existingCoord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
+            let distance = existingCoord.distance(to: coord)
             let nameMatch = route.destinationName.lowercased() == name.lowercased()
                 || route.destinationName.lowercased().hasPrefix(name.lowercased().prefix(5))
             if distance < 150 || (distance < 400 && nameMatch) {
@@ -197,19 +237,59 @@ class SavedRoutesStore: ObservableObject {
 
     private func save() {
         do {
-            let data = try JSONEncoder().encode(routes)
-            defaults.set(data, forKey: key)
+            try context.save()
+            objectWillChange.send()
         } catch {
-            Log.error("SavedRoutesStore", "Failed to encode routes: \(error)")
+            Log.error("SavedRoutesStore", "Failed to save routes: \(error)")
         }
     }
 
     private func load() {
-        guard let data = defaults.data(forKey: key) else { return }
         do {
-            routes = try JSONDecoder().decode([SavedRoute].self, from: data)
+            let descriptor = FetchDescriptor<SavedRoute>(sortBy: [SortDescriptor(\.lastUsedDate, order: .reverse)])
+            routes = try context.fetch(descriptor)
         } catch {
-            Log.error("SavedRoutesStore", "Failed to decode routes: \(error)")
+            Log.error("SavedRoutesStore", "Failed to load routes from SwiftData: \(error)")
+        }
+    }
+    
+    // Fallback struct for JSON migration
+    struct OldSavedRoute: Codable {
+        let destinationName: String
+        let latitude: Double
+        let longitude: Double
+        let useCount: Int
+        let lastUsedDate: Date
+        let typicalDepartureHours: [Int]
+        let averageDurationSeconds: Int
+        let isPinned: Bool?
+        let offlineRoute: TomTomRoute?
+    }
+
+    private func migrateIfNecessary() {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return }
+        Log.info("SavedRoutesStore", "Migrating old UserDefaults data to SwiftData...")
+        do {
+            let oldRoutes = try JSONDecoder().decode([OldSavedRoute].self, from: data)
+            for old in oldRoutes {
+                let newRoute = SavedRoute(
+                    destinationName: old.destinationName,
+                    latitude: old.latitude,
+                    longitude: old.longitude,
+                    useCount: old.useCount,
+                    lastUsedDate: old.lastUsedDate,
+                    typicalDepartureHours: old.typicalDepartureHours,
+                    averageDurationSeconds: old.averageDurationSeconds,
+                    isPinned: old.isPinned ?? false,
+                    offlineRoute: old.offlineRoute
+                )
+                context.insert(newRoute)
+            }
+            try context.save()
+            UserDefaults.standard.removeObject(forKey: key)
+            Log.info("SavedRoutesStore", "Migration complete")
+        } catch {
+            Log.error("SavedRoutesStore", "Migration failed: \(error)")
         }
     }
 }

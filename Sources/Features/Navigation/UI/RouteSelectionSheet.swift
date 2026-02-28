@@ -89,6 +89,20 @@ struct RouteSelectionSheet: View {
                             // Calling savedRoutesStore (needs to be available in Environment)
                             // We will add @EnvironmentObject var savedRoutes: SavedRoutesStore at the top
                             savedRoutes.savePlace(name: name, coordinate: lastCoord, offlineRoute: selectedRoute)
+                            
+                            // Prefetch TTS for offline mode
+                            var prefetchTexts = [String]()
+                            prefetchTexts.append("Route to \(name) is ready. Let's have a wonderful trip together!")
+                            prefetchTexts.append("You have arrived at your final destination. Quest complete!")
+                            if let instructions = selectedRoute.guidance?.instructions {
+                                for inst in instructions {
+                                    let text = inst.message ?? "Continue"
+                                    prefetchTexts.append("In 500 feet, \(text)")
+                                    prefetchTexts.append(text)
+                                }
+                            }
+                            SpeechService.shared.prefetch(texts: prefetchTexts)
+                            
                             // Optional: provide some haptic feedback
                             let generator = UINotificationFeedbackGenerator()
                             generator.notificationOccurred(.success)

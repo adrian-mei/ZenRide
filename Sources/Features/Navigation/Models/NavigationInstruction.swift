@@ -22,6 +22,7 @@ struct NavigationInstruction {
     let text: String
     let distanceInMeters: Int
     let routeOffsetInMeters: Int
+    let pointIndex: Int
     let turnType: TurnType
     
     // Compatibility bridges for existing UI
