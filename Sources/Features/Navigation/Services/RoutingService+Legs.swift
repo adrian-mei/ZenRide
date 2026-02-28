@@ -27,6 +27,7 @@ extension RoutingService {
         
         // Check if we reached the final destination
         if currentLegIndex >= quest.waypoints.count - 1 {
+            self.completedQuestWaypointCount = quest.waypoints.count
             self.activeQuest = nil
             SpeechService.shared.speak("You have arrived at your final destination. Quest complete!")
             return false // Finished entirely

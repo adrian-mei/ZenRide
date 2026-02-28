@@ -105,6 +105,24 @@ struct MapHomeView: View {
                 }
                 .zIndex(55)
             }
+
+            // Achievement Unlock Toast
+            if let achievement = playerStore.newlyEarnedAchievement {
+                VStack {
+                    AchievementUnlockToast(achievement: achievement)
+                        .padding(.top, playerStore.showLevelUpToast ? 120 : 16)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                                withAnimation(.easeOut) {
+                                    playerStore.newlyEarnedAchievement = nil
+                                }
+                            }
+                        }
+                    Spacer()
+                }
+                .zIndex(60)
+            }
             
             if showQuestBuilderFloating && !questWaypoints.isEmpty {
                 VStack {

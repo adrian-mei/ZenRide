@@ -178,6 +178,8 @@ class RoutingService: ObservableObject {
     // MARK: - Multi-Leg Quest State
     @Published var activeQuest: DailyQuest?
     @Published var currentLegIndex: Int = 0
+    /// Set to the waypoint count of the most recently completed quest; reset to 0 after XP is awarded.
+    @Published var completedQuestWaypointCount: Int = 0
 
     // MARK: - Vehicle Mode
 

@@ -60,12 +60,22 @@ struct ContentView: View {
                     // Gamification: Animal Crossing Themed Experience
                     let durationSeconds = pending?.actualDurationSeconds ?? 0
                     let avgSpeed = pending?.avgSpeedMph ?? 0
-                    
+
                     var xpEarned = 0
                     // A "real ride" is at least 10 minutes (600 seconds) and avg speed > 15 mph
                     if durationSeconds >= 600 && avgSpeed > 15.0 {
                         // Calculate XP based on distance and speed, minimum 50 XP
                         xpEarned = max(50, Int((pending?.distanceMiles ?? 0) * 10))
+                    }
+
+                    // Quest bonus: 25 XP per waypoint for completing a multi-stop quest
+                    let questWaypoints = routingService.completedQuestWaypointCount
+                    if questWaypoints > 0 {
+                        xpEarned += questWaypoints * 25
+                        routingService.completedQuestWaypointCount = 0
+                    }
+
+                    if xpEarned > 0 {
                         playerStore.addXP(xpEarned)
                     }
 
@@ -75,7 +85,8 @@ struct ContentView: View {
                     let moneySaved = Double((pending?.cameraZoneEvents ?? []).filter { $0.outcome == .saved }.count) * 100
                     postRideInfo = PostRideInfo(distanceMiles: distanceMiles, zenScore: zenScore, moneySaved: moneySaved, xpEarned: xpEarned)
 
-                    // Save drive session immediately (no mood yet)
+                    // Save drive session immediately (no mood yet); check for new achievements after save
+                    let prevAchievementCount = AchievementEngine.earnedCount(from: driveStore)
                     if let p = pending {
                         let session = p.toSession(mood: nil)
                         driveStore.appendSession(
@@ -84,6 +95,9 @@ struct ContentView: View {
                             destinationName: p.destinationName,
                             session: session
                         )
+                    }
+                    if let newAchievement = AchievementEngine.recentlyEarned(from: driveStore, previous: prevAchievementCount) {
+                        playerStore.newlyEarnedAchievement = newAchievement
                     }
 
                     // Record route visit
