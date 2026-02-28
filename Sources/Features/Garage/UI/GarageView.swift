@@ -64,16 +64,34 @@ struct MapHomeView: View {
             VStack {
                 Spacer()
                 VStack(spacing: 8) {
-                    MapRoundButton(icon: "view.3d", label: "Toggle 3D view", action: {
-                        // Action for 3D view
-                    })
-                    MapRoundButton(icon: playerStore.selectedCharacter.icon, label: "Open Garage – \(playerStore.selectedCharacter.name)", action: {
-                        showGarage = true
-                    })
-                    MapRoundButton(icon: isTracking ? "location.fill" : "location", label: isTracking ? "Location tracking active" : "Center map on my location", action: {
-                        isTracking = true
-                        NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
-                    })
+                    MapRoundButton(
+                        icon: is3DMap ? "view.3d" : "map",
+                        label: is3DMap ? "Switch to 2D map" : "Switch to 3D map",
+                        isActive: is3DMap,
+                        action: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            is3DMap.toggle()
+                            NotificationCenter.default.post(name: NSNotification.Name("Toggle3DMap"), object: is3DMap)
+                        }
+                    )
+                    MapRoundButton(
+                        icon: "car.fill",
+                        label: "Open vehicle garage",
+                        action: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            showGarage = true
+                        }
+                    )
+                    MapRoundButton(
+                        icon: isTracking ? "location.fill" : "location",
+                        label: isTracking ? "Location tracking active" : "Center map on my location",
+                        isActive: isTracking,
+                        action: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            isTracking = true
+                            NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
+                        }
+                    )
                 }
                 .padding(.trailing, 16)
                 // Positioned above the default 0.35 sheet detent so buttons remain visible
@@ -282,17 +300,23 @@ struct MapHomeView: View {
 struct MapRoundButton: View {
     let icon: String
     let label: String
+    var isActive: Bool = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(Theme.Colors.acTextDark)
+                .foregroundStyle(isActive ? Theme.Colors.acLeaf : Theme.Colors.acTextDark)
                 .frame(width: 52, height: 52)
-                .background(Theme.Colors.acCream)
+                .background(isActive ? Theme.Colors.acLeaf.opacity(0.12) : Theme.Colors.acCream)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                .overlay(
+                    Circle().stroke(
+                        isActive ? Theme.Colors.acLeaf : Theme.Colors.acBorder,
+                        lineWidth: isActive ? 2.5 : 2
+                    )
+                )
                 .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 4)
         }
         .buttonStyle(.plain)

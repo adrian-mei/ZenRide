@@ -434,6 +434,7 @@ struct ZenMapView: UIViewRepresentable {
                 }
             }
         } else if routeState == .search && coordinator.lastRouteState != .search {
+            coordinator.is3D = false
             uiView.userTrackingMode = .followWithHeading
             let camera = MKMapCamera(
                 lookingAtCenter: uiView.centerCoordinate,
@@ -555,6 +556,8 @@ struct ZenMapView: UIViewRepresentable {
         var lastSearchRegion: MKCoordinateRegion?
         var isSearchingPOIs = false
 
+        var is3D: Bool = false
+
         init(_ parent: ZenMapView) {
             self.parent = parent
             super.init()
@@ -564,10 +567,32 @@ struct ZenMapView: UIViewRepresentable {
                 name: NSNotification.Name("RecenterMap"),
                 object: nil
             )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(toggle3D(_:)),
+                name: NSNotification.Name("Toggle3DMap"),
+                object: nil
+            )
         }
 
         @objc func recenter() {
             mapView?.userTrackingMode = .followWithHeading
+        }
+
+        @objc func toggle3D(_ notification: Notification) {
+            guard let mapView else { return }
+            is3D = (notification.object as? Bool) ?? !is3D
+            let pitch: Double = is3D ? 60 : 0
+            let camera = MKMapCamera(
+                lookingAtCenter: mapView.centerCoordinate,
+                fromDistance: is3D ? 800 : 10_000,
+                pitch: pitch,
+                heading: mapView.camera.heading
+            )
+            mapView.setCamera(camera, animated: true)
+            if is3D {
+                mapView.userTrackingMode = .followWithHeading
+            }
         }
         
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
