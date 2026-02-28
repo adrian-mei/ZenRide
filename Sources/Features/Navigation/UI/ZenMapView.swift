@@ -54,6 +54,7 @@ struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var multiplayerService: MultiplayerService
+    @EnvironmentObject var playerStore: PlayerStore
     @Binding var routeState: RouteState
     @Binding var isTracking: Bool
     var mapMode: MapMode = .turnByTurn // Defaults to 3D driving
@@ -89,7 +90,7 @@ struct ZenMapView: UIViewRepresentable {
         return mapView
     }
 
-    private func getVehicleImage(for type: VehicleType) -> UIImage {
+    private func getVehicleImage(for type: VehicleType, character: Character) -> UIImage {
         let size = CGSize(width: 50, height: 60)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { ctx in
@@ -164,6 +165,47 @@ struct ZenMapView: UIViewRepresentable {
                 leftLight.fill()
                 rightLight.fill()
             }
+            
+            // Draw Character Emoji / Icon in the center (representing the driver)
+            // Instead of just drawing a generic car, we overlay a cute circle for the animal!
+            let avatarSize = CGSize(width: 28, height: 28)
+            let avatarRect = CGRect(
+                x: bodyRect.midX - (avatarSize.width / 2),
+                y: bodyRect.midY - (avatarSize.height / 2) - (hasTop ? 4 : 8),
+                width: avatarSize.width,
+                height: avatarSize.height
+            )
+            
+            // Circle Background matching character color
+            if let uiColor = UIColor(hex: character.colorHex) {
+                uiColor.setFill()
+            } else {
+                UIColor.systemOrange.setFill()
+            }
+            UIBezierPath(ovalIn: avatarRect).fill()
+            
+            // White border around avatar
+            UIColor.white.setStroke()
+            let avatarBorder = UIBezierPath(ovalIn: avatarRect)
+            avatarBorder.lineWidth = 2
+            avatarBorder.stroke()
+            
+            // Simple mapping from SF Symbol name to an Emoji (or just using a generic Animal emoji)
+            var avatarEmoji = "🦊" // Default fox
+            if character.icon.contains("bear") { avatarEmoji = "🐻" }
+            else if character.icon.contains("bird") { avatarEmoji = "🐦" }
+            else if character.icon.contains("hare") || character.icon.contains("rabbit") { avatarEmoji = "🐰" }
+            else if character.icon.contains("cat") { avatarEmoji = "🐱" }
+            else if character.icon.contains("dog") { avatarEmoji = "🐶" }
+            
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 16)
+            ]
+            let strSize = avatarEmoji.size(withAttributes: attrs)
+            avatarEmoji.draw(at: CGPoint(
+                x: avatarRect.midX - (strSize.width / 2),
+                y: avatarRect.midY - (strSize.height / 2)
+            ), withAttributes: attrs)
         }
     }
 
@@ -561,7 +603,7 @@ struct ZenMapView: UIViewRepresentable {
                     view?.layer.shadowOpacity = 0.3
                     view?.layer.shadowRadius = 4
                 }
-                view?.image = parent.getVehicleImage(for: carAnn.vehicleType)
+                view?.image = parent.getVehicleImage(for: carAnn.vehicleType, character: parent.playerStore.selectedCharacter)
                 return view
             }
             

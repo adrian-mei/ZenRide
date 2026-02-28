@@ -10,7 +10,7 @@ struct QuestDashboardView: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("DAILY QUESTS")
+                Text("ROUTE BOOK")
                     .font(.system(size: 14, weight: .black, design: .rounded))
                     .foregroundColor(Theme.Colors.acWood)
                     .kerning(1.5)
@@ -27,7 +27,7 @@ struct QuestDashboardView: View {
             .padding(.horizontal)
             
             if questStore.quests.isEmpty {
-                Text("No quests yet! Build your first daily routine.")
+                Text("No saved routes yet! Build your first daily routine.")
                     .font(Theme.Typography.body)
                     .foregroundColor(Theme.Colors.acTextMuted)
                     .multilineTextAlignment(.center)
@@ -60,42 +60,61 @@ struct QuestCard: View {
     let onStart: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
                 ZStack {
                     Circle()
-                        .fill(Theme.Colors.acSky.opacity(0.2))
-                        .frame(width: 40, height: 40)
+                        .fill(Theme.Colors.acLeaf.opacity(0.15))
+                        .frame(width: 48, height: 48)
                     Image(systemName: quest.icon)
-                        .font(.system(size: 20))
-                        .foregroundColor(Theme.Colors.acSky)
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(Theme.Colors.acLeaf)
                 }
                 Spacer()
-                Text("\(quest.waypoints.count) stops")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(Theme.Colors.acTextMuted)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(quest.title)
-                    .font(Theme.Typography.headline)
-                    .foregroundColor(Theme.Colors.acTextDark)
                 
-                if let first = quest.waypoints.first, let last = quest.waypoints.last {
-                    Text("\(first.name) ➔ \(last.name)")
-                        .font(Theme.Typography.body)
-                        .foregroundColor(Theme.Colors.acTextMuted)
-                        .lineLimit(1)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(quest.waypoints.count) stops")
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundColor(Theme.Colors.acWood)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Theme.Colors.acWood.opacity(0.15))
+                        .clipShape(Capsule())
                 }
             }
             
-            Button("Start Quest") {
-                onStart()
+            VStack(alignment: .leading, spacing: 6) {
+                Text(quest.title)
+                    .font(Theme.Typography.title)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                
+                if let first = quest.waypoints.first, let last = quest.waypoints.last {
+                    HStack(spacing: 6) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                        Text("\(first.name) ➔ \(last.name)")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            
+            Button(action: onStart) {
+                HStack {
+                    Spacer()
+                    Image(systemName: "play.fill")
+                    Text("Start Route")
+                    Spacer()
+                }
             }
             .buttonStyle(ACButtonStyle(variant: .primary))
-            .padding(.top, 8)
+            .padding(.top, 4)
         }
-        .frame(width: 240)
-        .acCardStyle(padding: 16, interactive: true)
+        .frame(width: 260)
+        .acCardStyle(padding: 20, interactive: true)
     }
 }

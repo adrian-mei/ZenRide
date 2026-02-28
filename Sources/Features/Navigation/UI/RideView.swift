@@ -345,7 +345,7 @@ struct RideView: View {
         
         let dest = destinationName.isEmpty ? "your destination" : destinationName
         prefetchTexts.append("Route to \(dest) is ready. Let's have a wonderful trip together!")
-        prefetchTexts.append("You have arrived at your final destination. Quest complete!")
+        prefetchTexts.append("You have arrived at your final destination. Route complete!")
         
         for instruction in routingService.instructions {
             prefetchTexts.append("In 500 feet, \(instruction.text)")

@@ -6,10 +6,12 @@ import PhotosUI
 struct VehicleGarageView: View {
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var driveStore: DriveStore
+    @EnvironmentObject var playerStore: PlayerStore
 
     @State private var selectedPage: UUID? = nil
     @State private var showAddVehicle = false
     @State private var editingVehicle: Vehicle? = nil
+    @State private var selectedTab: Int = 0 // 0 = Garage, 1 = Campers
 
     var body: some View {
         ZStack {
@@ -19,33 +21,47 @@ struct VehicleGarageView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack {
-                    Text("MY GARAGE")
+                    Text(selectedTab == 0 ? "MY GARAGE" : "MY CAMPERS")
                         .font(Theme.Typography.title)
                         .foregroundColor(Theme.Colors.acTextDark)
 
                     Spacer()
 
-                    Button {
-                        showAddVehicle = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("Add")
-                                .font(.system(size: 14, weight: .bold))
+                    if selectedTab == 0 {
+                        Button {
+                            showAddVehicle = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("Add")
+                                    .font(.system(size: 14, weight: .bold))
+                            }
                         }
+                        .buttonStyle(ACButtonStyle(variant: .secondary))
+                        .frame(height: 36)
                     }
-                    .buttonStyle(ACButtonStyle(variant: .secondary))
-                    .frame(height: 36) // Override minHeight for a smaller header button
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 24)
+                .padding(.bottom, 8)
+                
+                Picker("", selection: $selectedTab) {
+                    Text("Vehicles").tag(0)
+                    Text("Characters").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 16)
 
-                if vehicleStore.vehicles.isEmpty {
-                    emptyState
+                if selectedTab == 0 {
+                    if vehicleStore.vehicles.isEmpty {
+                        emptyState
+                    } else {
+                        garageContent
+                    }
                 } else {
-                    garageContent
+                    CharacterSelectionView()
                 }
             }
         }
@@ -167,6 +183,90 @@ struct VehicleGarageView: View {
     private var currentVehicle: Vehicle? {
         vehicleStore.vehicles.first(where: { $0.id == selectedPage })
             ?? vehicleStore.vehicles.first
+    }
+}
+
+// MARK: - Character Selection View
+
+struct CharacterSelectionView: View {
+    @EnvironmentObject var playerStore: PlayerStore
+    
+    let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+    
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(Character.all) { character in
+                    let isUnlocked = character.unlockLevel <= playerStore.currentLevel
+                    let isSelected = playerStore.selectedCharacterId == character.id
+                    
+                    Button {
+                        if isUnlocked {
+                            playerStore.selectCharacter(character)
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        }
+                    } label: {
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(isUnlocked ? Color(hex: character.colorHex) : Theme.Colors.acBorder.opacity(0.3))
+                                    .frame(width: 80, height: 80)
+                                    .overlay(Circle().stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.2), lineWidth: isSelected ? 4 : 2))
+                                
+                                if isUnlocked {
+                                    Image(systemName: character.icon)
+                                        .font(.system(size: 36, weight: .bold))
+                                        .foregroundColor(.white)
+                                } else {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(Theme.Colors.acTextMuted)
+                                }
+                            }
+                            
+                            VStack(spacing: 4) {
+                                Text(isUnlocked ? character.name : "Locked")
+                                    .font(Theme.Typography.headline)
+                                    .foregroundColor(isUnlocked ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
+                                
+                                if isSelected {
+                                    Text("ACTIVE")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(Theme.Colors.acCream)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 4)
+                                        .background(Theme.Colors.acLeaf)
+                                        .clipShape(Capsule())
+                                } else if !isUnlocked {
+                                    Text("Level \(character.unlockLevel)")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(Theme.Colors.acWood)
+                                } else {
+                                    Text("Tap to Select")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Theme.Colors.acTextMuted)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                        .background(Theme.Colors.acCream)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.4), lineWidth: 2))
+                        .opacity(isUnlocked ? 1.0 : 0.6)
+                        .shadow(color: isSelected ? Theme.Colors.acLeaf.opacity(0.2) : .clear, radius: 8, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!isUnlocked)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 40)
+        }
     }
 }
 

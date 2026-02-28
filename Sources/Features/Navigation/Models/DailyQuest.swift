@@ -54,7 +54,7 @@ struct DailyQuest: Identifiable, Codable {
 class QuestStore: ObservableObject {
     @Published var quests: [DailyQuest] = []
     
-    private let storageKey = "FashodaMap_Quests_v1"
+    private let storageKey = "FashodaMap_Quests_v2"
     
     init() { load() }
     
@@ -79,21 +79,33 @@ class QuestStore: ObservableObject {
            let decoded = try? JSONDecoder().decode([DailyQuest].self, from: data) {
             self.quests = decoded
         } else {
-            // Seed a default quest for the MVP
-            let sfHome = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
-            let sfCoffee = CLLocationCoordinate2D(latitude: 37.7800, longitude: -122.4200)
-            let sfWork = CLLocationCoordinate2D(latitude: 37.7850, longitude: -122.4000)
-            
-            let defaultQuest = DailyQuest(
-                title: "Morning Routine",
+            // Seed a default quest for the MVP - Mom's Morning Routine
+            let momRoutine = DailyQuest(
+                title: "Morning Run",
                 waypoints: [
-                    QuestWaypoint(name: "Home", coordinate: sfHome, icon: "house.fill"),
-                    QuestWaypoint(name: "Coffee Shop", coordinate: sfCoffee, icon: "cup.and.saucer.fill"),
-                    QuestWaypoint(name: "Office", coordinate: sfWork, icon: "briefcase.fill")
+                    QuestWaypoint(name: "Home", coordinate: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), icon: "house.fill"),
+                    QuestWaypoint(name: "Daycare", coordinate: CLLocationCoordinate2D(latitude: 37.7760, longitude: -122.4180), icon: "stroller.fill"),
+                    QuestWaypoint(name: "Dry Cleaning", coordinate: CLLocationCoordinate2D(latitude: 37.7780, longitude: -122.4170), icon: "tshirt.fill"),
+                    QuestWaypoint(name: "Coffee Shop", coordinate: CLLocationCoordinate2D(latitude: 37.7800, longitude: -122.4200), icon: "cup.and.saucer.fill"),
+                    QuestWaypoint(name: "Gas Station", coordinate: CLLocationCoordinate2D(latitude: 37.7810, longitude: -122.4190), icon: "fuelpump.fill"),
+                    QuestWaypoint(name: "Work Garage", coordinate: CLLocationCoordinate2D(latitude: 37.7850, longitude: -122.4000), icon: "parkingsign")
                 ],
                 icon: "sun.max.fill"
             )
-            self.quests = [defaultQuest]
+            
+            // Seed a default quest for the MVP - Camping Trip
+            let campingTrip = DailyQuest(
+                title: "Yosemite Trip",
+                waypoints: [
+                    QuestWaypoint(name: "Apartment", coordinate: CLLocationCoordinate2D(latitude: 37.7830, longitude: -122.4090), icon: "building.2.fill"),
+                    QuestWaypoint(name: "Pick up Sarah", coordinate: CLLocationCoordinate2D(latitude: 37.7910, longitude: -122.4150), icon: "figure.wave"),
+                    QuestWaypoint(name: "Grocery Store", coordinate: CLLocationCoordinate2D(latitude: 37.8000, longitude: -122.4200), icon: "cart.fill"),
+                    QuestWaypoint(name: "Campground", coordinate: CLLocationCoordinate2D(latitude: 37.7450, longitude: -119.5936), icon: "tent.fill")
+                ],
+                icon: "leaf.fill"
+            )
+            
+            self.quests = [momRoutine, campingTrip]
             save()
         }
     }

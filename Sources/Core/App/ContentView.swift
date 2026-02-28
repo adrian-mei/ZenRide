@@ -5,7 +5,7 @@ import Combine
 
 struct ContentView: View {
     @State private var appState: AppState = {
-        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return .onboarding }
+        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return .garage }
         return .garage
     }()
 
@@ -22,6 +22,7 @@ struct ContentView: View {
     @EnvironmentObject var driveStore: DriveStore
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var routingService: RoutingService
+    @EnvironmentObject var playerStore: PlayerStore
 
     var body: some View {
         Group {
@@ -56,11 +57,23 @@ struct ContentView: View {
                     lastRideContext = context
                     pendingSession = pending
 
+                    // Gamification: Animal Crossing Themed Experience
+                    let durationSeconds = pending?.actualDurationSeconds ?? 0
+                    let avgSpeed = pending?.avgSpeedMph ?? 0
+                    
+                    var xpEarned = 0
+                    // A "real ride" is at least 10 minutes (600 seconds) and avg speed > 15 mph
+                    if durationSeconds >= 600 && avgSpeed > 15.0 {
+                        // Calculate XP based on distance and speed, minimum 50 XP
+                        xpEarned = max(50, Int((pending?.distanceMiles ?? 0) * 10))
+                        playerStore.addXP(xpEarned)
+                    }
+
                     // Build toast info from ride stats
                     let distanceMiles = pending?.distanceMiles ?? 0
                     let zenScore = pending?.zenScore ?? 0
                     let moneySaved = Double((pending?.cameraZoneEvents ?? []).filter { $0.outcome == .saved }.count) * 100
-                    postRideInfo = PostRideInfo(distanceMiles: distanceMiles, zenScore: zenScore, moneySaved: moneySaved)
+                    postRideInfo = PostRideInfo(distanceMiles: distanceMiles, zenScore: zenScore, moneySaved: moneySaved, xpEarned: xpEarned)
 
                     // Save drive session immediately (no mood yet)
                     if let p = pending {

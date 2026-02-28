@@ -93,7 +93,7 @@ struct RouteSelectionSheet: View {
                             // Prefetch TTS for offline mode
                             var prefetchTexts = [String]()
                             prefetchTexts.append("Route to \(name) is ready. Let's have a wonderful trip together!")
-                            prefetchTexts.append("You have arrived at your final destination. Quest complete!")
+                            prefetchTexts.append("You have arrived at your final destination. Route complete!")
                             if let instructions = selectedRoute.guidance?.instructions {
                                 for inst in instructions {
                                     let text = inst.message ?? "Continue"

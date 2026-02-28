@@ -8,6 +8,7 @@ struct PostRideInfo {
     let distanceMiles: Double
     let zenScore: Int
     let moneySaved: Double
+    let xpEarned: Int
 }
 
 // MARK: - MapHomeView
@@ -20,6 +21,7 @@ struct MapHomeView: View {
     @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
+    @EnvironmentObject var playerStore: PlayerStore
 
     var onRollOut: () -> Void
     var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
@@ -64,7 +66,7 @@ struct MapHomeView: View {
                     MapRoundButton(icon: "view.3d", action: {
                         // Action for 3D view
                     })
-                    MapRoundButton(icon: vehicleStore.selectedVehicle?.type.icon ?? "car.fill", action: {
+                    MapRoundButton(icon: playerStore.selectedCharacter.icon, action: {
                         showGarage = true
                     })
                     MapRoundButton(icon: isTracking ? "location.fill" : "location", action: {
@@ -87,6 +89,21 @@ struct MapHomeView: View {
                 }
                 .allowsHitTesting(false)
                 .zIndex(50)
+            }
+            
+            // Level Up Toast
+            if playerStore.showLevelUpToast {
+                VStack {
+                    LevelUpToast(level: playerStore.currentLevel, characters: playerStore.newlyUnlockedCharacters) {
+                        withAnimation(.spring()) {
+                            playerStore.showLevelUpToast = false
+                        }
+                    }
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    Spacer()
+                }
+                .zIndex(55)
             }
             
             if showQuestBuilderFloating && !questWaypoints.isEmpty {
@@ -275,6 +292,7 @@ struct HomeBottomSheet: View {
     @EnvironmentObject var cameraStore: CameraStore
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var parkingStore: ParkingStore
+    @EnvironmentObject var playerStore: PlayerStore
 
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
@@ -399,6 +417,41 @@ struct HomeBottomSheet: View {
 
     private var idleContent: some View {
         VStack(alignment: .leading, spacing: 24) {
+            
+            // Experience / Level Progress
+            HStack {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: playerStore.selectedCharacter.colorHex))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: playerStore.selectedCharacter.icon)
+                        .font(.system(size: 24))
+                        .foregroundColor(.white)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Level \(playerStore.currentLevel)")
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                    
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Theme.Colors.acBorder.opacity(0.3))
+                            Capsule()
+                                .fill(Theme.Colors.acLeaf)
+                                .frame(width: geo.size.width * playerStore.currentLevelProgress())
+                        }
+                    }
+                    .frame(height: 8)
+                }
+                
+                Spacer()
+                
+                Text("\(playerStore.totalXP) XP")
+                    .font(Theme.Typography.button)
+                    .foregroundColor(Theme.Colors.acLeaf)
+            }
+            .padding(.horizontal)
             
             // Camp & Cruise Button
             Button(action: onCruiseTap) {
@@ -878,6 +931,14 @@ private struct PostRideToast: View {
                     Text(String(format: "%.1f mi", info.distanceMiles))
                         .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextDark)
+                    
+                    if info.xpEarned > 0 {
+                        Text("· +\(info.xpEarned) XP")
+                            .font(Theme.Typography.body)
+                            .foregroundColor(Theme.Colors.acLeaf)
+                            .bold()
+                    }
+                    
                     if info.zenScore > 0 {
                         Text("· ZEN \(info.zenScore)")
                             .font(Theme.Typography.body)
@@ -901,6 +962,64 @@ private struct PostRideToast: View {
         .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 5)
         .padding(.horizontal, 16)
         .padding(.top, 50)
+    }
+}
+
+// MARK: - Level Up Toast
+
+private struct LevelUpToast: View {
+    let level: Int
+    let characters: [Character]
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Theme.Colors.acGold.opacity(0.2))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Theme.Colors.acGold)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("LEVEL UP!")
+                    .font(Theme.Typography.button)
+                    .foregroundColor(Theme.Colors.acGold)
+                    .kerning(1)
+                Text("You reached Level \(level)")
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                
+                if !characters.isEmpty {
+                    Text("Unlocked \(characters.map { $0.name }.joined(separator: ", "))!")
+                        .font(Theme.Typography.body)
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .foregroundColor(Theme.Colors.acTextMuted)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Theme.Colors.acCream)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acGold, lineWidth: 2))
+        .shadow(color: Theme.Colors.acGold.opacity(0.4), radius: 0, x: 0, y: 5)
+        .padding(.horizontal, 16)
+        .padding(.top, 50)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                onDismiss()
+            }
+        }
     }
 }
 
