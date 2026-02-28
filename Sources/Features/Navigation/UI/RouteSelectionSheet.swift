@@ -8,7 +8,9 @@ struct RouteSelectionSheet: View {
 
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var savedRoutes: SavedRoutesStore
+    @EnvironmentObject var vehicleStore: VehicleStore
     @State private var showAvoidSheet = false
+    @State private var showGarageSheet = false
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -137,26 +139,29 @@ struct RouteSelectionSheet: View {
         .sheet(isPresented: $showAvoidSheet) {
             AvoidPreferencesSheet()
         }
+        .sheet(isPresented: $showGarageSheet) {
+            VehicleGarageView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private var vehicleModeToggle: some View {
-        HStack(spacing: 0) {
-            ForEach([VehicleMode.car, VehicleMode.motorcycle], id: \.self) { mode in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        routingService.vehicleMode = mode
-                    }
-                } label: {
-                    Image(systemName: mode == .car ? "car.fill" : "bicycle")
-                        .font(.system(size: 16, weight: .bold))
-                        .frame(width: 44, height: 36)
-                        .background(routingService.vehicleMode == mode ? Theme.Colors.acLeaf : Theme.Colors.acCream)
-                        .foregroundColor(routingService.vehicleMode == mode ? .white : Theme.Colors.acTextMuted)
-                }
+        Button {
+            showGarageSheet = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: vehicleStore.selectedVehicleMode.icon)
+                    .font(.system(size: 16, weight: .bold))
+                Text(vehicleStore.selectedVehicleMode.displayName)
+                    .font(Theme.Typography.button)
             }
+            .padding(.horizontal, 16)
+            .frame(height: 36)
+            .background(Theme.Colors.acLeaf)
+            .foregroundColor(.white)
+            .clipShape(Capsule())
         }
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.acBorder, lineWidth: 2))
     }
 }
 
