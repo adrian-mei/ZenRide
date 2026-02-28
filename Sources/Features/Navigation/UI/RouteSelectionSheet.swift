@@ -1,5 +1,10 @@
 import SwiftUI
 
+private enum RouteActiveSheet: Identifiable {
+    case avoidPrefs, vehicleGarage
+    var id: Self { self }
+}
+
 struct RouteSelectionSheet: View {
     let destinationName: String
     var onDrive: () -> Void
@@ -9,8 +14,7 @@ struct RouteSelectionSheet: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var vehicleStore: VehicleStore
-    @State private var showAvoidSheet = false
-    @State private var showGarageSheet = false
+    @State private var activeSheet: RouteActiveSheet? = nil
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -45,7 +49,7 @@ struct RouteSelectionSheet: View {
                     vehicleModeToggle
                     Spacer()
                     Button {
-                        showAvoidSheet = true
+                        activeSheet = .avoidPrefs
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "slider.horizontal.3")
@@ -139,19 +143,21 @@ struct RouteSelectionSheet: View {
         .background(Theme.Colors.acField)
         .cornerRadius(32, corners: [.topLeft, .topRight])
         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
-        .sheet(isPresented: $showAvoidSheet) {
-            AvoidPreferencesSheet()
-        }
-        .sheet(isPresented: $showGarageSheet) {
-            VehicleGarageView()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .avoidPrefs:
+                AvoidPreferencesSheet()
+            case .vehicleGarage:
+                VehicleGarageView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
         }
     }
 
     private var vehicleModeToggle: some View {
         Button {
-            showGarageSheet = true
+            activeSheet = .vehicleGarage
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: vehicleStore.selectedVehicleMode.icon)
@@ -252,11 +258,11 @@ private struct AvoidPreferencesSheet: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         VStack(alignment: .leading, spacing: 0) {
-                            ToggleRow(title: "Avoid Tolls", icon: "dollarsign.circle", isOn: $routingService.avoidTolls)
-                            Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.leading, 40)
-                            ToggleRow(title: "Avoid Highways", icon: "road.lanes", isOn: $routingService.avoidHighways)
-                            Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.leading, 40)
-                            ToggleRow(title: "Avoid Speed Cameras", icon: "camera.fill", isOn: $routingService.avoidSpeedCameras)
+                            ACToggleRow(title: "Avoid Tolls", icon: "dollarsign.circle", isOn: $routingService.avoidTolls)
+                            ACSectionDivider()
+                            ACToggleRow(title: "Avoid Highways", icon: "road.lanes", isOn: $routingService.avoidHighways)
+                            ACSectionDivider()
+                            ACToggleRow(title: "Avoid Speed Cameras", icon: "camera.fill", isOn: $routingService.avoidSpeedCameras)
                         }
                         .acCardStyle(padding: 0)
                         
@@ -287,40 +293,3 @@ private struct AvoidPreferencesSheet: View {
     }
 }
 
-private struct ToggleRow: View {
-    let title: String
-    let icon: String
-    @Binding var isOn: Bool
-    
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .foregroundColor(Theme.Colors.acWood)
-                    .frame(width: 24)
-                Text(title)
-                    .font(Theme.Typography.body)
-                    .foregroundColor(Theme.Colors.acTextDark)
-            }
-        }
-        .tint(Theme.Colors.acLeaf)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-    }
-}
-
-// Helper to round specific corners
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape( RoundedCorner(radius: radius, corners: corners) )
-    }
-}
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
-    }
-}

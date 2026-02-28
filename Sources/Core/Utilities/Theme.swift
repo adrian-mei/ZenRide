@@ -30,6 +30,26 @@ public struct Theme {
         public static let headline = Font.system(size: 20, weight: .bold, design: .rounded)
         public static let body = Font.system(size: 16, weight: .medium, design: .rounded)
         public static let button = Font.system(size: 14, weight: .black, design: .rounded)
+        public static let caption = Font.system(size: 12, weight: .bold, design: .rounded)
+        public static let label = Font.system(size: 10, weight: .black, design: .rounded)
+    }
+}
+
+// MARK: - Geometry Utilities
+
+public struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+    public func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners,
+                                cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
+    }
+}
+
+public extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
     }
 }
 

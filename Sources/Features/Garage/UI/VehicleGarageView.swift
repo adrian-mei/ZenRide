@@ -233,13 +233,7 @@ struct CharacterSelectionView: View {
                                     .foregroundColor(isUnlocked ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
 
                                 if isSelected {
-                                    Text("ACTIVE")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(Theme.Colors.acCream)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 4)
-                                        .background(Theme.Colors.acLeaf)
-                                        .clipShape(Capsule())
+                                    ACBadge(text: "ACTIVE")
                                 } else if !isUnlocked {
                                     Text("Level \(character.unlockLevel)")
                                         .font(.system(size: 12, weight: .bold))
@@ -300,18 +294,7 @@ private struct VehicleCard: View {
                 Spacer()
 
                 if isDefault {
-                    HStack(spacing: 4) {
-                        Image(systemName: "leaf.fill")
-                            .font(.system(size: 10))
-                        Text("ACTIVE")
-                            .font(Theme.Typography.button)
-                            .font(.system(size: 10))
-                    }
-                    .foregroundColor(Theme.Colors.acCream)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Theme.Colors.acLeaf)
-                    .clipShape(Capsule())
+                    ACBadge(text: "ACTIVE", icon: "leaf.fill")
                 }
             }
 
@@ -331,9 +314,9 @@ private struct VehicleCard: View {
             
             // Stats Bars
             VStack(spacing: 8) {
-                StatBar(label: "Speed", value: vehicle.speedStat, color: Theme.Colors.acSky)
-                StatBar(label: "Handling", value: vehicle.handlingStat, color: Theme.Colors.acGold)
-                StatBar(label: "Safety", value: vehicle.safetyStat, color: Theme.Colors.acCoral)
+                ACStatBar(label: "Speed", value: vehicle.speedStat, color: Theme.Colors.acSky)
+                ACStatBar(label: "Handling", value: vehicle.handlingStat, color: Theme.Colors.acGold)
+                ACStatBar(label: "Safety", value: vehicle.safetyStat, color: Theme.Colors.acCoral)
             }
             .padding(.top, 4)
         }
@@ -341,33 +324,6 @@ private struct VehicleCard: View {
     }
 }
 
-private struct StatBar: View {
-    let label: String
-    let value: Double
-    let color: Color
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-                .frame(width: 60, alignment: .leading)
-            
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Theme.Colors.acBorder.opacity(0.3))
-                        .frame(height: 8)
-                    
-                    Capsule()
-                        .fill(color)
-                        .frame(width: max(0, min(geo.size.width * (value / 10.0), geo.size.width)), height: 8)
-                }
-            }
-            .frame(height: 8)
-        }
-    }
-}
 
 // MARK: - Stats Section
 
@@ -377,36 +333,16 @@ private struct VehicleStatsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("CAMPING STATS", icon: "map.fill")
+            ACSectionHeader(title: "CAMPING STATS", icon: "map.fill")
 
             HStack(spacing: 12) {
-                GarageStatBox(title: "Miles Explored", value: String(format: "%.0f mi", driveStore.totalDistanceMiles + vehicle.odometerMiles))
-                GarageStatBox(title: "Trips Taken", value: "\(driveStore.totalRideCount)")
+                ACStatBox(title: "Miles Explored", value: String(format: "%.0f mi", driveStore.totalDistanceMiles + vehicle.odometerMiles))
+                ACStatBox(title: "Trips Taken", value: "\(driveStore.totalRideCount)")
             }
         }
     }
 }
 
-private struct GarageStatBox: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(value)
-                .font(Theme.Typography.headline)
-                .foregroundColor(Theme.Colors.acTextDark)
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
-            Text(title)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .acCardStyle(padding: 16)
-    }
-}
 
 // MARK: - Photo Timeline Section
 
@@ -420,7 +356,7 @@ private struct PhotoTimelineSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionHeader("SCRAPBOOK", icon: "photo.fill.on.rectangle.fill")
+            ACSectionHeader(title: "SCRAPBOOK", icon: "photo.fill.on.rectangle.fill")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -562,7 +498,7 @@ private struct MaintenanceLogSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                sectionHeader("SERVICE LOG", icon: "wrench.and.screwdriver.fill")
+                ACSectionHeader(title: "SERVICE LOG", icon: "wrench.and.screwdriver.fill")
                 Spacer()
                 Button {
                     showAddRecord = true
@@ -685,8 +621,8 @@ struct AddMaintenanceSheet: View {
                             }
                             .pickerStyle(.segmented)
                             
-                            acTextField(title: "Mileage at Service", placeholder: "e.g. \(Int(currentMileage))", text: $mileageText, keyboard: .numberPad)
-                            acTextField(title: "Note (optional)", placeholder: "Any notes…", text: $noteText)
+                            ACTextField(title: "Mileage at Service", placeholder: "e.g. \(Int(currentMileage))", text: $mileageText, keyboard: .numberPad)
+                            ACTextField(title: "Note (optional)", placeholder: "Any notes…", text: $noteText)
                         }
                         .acCardStyle(padding: 20)
                         
@@ -748,10 +684,10 @@ struct AddVehicleSheet: View {
                         VehicleTypeSelector(selectedType: $selectedType)
                         
                         VStack(spacing: 16) {
-                            acTextField(title: "Nickname", placeholder: "e.g. Camp Cruiser", text: $name)
-                            acTextField(title: "Make", placeholder: "e.g. Subaru", text: $make)
-                            acTextField(title: "Model", placeholder: "e.g. Outback", text: $model)
-                            acTextField(title: "Year", placeholder: "e.g. 2024", text: $yearText, keyboard: .numberPad)
+                            ACTextField(title: "Nickname", placeholder: "e.g. Camp Cruiser", text: $name)
+                            ACTextField(title: "Make", placeholder: "e.g. Subaru", text: $make)
+                            ACTextField(title: "Model", placeholder: "e.g. Outback", text: $model)
+                            ACTextField(title: "Year", placeholder: "e.g. 2024", text: $yearText, keyboard: .numberPad)
                         }
                         .acCardStyle(padding: 20)
                         
@@ -823,10 +759,10 @@ struct EditVehicleSheet: View {
                         VehicleTypeSelector(selectedType: $selectedType)
                         
                         VStack(spacing: 16) {
-                            acTextField(title: "Nickname", placeholder: "e.g. Camp Cruiser", text: $name)
-                            acTextField(title: "Make", placeholder: "e.g. Subaru", text: $make)
-                            acTextField(title: "Model", placeholder: "e.g. Outback", text: $model)
-                            acTextField(title: "Year", placeholder: "e.g. 2024", text: $yearText, keyboard: .numberPad)
+                            ACTextField(title: "Nickname", placeholder: "e.g. Camp Cruiser", text: $name)
+                            ACTextField(title: "Make", placeholder: "e.g. Subaru", text: $make)
+                            ACTextField(title: "Model", placeholder: "e.g. Outback", text: $model)
+                            ACTextField(title: "Year", placeholder: "e.g. 2024", text: $yearText, keyboard: .numberPad)
                         }
                         .acCardStyle(padding: 20)
                         
@@ -866,37 +802,6 @@ struct EditVehicleSheet: View {
 }
 
 
-// MARK: - Shared Helpers
-
-private func sectionHeader(_ title: String, icon: String) -> some View {
-    HStack(spacing: 6) {
-        Image(systemName: icon)
-            .font(.system(size: 14, weight: .bold))
-            .foregroundColor(Theme.Colors.acWood)
-        Text(title)
-            .font(.system(size: 12, weight: .black, design: .rounded))
-            .foregroundColor(Theme.Colors.acWood)
-            .kerning(1.5)
-    }
-}
-
-private func acTextField(title: String, placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-        Text(title)
-            .font(Theme.Typography.body)
-            .foregroundColor(Theme.Colors.acTextDark)
-        
-        TextField(placeholder, text: text)
-            .keyboardType(keyboard)
-            .font(Theme.Typography.body)
-            .foregroundColor(Theme.Colors.acTextDark)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(Theme.Colors.acCream)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
-    }
-}
 
 private struct VehicleTypeSelector: View {
     @Binding var selectedType: VehicleType

@@ -13,6 +13,11 @@ struct PostRideInfo {
 
 // MARK: - MapHomeView
 
+private enum MapActiveSheet: Identifiable {
+    case garage, profile, moodCard
+    var id: Self { self }
+}
+
 struct MapHomeView: View {
     @EnvironmentObject var journal: RideJournal
     @EnvironmentObject var savedRoutes: SavedRoutesStore
@@ -28,9 +33,7 @@ struct MapHomeView: View {
     var postRideInfo: PostRideInfo?
     var pendingMoodSave: ((String) -> Void)?
 
-    @State private var showGarage = false
-    @State private var showMoodCard = false
-    @State private var showProfile = false
+    @State private var activeSheet: MapActiveSheet? = nil
     @State private var toastVisible = false
 
     @State private var isTracking = true
@@ -63,7 +66,7 @@ struct MapHomeView: View {
             VStack {
                 Spacer()
                 VStack(spacing: 8) {
-                    MapRoundButton(
+                    ACMapRoundButton(
                         icon: is3DMap ? "view.3d" : "map",
                         label: is3DMap ? "Switch to 2D map" : "Switch to 3D map",
                         isActive: is3DMap,
@@ -73,15 +76,15 @@ struct MapHomeView: View {
                             NotificationCenter.default.post(name: NSNotification.Name("Toggle3DMap"), object: is3DMap)
                         }
                     )
-                    MapRoundButton(
+                    ACMapRoundButton(
                         icon: vehicleStore.selectedVehicleMode.icon,
                         label: "Open vehicle garage",
                         action: {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            showGarage = true
+                            activeSheet = .garage
                         }
                     )
-                    MapRoundButton(
+                    ACMapRoundButton(
                         icon: isTracking ? "location.fill" : "location",
                         label: isTracking ? "Location tracking active" : "Center map on my location",
                         isActive: isTracking,
@@ -152,13 +155,7 @@ struct MapHomeView: View {
                                 .font(Theme.Typography.headline)
                                 .foregroundColor(Theme.Colors.acTextDark)
                             Spacer()
-                            Text("\(questWaypoints.count) stops")
-                                .font(.subheadline.bold())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Theme.Colors.acLeaf.opacity(0.2))
-                                .foregroundColor(Theme.Colors.acLeaf)
-                                .clipShape(Capsule())
+                            ACBadge(text: "\(questWaypoints.count) stops", textColor: Theme.Colors.acLeaf, backgroundColor: Theme.Colors.acLeaf.opacity(0.2))
                         }
                         
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -235,7 +232,7 @@ struct MapHomeView: View {
         }
         .sheet(isPresented: .constant(true)) {
             HomeBottomSheet(
-                onProfileTap: { showProfile = true },
+                onProfileTap: { activeSheet = .profile },
                 onDestinationSelected: onDestinationSelected,
                 onCruiseTap: onRollOut,
                 onRollOut: onRollOut,
@@ -261,32 +258,33 @@ struct MapHomeView: View {
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     if pendingMoodSave != nil {
-                        withAnimation { showMoodCard = true }
+                        withAnimation { activeSheet = .moodCard }
                     }
                 }
             }
         }
-        .sheet(isPresented: $showGarage) {
-            VehicleGarageView()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showProfile) {
-            ProfileView()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showMoodCard) {
-            if let moodSave = pendingMoodSave {
-                MoodSelectionCard(onSelect: { mood in
-                    moodSave(mood)
-                    showMoodCard = false
-                }, onDismiss: {
-                    moodSave("")
-                    showMoodCard = false
-                })
-                .presentationDetents([.fraction(0.45)])
-                .presentationDragIndicator(.visible)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .garage:
+                VehicleGarageView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            case .profile:
+                ProfileView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            case .moodCard:
+                if let moodSave = pendingMoodSave {
+                    MoodSelectionCard(onSelect: { mood in
+                        moodSave(mood)
+                        activeSheet = nil
+                    }, onDismiss: {
+                        moodSave("")
+                        activeSheet = nil
+                    })
+                    .presentationDetents([.fraction(0.45)])
+                    .presentationDragIndicator(.visible)
+                }
             }
         }
     }
@@ -325,6 +323,11 @@ struct MapRoundButton: View {
 
 // MARK: - Home Bottom Sheet
 
+private enum BottomSheetChild: Identifiable {
+    case questBuilder, campCruise
+    var id: Self { self }
+}
+
 struct HomeBottomSheet: View {
     var onProfileTap: () -> Void
     var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
@@ -344,9 +347,8 @@ struct HomeBottomSheet: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var justSavedIndex: Int? = nil
     @State private var nearbyParking: [ParkingSpot] = []
-    @State private var showQuestBuilder = false
+    @State private var activeSheet: BottomSheetChild? = nil
     @State private var questBuilderPreloaded: [QuestWaypoint] = []
-    @State private var showCampCruiseSetup = false
 
     var body: some View {
         ScrollView {
@@ -459,21 +461,23 @@ struct HomeBottomSheet: View {
             if focused { onSearchFocused?() }
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
-        .sheet(isPresented: $showQuestBuilder) {
-            QuestBuilderView(
-                preloadedWaypoints: questBuilderPreloaded,
-                onStartTrip: onRollOut
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-        .onChange(of: showQuestBuilder) { _, isShowing in
-            if !isShowing { questBuilderPreloaded = [] }
-        }
-        .sheet(isPresented: $showCampCruiseSetup) {
-            CampCruiseSetupSheet(onStartCruise: onRollOut)
+        .sheet(item: $activeSheet) { child in
+            switch child {
+            case .questBuilder:
+                QuestBuilderView(
+                    preloadedWaypoints: questBuilderPreloaded,
+                    onStartTrip: onRollOut
+                )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+            case .campCruise:
+                CampCruiseSetupSheet(onStartCruise: onRollOut)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
+        }
+        .onChange(of: activeSheet) { _, sheet in
+            if sheet == nil { questBuilderPreloaded = [] }
         }
     }
 
@@ -518,7 +522,7 @@ struct HomeBottomSheet: View {
             .padding(.horizontal)
             
             // Camp & Cruise Button
-            Button(action: { showCampCruiseSetup = true }) {
+            Button(action: { activeSheet = .campCruise }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Camp & Cruise")
@@ -554,7 +558,7 @@ struct HomeBottomSheet: View {
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 questBuilderPreloaded = []
-                showQuestBuilder = true
+                activeSheet = .questBuilder
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -803,7 +807,7 @@ struct HomeBottomSheet: View {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             let wp = QuestWaypoint(name: item.name ?? "Stop", coordinate: coord, icon: "mappin.circle.fill")
                             questBuilderPreloaded = [wp]
-                            showQuestBuilder = true
+                            activeSheet = .questBuilder
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 22))
