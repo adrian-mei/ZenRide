@@ -643,9 +643,9 @@ struct HomeBottomSheet: View {
 
             // Actions
             VStack(spacing: 12) {
-                ActionButton(icon: "square.and.arrow.up", title: "Share My Location")
-                ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location")
-                ActionButton(icon: "exclamationmark.bubble", title: "Report an Issue")
+                ActionButton(icon: "square.and.arrow.up", title: "Share My Location", color: Theme.Colors.acSky)
+                ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location", color: Theme.Colors.acCoral)
+                ActionButton(icon: "exclamationmark.bubble", title: "Report an Issue", color: Theme.Colors.acGold)
             }
             .padding(.horizontal)
             .padding(.bottom, 40)
@@ -796,14 +796,17 @@ struct PlaceIcon: View {
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
-                Circle()
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(color)
-                    .frame(width: 60, height: 60)
-                    .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                    .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 3)
+                    .frame(width: 62, height: 62)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Theme.Colors.acBorder, lineWidth: 2)
+                    )
+                    .shadow(color: color.opacity(0.45), radius: 0, x: 0, y: 4)
                 Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(Theme.Colors.acTextDark)
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(.white)
             }
             Text(title)
                 .font(Theme.Typography.button)
@@ -816,35 +819,37 @@ struct RecentRow: View {
     let icon: String
     let title: String
     let subtitle: String
+    var iconColor: Color = Theme.Colors.acLeaf
     var action: () -> Void = {}
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 ZStack {
-                    Circle()
-                        .fill(Theme.Colors.acCream)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(iconColor.opacity(0.14))
                         .frame(width: 40, height: 40)
-                        .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
                     Image(systemName: icon)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(Theme.Colors.acWood)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(iconColor)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextDark)
+                        .lineLimit(1)
                     Text(subtitle)
                         .font(.subheadline)
                         .foregroundColor(Theme.Colors.acTextMuted)
+                        .lineLimit(1)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .foregroundColor(Theme.Colors.acWood)
-                    .font(.caption.bold())
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.Colors.acBorder)
             }
-            .padding(.vertical, 14)
+            .padding(.vertical, 13)
             .padding(.horizontal, 16)
             .contentShape(Rectangle())
         }
@@ -901,24 +906,33 @@ struct GuideCard: View {
 struct ActionButton: View {
     let icon: String
     let title: String
+    var color: Color = Theme.Colors.acWood
 
     var body: some View {
         Button(action: {}) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.body.bold())
-                    .foregroundColor(Theme.Colors.acWood)
-                    .frame(width: 24)
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(color.opacity(0.15))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: icon)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(color)
+                }
                 Text(title)
                     .font(Theme.Typography.body)
                     .foregroundColor(Theme.Colors.acTextDark)
                 Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.Colors.acBorder)
             }
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
             .background(Theme.Colors.acField)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
-            .shadow(color: Theme.Colors.acBorder.opacity(0.3), radius: 0, x: 0, y: 3)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
+            .shadow(color: Theme.Colors.acBorder.opacity(0.7), radius: 0, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
