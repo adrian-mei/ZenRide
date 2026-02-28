@@ -1,0 +1,76 @@
+{
+  "id": "exp-sf-iconic-hills",
+  "title": "The Iconic City Hills & Downtown",
+  "subtitle": "Steep streets, famous houses, and urban density",
+  "description": "A 2.5-hour dive into the classic San Francisco experience. Navigate incredibly steep hills, pass the most famous Victorian homes, drive the 'crookedest street', and feel the pulse of downtown.",
+  "durationMinutes": 150,
+  "city": "San Francisco",
+  "region": "CA",
+  "stops": [
+    {
+      "id": "stop-union-square",
+      "order": 1,
+      "name": "Union Square",
+      "latitude": 37.7879,
+      "longitude": -122.4074,
+      "description": "The bustling center of San Francisco's retail and theater district. A dynamic urban starting point.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Union_Square%2C_San_Francisco.jpg/800px-Union_Square%2C_San_Francisco.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-chinatown",
+      "order": 2,
+      "name": "Chinatown (Dragon's Gate)",
+      "latitude": 37.7906,
+      "longitude": -122.4056,
+      "description": "Drive up Grant Avenue past the famous Dragon's Gate, entering the oldest Chinatown in North America.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Chinatown_San_Francisco_%283186221768%29.jpg/800px-Chinatown_San_Francisco_%283186221768%29.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-coit-tower",
+      "order": 3,
+      "name": "Coit Tower (Telegraph Hill)",
+      "latitude": 37.8024,
+      "longitude": -122.4058,
+      "description": "Brave the winding drive up Telegraph Hill to the base of this iconic Art Deco monument for incredible bay views.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Coit_Tower_San_Francisco.jpg/800px-Coit_Tower_San_Francisco.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-lombard-street",
+      "order": 4,
+      "name": "Lombard Street",
+      "latitude": 37.8021,
+      "longitude": -122.4187,
+      "description": "A must-do driving experience: slowly descend the famous eight hairpin turns of the 'crookedest street in the world'.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Lombard_Street_San_Francisco.jpg/800px-Lombard_Street_San_Francisco.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-alamo-square",
+      "order": 5,
+      "name": "Alamo Square (Painted Ladies)",
+      "latitude": 37.7760,
+      "longitude": -122.4346,
+      "description": "Park along the square to view the iconic row of Victorian 'Painted Ladies' houses with the downtown skyline in the background.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg/800px-Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    }
+  ]
+}

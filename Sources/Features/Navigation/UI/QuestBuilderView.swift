@@ -26,6 +26,7 @@ struct QuestBuilderView: View {
     @Environment(\.dismiss) private var dismiss
 
     var preloadedWaypoints: [QuestWaypoint] = []
+    var preloadedTitle: String = ""
     var onStartTrip: ((String, CLLocationCoordinate2D) -> Void)? = nil
 
     @State private var questName = "My Cozy Commute"
@@ -62,6 +63,9 @@ struct QuestBuilderView: View {
         .onAppear {
             if waypoints.isEmpty && !preloadedWaypoints.isEmpty {
                 waypoints = preloadedWaypoints
+            }
+            if !preloadedTitle.isEmpty && questName == "My Cozy Commute" {
+                questName = preloadedTitle
             }
         }
     }

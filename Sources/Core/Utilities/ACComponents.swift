@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - ACSectionHeader
 
@@ -18,6 +19,14 @@ struct ACSectionHeader: View {
                 .foregroundColor(color)
                 .kerning(1.5)
         }
+    }
+}
+
+// MARK: - View Extension
+
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 
@@ -45,6 +54,16 @@ struct ACTextField: View {
                 .background(Theme.Colors.acCream)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            hideKeyboard()
+                        }
+                        .font(.body.bold())
+                        .foregroundColor(Theme.Colors.acWood)
+                    }
+                }
         }
     }
 }

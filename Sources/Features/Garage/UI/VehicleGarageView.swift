@@ -641,6 +641,7 @@ struct AddMaintenanceSheet: View {
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Log Service")
             .navigationBarTitleDisplayMode(.inline)
@@ -714,6 +715,7 @@ struct AddVehicleSheet: View {
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("New Ride")
             .navigationBarTitleDisplayMode(.inline)
@@ -787,6 +789,7 @@ struct EditVehicleSheet: View {
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Edit Ride")
             .navigationBarTitleDisplayMode(.inline)

@@ -1,0 +1,76 @@
+{
+  "id": "exp-sf-southern-explorer",
+  "title": "The Southern Explorer: Heights & Parks",
+  "subtitle": "Hidden gems, panoramic views, and local history",
+  "description": "A 3-hour journey through the less-visited but incredibly scenic southern half of the city. Navigate deep urban canyons, catch 360-degree views from high peaks, loop through McLaren Park, and pass by historic landmarks like the Cow Palace.",
+  "durationMinutes": 180,
+  "city": "San Francisco",
+  "region": "CA",
+  "stops": [
+    {
+      "id": "stop-twin-peaks",
+      "order": 1,
+      "name": "Twin Peaks",
+      "latitude": 37.7528,
+      "longitude": -122.4477,
+      "description": "Start high up for a spectacular, unobstructed 360-degree view of the entire San Francisco Bay Area.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/San_Francisco_from_Twin_Peaks_August_2013_panorama_3.jpg/800px-San_Francisco_from_Twin_Peaks_August_2013_panorama_3.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-glen-canyon",
+      "order": 2,
+      "name": "Glen Canyon Park",
+      "latitude": 37.7377,
+      "longitude": -122.4407,
+      "description": "A surprising and beautiful deep canyon drive right in the middle of the city's residential neighborhoods.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Glen_Canyon_Park_trail.jpg/800px-Glen_Canyon_Park_trail.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-mclaren-park",
+      "order": 3,
+      "name": "John Shelley Drive (McLaren Park)",
+      "latitude": 37.7188,
+      "longitude": -122.4136,
+      "description": "A fantastic, winding 2-mile scenic loop right through the middle of McLaren Park, offering unique views of the city's southeast edge.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Blue_Water_Tower_in_McLaren_Park.jpg/800px-Blue_Water_Tower_in_McLaren_Park.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-cow-palace",
+      "order": 4,
+      "name": "Cow Palace",
+      "latitude": 37.7077,
+      "longitude": -122.4199,
+      "description": "Drive by this historic arena situated directly on the border of San Francisco and Daly City, which has hosted everything from livestock shows to The Beatles.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Cow_Palace_front.jpg/800px-Cow_Palace_front.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-candlestick-point",
+      "order": 5,
+      "name": "Candlestick Point State Recreation Area",
+      "latitude": 37.7126,
+      "longitude": -122.3837,
+      "description": "Enjoy the sweeping views of the South Bay, the San Bruno Mountain, and the historic Hunters Point shipyards from the water's edge.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Candlestick_Point_State_Recreation_Area.jpg/800px-Candlestick_Point_State_Recreation_Area.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    }
+  ]
+}

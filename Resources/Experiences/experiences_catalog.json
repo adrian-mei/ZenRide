@@ -1,0 +1,38 @@
+{
+  "catalogId": "sf-experiences-001",
+  "version": "1.0",
+  "experiences": [
+    {
+      "id": "exp-sf-northern-coast",
+      "title": "The Northern Waterfront & Presidio Loop",
+      "subtitle": "Classic views, ocean breeze, and military history",
+      "durationMinutes": 150,
+      "thumbnailUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/GoldenGateBridge-001.jpg/800px-GoldenGateBridge-001.jpg",
+      "filename": "sf_northern_coast.json"
+    },
+    {
+      "id": "exp-sf-golden-gate-park",
+      "title": "The Ultimate Golden Gate Park Drive",
+      "subtitle": "Nature, museums, and winding park roads",
+      "durationMinutes": 120,
+      "thumbnailUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Conservatory_of_Flowers%2C_Golden_Gate_Park%2C_San_Francisco.jpg/800px-Conservatory_of_Flowers%2C_Golden_Gate_Park%2C_San_Francisco.jpg",
+      "filename": "sf_golden_gate_park.json"
+    },
+    {
+      "id": "exp-sf-southern-explorer",
+      "title": "The Southern Explorer: Heights & Parks",
+      "subtitle": "Hidden gems, panoramic views, and local history",
+      "durationMinutes": 180,
+      "thumbnailUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/San_Francisco_from_Twin_Peaks_August_2013_panorama_3.jpg/800px-San_Francisco_from_Twin_Peaks_August_2013_panorama_3.jpg",
+      "filename": "sf_southern_explorer.json"
+    },
+    {
+      "id": "exp-sf-iconic-hills",
+      "title": "The Iconic City Hills & Downtown",
+      "subtitle": "Steep streets, famous houses, and urban density",
+      "durationMinutes": 150,
+      "thumbnailUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg/800px-Painted_Ladies_San_Francisco_January_2013_panorama_2.jpg",
+      "filename": "sf_iconic_hills.json"
+    }
+  ]
+}

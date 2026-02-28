@@ -1,0 +1,76 @@
+{
+  "id": "exp-sf-northern-coast",
+  "title": "The Northern Waterfront & Presidio Loop",
+  "subtitle": "Classic views, ocean breeze, and military history",
+  "description": "A stunning 2-3 hour drive tracing the northern edge of the city. Experience sailboats on the bay, breathtaking views of the Golden Gate Bridge from multiple angles, and the historic wooded roads of the Presidio ending at the beautiful Baker Beach.",
+  "durationMinutes": 150,
+  "city": "San Francisco",
+  "region": "CA",
+  "stops": [
+    {
+      "id": "stop-marina-green",
+      "order": 1,
+      "name": "Marina Green",
+      "latitude": 37.8066,
+      "longitude": -122.4388,
+      "description": "Watch the sailboats and get a wide, panoramic view of the San Francisco Bay, Alcatraz, and the Golden Gate Bridge.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Marina_Green%2C_San_Francisco.jpg/800px-Marina_Green%2C_San_Francisco.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-palace-fine-arts",
+      "order": 2,
+      "name": "Palace of Fine Arts",
+      "latitude": 37.8029,
+      "longitude": -122.4484,
+      "description": "A stunning architectural masterpiece built for the 1915 Panama-Pacific Exposition, featuring a beautiful rotunda and lagoon.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Palace_of_Fine_Arts_%2816794p%29.jpg/800px-Palace_of_Fine_Arts_%2816794p%29.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-crissy-field",
+      "order": 3,
+      "name": "Crissy Field",
+      "latitude": 37.8061,
+      "longitude": -122.4611,
+      "description": "Drive alongside the restored tidal marsh and expansive grassy airfield, directly towards the towering Golden Gate Bridge.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Crissy_Field_and_Golden_Gate_Bridge.jpg/800px-Crissy_Field_and_Golden_Gate_Bridge.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-golden-gate-welcome",
+      "order": 4,
+      "name": "Golden Gate Bridge Welcome Center",
+      "latitude": 37.8066,
+      "longitude": -122.4746,
+      "description": "The quintessential viewpoint for the Golden Gate Bridge. Perfect for iconic photos of the international orange structure.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/GoldenGateBridge-001.jpg/800px-GoldenGateBridge-001.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-baker-beach",
+      "order": 5,
+      "name": "Baker Beach (Presidio)",
+      "latitude": 37.7936,
+      "longitude": -122.4836,
+      "description": "Wind through the scenic Presidio forests and end up at Baker Beach, offering a unique outside-the-gate perspective of the Bridge.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Baker_Beach_San_Francisco_2.jpg/800px-Baker_Beach_San_Francisco_2.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    }
+  ]
+}

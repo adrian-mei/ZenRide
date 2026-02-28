@@ -1,0 +1,89 @@
+{
+  "id": "exp-sf-golden-gate-park",
+  "title": "The Ultimate Golden Gate Park Drive",
+  "subtitle": "Nature, museums, and winding park roads",
+  "description": "A 2-hour leisurely cruise through one of the world's greatest urban parks. See Victorian greenhouses, world-class museums, historic windmills, and real bison, all culminating where the park meets the mighty Pacific Ocean.",
+  "durationMinutes": 120,
+  "city": "San Francisco",
+  "region": "CA",
+  "stops": [
+    {
+      "id": "stop-panhandle",
+      "order": 1,
+      "name": "The Panhandle",
+      "latitude": 37.7725,
+      "longitude": -122.4449,
+      "description": "Enter the park through this historic, narrow strip of lush greenery that points the way into the main expanse of Golden Gate Park.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Golden_Gate_Park_Panhandle.jpg/800px-Golden_Gate_Park_Panhandle.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-conservatory-flowers",
+      "order": 2,
+      "name": "Conservatory of Flowers",
+      "latitude": 37.7726,
+      "longitude": -122.4601,
+      "description": "A magnificent Victorian greenhouse built in 1879, making it one of the oldest buildings in the park.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Conservatory_of_Flowers%2C_Golden_Gate_Park%2C_San_Francisco.jpg/800px-Conservatory_of_Flowers%2C_Golden_Gate_Park%2C_San_Francisco.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-music-concourse",
+      "order": 3,
+      "name": "Music Concourse",
+      "latitude": 37.7715,
+      "longitude": -122.4687,
+      "description": "The cultural heart of the park, flanked by the de Young Museum and the California Academy of Sciences.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Music_Concourse%2C_Golden_Gate_Park.jpg/800px-Music_Concourse%2C_Golden_Gate_Park.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-stow-lake",
+      "order": 4,
+      "name": "Stow Lake",
+      "latitude": 37.7684,
+      "longitude": -122.4764,
+      "description": "A historic, man-made lake with a waterfall, perfect for a quick scenic pull-over or to rent a pedal boat.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Stow_Lake_Boathouse.jpg/800px-Stow_Lake_Boathouse.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-bison-paddock",
+      "order": 5,
+      "name": "Bison Paddock",
+      "latitude": 37.7699,
+      "longitude": -122.4965,
+      "description": "Yes, there are actual bison living in San Francisco! A unique sight as you drive toward the western end of the park.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Bison_paddock_golden_gate_park.jpg/800px-Bison_paddock_golden_gate_park.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-dutch-windmill",
+      "order": 6,
+      "name": "Dutch Windmill & Ocean Beach",
+      "latitude": 37.7706,
+      "longitude": -122.5097,
+      "description": "The grand finale: a massive historic windmill standing guard as the park gives way to the vast expanse of the Pacific Ocean.",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Dutch_Windmill_San_Francisco.jpg/800px-Dutch_Windmill_San_Francisco.jpg"
+      ],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    }
+  ]
+}

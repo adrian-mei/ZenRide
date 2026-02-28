@@ -12,6 +12,7 @@ struct ProfileView: View {
     
     @State private var showGarage = false
     @State private var showDriveHistory = false
+    @State private var showExperiences = false
     @State private var showPrivacyAlert = false
     @State private var showSignOutAlert = false
 
@@ -55,6 +56,13 @@ struct ProfileView: View {
                     VStack(spacing: 0) {
                         NavigationLink(destination: VoiceSettingsView()) {
                             SettingsRow(icon: "speaker.wave.2.fill", title: "Voice Settings", color: Theme.Colors.acSky)
+                        }
+                        ACSectionDivider(leadingInset: 50)
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            showExperiences = true
+                        } label: {
+                            SettingsRow(icon: "star.fill", title: "San Francisco Experiences", color: Theme.Colors.acWood)
                         }
                         ACSectionDivider(leadingInset: 50)
                         Button {
@@ -115,6 +123,14 @@ struct ProfileView: View {
                 DriveHistoryView()
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showExperiences) {
+                ExperiencesCatalogView { route in
+                    // In a profile view context, we might just dismiss or we could inject it
+                    // For now, selecting it from the profile could just dismiss the catalog.
+                    // Typically, you'd navigate back to the map and load it.
+                    dismiss()
+                }
             }
             .alert("Privacy", isPresented: $showPrivacyAlert) {
                 Button("OK", role: .cancel) {}

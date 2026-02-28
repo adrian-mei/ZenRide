@@ -496,60 +496,39 @@ struct HomeBottomSheet: View {
             }
             .padding(.horizontal)
             
-            // Camp & Cruise Button
-            Button(action: { activeSheet = .campCruise }) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Camp & Cruise")
-                            .font(Theme.Typography.title)
-                            .foregroundColor(.white)
-                        Text("Plan a Multi-Stop Drive")
-                            .font(Theme.Typography.body)
-                            .foregroundColor(.white.opacity(0.9))
-                    }
-                    Spacer()
-                    ZStack {
+            // Actions
+            HStack(spacing: 12) {
+                // Camp & Cruise Button
+                Button(action: { activeSheet = .campCruise }) {
+                    HStack(spacing: 8) {
                         Image(systemName: "tent.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white.opacity(0.5))
-                            .offset(x: -16, y: -4)
-                        Image(systemName: "car.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .bold))
+                        Text("Camp & Cruise")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(20)
-            }
-            .buttonStyle(ACButtonStyle(variant: .largePrimary))
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
+                .buttonStyle(ACButtonStyle(variant: .primary))
 
-            // Plan a Trip Button
-            Button {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                questBuilderPreloaded = []
-                activeSheet = .questBuilder
-            } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
+                // Plan a Trip Button
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    questBuilderPreloaded = []
+                    activeSheet = .questBuilder
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 16, weight: .bold))
                         Text("Plan a Trip")
-                            .font(Theme.Typography.title)
-                            .foregroundColor(Theme.Colors.acTextDark)
-                        Text("Build a custom multi-stop route")
-                            .font(Theme.Typography.body)
-                            .foregroundColor(Theme.Colors.acTextMuted)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
                     }
-                    Spacer()
-                    Image(systemName: "map.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(Theme.Colors.acWood)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(20)
+                .buttonStyle(ACButtonStyle(variant: .secondary))
             }
-            .buttonStyle(ACButtonStyle(variant: .largeSecondary))
             .padding(.horizontal)
-            .padding(.bottom, 4)
+            .padding(.bottom, 8)
+            .padding(.top, 4)
 
             // FashodaMap: Daily Quests inject here!
             QuestDashboardView()

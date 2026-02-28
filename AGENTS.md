@@ -25,6 +25,12 @@ As an agent, you must verify your work. Use the following `xcodebuild` commands.
     xcodebuild -project ZenRide.xcodeproj -scheme ZenRide -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
     ```
 
+*   **Clean, Build, and Launch on Simulator:**
+    There is a script provided to clean the derived data, build the app, and launch it on the iPhone 17 Pro Simulator.
+    ```bash
+    ./rebuild_and_launch.sh
+    ```
+
 *   **Run All Tests:**
     ```bash
     xcodebuild -project ZenRide.xcodeproj -scheme ZenRide -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test

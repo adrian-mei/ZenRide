@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct QuestDashboardView: View {
     @EnvironmentObject var questStore: QuestStore
@@ -6,6 +7,9 @@ struct QuestDashboardView: View {
     @EnvironmentObject var locationProvider: LocationProvider
 
     @State private var showingBuilder = false
+    @State private var showingCatalog = false
+    @State private var preloadedExperienceWaypoints: [QuestWaypoint] = []
+    @State private var preloadedExperienceTitle: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -24,17 +28,44 @@ struct QuestDashboardView: View {
                 }
                 Spacer()
                 Button {
+                    showingCatalog = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Theme.Colors.acWood)
+                        Text("Experiences")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Theme.Colors.acWood)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .background(Theme.Colors.acField)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                
+                Button {
+                    preloadedExperienceTitle = ""
+                    preloadedExperienceWaypoints = []
                     showingBuilder = true
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "plus")
                             .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Theme.Colors.acTextDark)
                         Text("New")
                             .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Theme.Colors.acTextDark)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .buttonStyle(ACButtonStyle(variant: .secondary))
-                .frame(height: 36)
+                .buttonStyle(.plain)
+                .background(Theme.Colors.acField)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
             }
             .padding(.horizontal)
 
@@ -68,7 +99,23 @@ struct QuestDashboardView: View {
             }
         }
         .sheet(isPresented: $showingBuilder) {
-            QuestBuilderView()
+            QuestBuilderView(
+                preloadedWaypoints: preloadedExperienceWaypoints,
+                preloadedTitle: preloadedExperienceTitle
+            )
+        }
+        .sheet(isPresented: $showingCatalog) {
+            ExperiencesCatalogView { route in
+                preloadedExperienceTitle = route.title
+                preloadedExperienceWaypoints = route.stops.map { stop in
+                    QuestWaypoint(
+                        name: stop.name,
+                        coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude),
+                        icon: "star.circle.fill"
+                    )
+                }
+                showingBuilder = true
+            }
         }
     }
 
