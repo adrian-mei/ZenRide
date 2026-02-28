@@ -527,7 +527,8 @@ struct HomeBottomSheet: View {
                             RecentRow(
                                 icon: route.offlineRoute != nil ? "arrow.down.circle.fill" : "star.fill",
                                 title: route.destinationName,
-                                subtitle: route.offlineRoute != nil ? "Offline Route Available" : "Saved Destination"
+                                subtitle: route.offlineRoute != nil ? "Offline Route Available" : "Saved Destination",
+                                iconColor: Theme.Colors.acCoral
                             ) {
                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 let origin = locationProvider.currentLocation?.coordinate
