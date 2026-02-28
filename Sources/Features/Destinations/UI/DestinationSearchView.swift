@@ -9,9 +9,12 @@ class DestinationSearcher: ObservableObject {
     @Published var isSearching = false
 
     private var activeSearch: MKLocalSearch?
+    private var searchTask: Task<Void, Never>?
 
     func search(for query: String, near location: CLLocationCoordinate2D? = nil, recentSearches: [RecentSearch] = []) {
         activeSearch?.cancel()
+        searchTask?.cancel()
+        
         let cleanQuery = query.trimmingCharacters(in: .whitespaces)
         guard !cleanQuery.isEmpty else {
             searchResults = []; isSearching = false; return
@@ -21,7 +24,7 @@ class DestinationSearcher: ObservableObject {
         let center = location ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
         request.region = MKCoordinateRegion(
             center: center,
-            span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+            span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.5)
         )
         
         let lowerQuery = cleanQuery.lowercased()
@@ -36,18 +39,35 @@ class DestinationSearcher: ObservableObject {
             return item
         }
 
-        activeSearch = MKLocalSearch(request: request)
-        activeSearch?.start { [weak self] response, error in
-            DispatchQueue.main.async {
-                self?.isSearching = false
-                guard let response = response, error == nil else {
+        let search = MKLocalSearch(request: request)
+        activeSearch = search
+        
+        searchTask = Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            
+            do {
+                // Run geocoding and search concurrently
+                let clLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
+                
+                async let geocodeResult = try? CLGeocoder().reverseGeocodeLocation(clLocation)
+                async let searchResult = try? search.start()
+                
+                let (placemarks, response) = await (geocodeResult, searchResult)
+                
+                if Task.isCancelled { return }
+                
+                self.isSearching = false
+                
+                guard let response = response else {
                     if !matchedRecents.isEmpty {
-                        self?.searchResults = matchedRecents
+                        self.searchResults = matchedRecents
                     } else {
-                        Log.error("Search", "MKLocalSearch failed: \(error?.localizedDescription ?? "unknown")")
+                        Log.error("Search", "MKLocalSearch failed")
                     }
                     return
                 }
+                
+                let userCity = placemarks?.first?.locality?.lowercased()
                 
                 let sortedNetworkResults = response.mapItems.sorted { item1, item2 in
                     let name1 = (item1.name ?? "").lowercased()
@@ -58,6 +78,20 @@ class DestinationSearcher: ObservableObject {
                     
                     if score1 != score2 {
                         return score1 > score2
+                    }
+                    
+                    if let userCity = userCity {
+                        let city1 = item1.placemark.locality?.lowercased()
+                        let city2 = item2.placemark.locality?.lowercased()
+                        
+                        let isCity1Match = city1 == userCity
+                        let isCity2Match = city2 == userCity
+                        
+                        if isCity1Match && !isCity2Match {
+                            return true
+                        } else if !isCity1Match && isCity2Match {
+                            return false
+                        }
                     }
                     
                     guard let loc1 = item1.placemark.location, let loc2 = item2.placemark.location else {
@@ -87,7 +121,11 @@ class DestinationSearcher: ObservableObject {
                     }
                 }
                 
-                self?.searchResults = finalResults
+                self.searchResults = finalResults
+            } catch {
+                if !Task.isCancelled {
+                    self.isSearching = false
+                }
             }
         }
     }
