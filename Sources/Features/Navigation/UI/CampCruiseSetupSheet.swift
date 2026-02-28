@@ -7,6 +7,7 @@ struct CampCruiseSetupSheet: View {
     @EnvironmentObject var multiplayerService: MultiplayerService
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var savedRoutes: SavedRoutesStore
+
     @Environment(\.dismiss) private var dismiss
 
     /// Called when the user confirms and wants to start cruising.
@@ -255,6 +256,8 @@ struct CampCruiseSetupSheet: View {
 
 private struct CruiseStopPickerSheet: View {
     @EnvironmentObject var locationProvider: LocationProvider
+    @EnvironmentObject var savedRoutes: SavedRoutesStore
+
     @Environment(\.dismiss) private var dismiss
 
     let onSelect: (QuestWaypoint) -> Void
@@ -363,10 +366,43 @@ private struct CruiseStopPickerSheet: View {
                 .padding(.horizontal)
             }
         } else {
-            Spacer()
-            Image(systemName: "mappin.and.ellipse").font(.system(size: 48)).foregroundStyle(Theme.Colors.acBorder)
-            Text("Search for a destination").font(Theme.Typography.body).foregroundStyle(Theme.Colors.acTextMuted).padding(.top, 8)
-            Spacer()
+            let pinned = savedRoutes.pinnedRoutes
+            let recents = savedRoutes.recentSearches
+            
+            if pinned.isEmpty && recents.isEmpty {
+                Spacer()
+                Image(systemName: "mappin.and.ellipse").font(.system(size: 48)).foregroundStyle(Theme.Colors.acBorder)
+                Text("Search for a destination").font(Theme.Typography.body).foregroundStyle(Theme.Colors.acTextMuted).padding(.top, 8)
+                Spacer()
+            } else {
+                List {
+                    if !pinned.isEmpty {
+                        Section("Bookmarked") {
+                            ForEach(pinned) { route in
+                                SavedRouteRow(systemIcon: "bookmark.fill", iconColor: Theme.Colors.acCoral, title: route.destinationName, subtitle: "Saved Place") {
+                                    let wp = QuestWaypoint(name: route.destinationName, coordinate: CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude), icon: "bookmark.fill")
+                                    onSelect(wp)
+                                    dismiss()
+                                }
+                            }
+                        }
+                    }
+                    
+                    if !recents.isEmpty {
+                        Section("Recent Searches") {
+                            ForEach(recents) { recent in
+                                SavedRouteRow(systemIcon: "clock.fill", iconColor: Theme.Colors.acTextMuted, title: recent.name, subtitle: recent.subtitle) {
+                                    let wp = QuestWaypoint(name: recent.name, coordinate: CLLocationCoordinate2D(latitude: recent.latitude, longitude: recent.longitude), icon: "clock.fill")
+                                    onSelect(wp)
+                                    dismiss()
+                                }
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
         }
     }
 }
