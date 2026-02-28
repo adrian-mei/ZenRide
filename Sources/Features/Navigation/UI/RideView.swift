@@ -95,7 +95,9 @@ struct RideView: View {
                 if routingService.activeQuest != nil {
                     QuestProgressView()
                 }
-                turnByTurnHUD
+                if uiVisible {
+                    turnByTurnHUD
+                }
             }
 
             if routeState == .navigating && uiVisible {
