@@ -4,117 +4,200 @@ struct QuestDashboardView: View {
     @EnvironmentObject var questStore: QuestStore
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var locationProvider: LocationProvider
-    
+
     @State private var showingBuilder = false
-    
+
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
             HStack {
-                Text("ROUTE BOOK")
-                    .font(.system(size: 14, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acWood)
-                    .kerning(1.5)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ROUTE BOOK")
+                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acWood)
+                        .kerning(1.5)
+                    if !questStore.quests.isEmpty {
+                        Text("\(questStore.quests.count) saved route\(questStore.quests.count == 1 ? "" : "s")")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                    }
+                }
                 Spacer()
                 Button {
                     showingBuilder = true
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .bold))
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 13, weight: .bold))
+                        Text("New")
+                            .font(.system(size: 13, weight: .bold))
+                    }
                 }
                 .buttonStyle(ACButtonStyle(variant: .secondary))
-                .frame(width: 44, height: 44)
+                .frame(height: 36)
             }
             .padding(.horizontal)
-            
+
             if questStore.quests.isEmpty {
-                Text("No saved routes yet! Build your first daily routine.")
-                    .font(Theme.Typography.body)
-                    .foregroundColor(Theme.Colors.acTextMuted)
-                    .multilineTextAlignment(.center)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .acCardStyle()
-                    .padding(.horizontal)
+                emptyState
             } else {
+                // Fixed height + scrollClipDisabled so shadows are not clipped at the edge
+                // scrollTargetBehavior ensures snappy card-by-card paging
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
+                    HStack(spacing: 14) {
                         ForEach(questStore.quests) { quest in
-                            QuestCard(quest: quest) {
-                                routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
-                            }
+                            QuestCard(quest: quest,
+                                      onStart: {
+                                routingService.startQuest(quest,
+                                                           currentLocation: locationProvider.currentLocation?.coordinate)
+                            },
+                                      onDelete: {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    questStore.removeQuest(id: quest.id)
+                                }
+                            })
                         }
                     }
+                    .scrollTargetLayout()
                     .padding(.horizontal)
-                    .padding(.bottom, 8)
+                    .padding(.vertical, 6) // breathing room for shadows
                 }
+                .frame(height: 216) // explicit height = card 200 + vertical padding 16
+                .scrollTargetBehavior(.viewAligned)
+                .scrollClipDisabled()
             }
         }
         .sheet(isPresented: $showingBuilder) {
             QuestBuilderView()
         }
     }
+
+    private var emptyState: some View {
+        Button {
+            showingBuilder = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.Colors.acLeaf.opacity(0.12))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(Theme.Colors.acLeaf)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Build your first route")
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                    Text("Tap to plan a multi-stop adventure")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Theme.Colors.acTextMuted)
+            }
+            .padding(.horizontal)
+        }
+        .buttonStyle(.plain)
+    }
 }
+
+// MARK: - Quest Card
 
 struct QuestCard: View {
     let quest: DailyQuest
     let onStart: () -> Void
-    
+    let onDelete: () -> Void
+
+    @State private var showDeleteConfirm = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Top row: icon + stop count + delete
             HStack(alignment: .top) {
                 ZStack {
                     Circle()
                         .fill(Theme.Colors.acLeaf.opacity(0.15))
-                        .frame(width: 48, height: 48)
+                        .frame(width: 44, height: 44)
                     Image(systemName: quest.icon)
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(Theme.Colors.acLeaf)
                 }
+
                 Spacer()
-                
-                VStack(alignment: .trailing, spacing: 4) {
+
+                VStack(alignment: .trailing, spacing: 6) {
                     Text("\(quest.waypoints.count) stops")
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
                         .foregroundColor(Theme.Colors.acWood)
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, 9)
                         .padding(.vertical, 4)
-                        .background(Theme.Colors.acWood.opacity(0.15))
+                        .background(Theme.Colors.acWood.opacity(0.12))
                         .clipShape(Capsule())
+
+                    Text("+\(quest.waypoints.count * 25) XP")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acLeaf)
                 }
             }
-            
-            VStack(alignment: .leading, spacing: 6) {
+
+            // Title + route summary
+            VStack(alignment: .leading, spacing: 4) {
                 Text(quest.title)
                     .font(Theme.Typography.title)
                     .foregroundColor(Theme.Colors.acTextDark)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                
-                if let first = quest.waypoints.first, let last = quest.waypoints.last {
-                    HStack(spacing: 6) {
+
+                if let first = quest.waypoints.first, let last = quest.waypoints.last, first.id != last.id {
+                    HStack(spacing: 5) {
                         Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                             .foregroundColor(Theme.Colors.acTextMuted)
-                        Text("\(first.name) ➔ \(last.name)")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                        Text("\(first.name) → \(last.name)")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundColor(Theme.Colors.acTextMuted)
                             .lineLimit(1)
                     }
                 }
             }
-            
-            Button(action: onStart) {
-                HStack {
-                    Spacer()
-                    Image(systemName: "play.fill")
-                    Text("Start Route")
-                    Spacer()
+
+            Spacer(minLength: 0)
+
+            // Action row
+            HStack(spacing: 8) {
+                Button(action: onStart) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Start")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(ACButtonStyle(variant: .primary))
+
+                Button {
+                    showDeleteConfirm = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Theme.Colors.acCoral)
+                        .frame(width: 40, height: 40)
+                        .background(Theme.Colors.acCoral.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.acCoral.opacity(0.3), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .confirmationDialog("Delete \"\(quest.title)\"?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                    Button("Delete Route", role: .destructive, action: onDelete)
+                    Button("Cancel", role: .cancel) {}
                 }
             }
-            .buttonStyle(ACButtonStyle(variant: .primary))
-            .padding(.top, 4)
         }
-        .frame(width: 260)
-        .acCardStyle(padding: 20, interactive: true)
+        .frame(width: 252, height: 200)
+        .acCardStyle(padding: 16, interactive: true)
     }
 }

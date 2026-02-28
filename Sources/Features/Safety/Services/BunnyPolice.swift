@@ -186,9 +186,9 @@ class BunnyPolice: ObservableObject {
             // Begin zone entry tracking if not started, or promote from approach
             if activeZoneEntry == nil {
                 activeZoneEntry = ActiveZoneEntry(camera: camera, speedAtEntry: speedNow, enteredDangerZone: true)
-            } else if !activeZoneEntry!.enteredDangerZone {
-                activeZoneEntry!.speedAtEntry = speedNow
-                activeZoneEntry!.enteredDangerZone = true
+            } else if let currentEntry = activeZoneEntry, !currentEntry.enteredDangerZone {
+                activeZoneEntry?.speedAtEntry = speedNow
+                activeZoneEntry?.enteredDangerZone = true
             }
             
             // Check if user has slowed to limit inside danger zone

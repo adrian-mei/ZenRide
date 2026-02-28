@@ -67,10 +67,18 @@ class QuestStore: ObservableObject {
         quests.remove(atOffsets: offsets)
         save()
     }
+
+    func removeQuest(id: UUID) {
+        quests.removeAll { $0.id == id }
+        save()
+    }
     
     private func save() {
-        if let data = try? JSONEncoder().encode(quests) {
+        do {
+            let data = try JSONEncoder().encode(quests)
             UserDefaults.standard.set(data, forKey: storageKey)
+        } catch {
+            Log.error("QuestStore", "Failed to save quests: \(error)")
         }
     }
     

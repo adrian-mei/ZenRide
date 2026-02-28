@@ -7,6 +7,7 @@ struct RideView: View {
     @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
+    @EnvironmentObject var multiplayerService: MultiplayerService
 
     let initialDestinationName: String
     var onStop: (RideContext?, PendingDriveSession?) -> Void
