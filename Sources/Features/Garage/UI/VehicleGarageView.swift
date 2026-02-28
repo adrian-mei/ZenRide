@@ -215,7 +215,7 @@ struct CharacterSelectionView: View {
                                     .fill(isUnlocked ? Color(hex: character.colorHex) : Theme.Colors.acBorder.opacity(0.3))
                                     .frame(width: 80, height: 80)
                                     .overlay(Circle().stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.2), lineWidth: isSelected ? 4 : 2))
-                                
+
                                 if isUnlocked {
                                     Image(systemName: character.icon)
                                         .font(.system(size: 36, weight: .bold))
@@ -226,12 +226,12 @@ struct CharacterSelectionView: View {
                                         .foregroundColor(Theme.Colors.acTextMuted)
                                 }
                             }
-                            
+
                             VStack(spacing: 4) {
                                 Text(isUnlocked ? character.name : "Locked")
                                     .font(Theme.Typography.headline)
                                     .foregroundColor(isUnlocked ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
-                                
+
                                 if isSelected {
                                     Text("ACTIVE")
                                         .font(.system(size: 10, weight: .bold))
@@ -255,12 +255,20 @@ struct CharacterSelectionView: View {
                         .padding(.vertical, 24)
                         .background(Theme.Colors.acCream)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .contentShape(RoundedRectangle(cornerRadius: 20))
                         .overlay(RoundedRectangle(cornerRadius: 20).stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.4), lineWidth: 2))
                         .opacity(isUnlocked ? 1.0 : 0.6)
                         .shadow(color: isSelected ? Theme.Colors.acLeaf.opacity(0.2) : .clear, radius: 8, y: 4)
                     }
                     .buttonStyle(.plain)
                     .disabled(!isUnlocked)
+                    .accessibilityLabel(isUnlocked ? character.name : "\(character.name), locked")
+                    .accessibilityHint(
+                        isSelected ? "Currently active" :
+                        isUnlocked ? "Double tap to select" :
+                        "Unlocks at level \(character.unlockLevel)"
+                    )
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
             .padding(.horizontal, 24)

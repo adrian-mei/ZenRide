@@ -35,6 +35,7 @@ struct MapHomeView: View {
     @State private var toastVisible = false
 
     @State private var isTracking = true
+    @State private var is3DMap = false
     @State private var bottomSheetDetent: PresentationDetent = .fraction(0.35)
     
     @State private var questWaypoints: [QuestWaypoint] = []
@@ -63,19 +64,20 @@ struct MapHomeView: View {
             VStack {
                 Spacer()
                 VStack(spacing: 8) {
-                    MapRoundButton(icon: "view.3d", action: {
+                    MapRoundButton(icon: "view.3d", label: "Toggle 3D view", action: {
                         // Action for 3D view
                     })
-                    MapRoundButton(icon: playerStore.selectedCharacter.icon, action: {
+                    MapRoundButton(icon: playerStore.selectedCharacter.icon, label: "Open Garage – \(playerStore.selectedCharacter.name)", action: {
                         showGarage = true
                     })
-                    MapRoundButton(icon: isTracking ? "location.fill" : "location", action: {
+                    MapRoundButton(icon: isTracking ? "location.fill" : "location", label: isTracking ? "Location tracking active" : "Center map on my location", action: {
                         isTracking = true
                         NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
                     })
                 }
                 .padding(.trailing, 16)
-                .padding(.bottom, UIScreen.main.bounds.height * 0.15 + 20)
+                // Positioned above the default 0.35 sheet detent so buttons remain visible
+                .padding(.bottom, UIScreen.main.bounds.height * 0.38)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
 
@@ -279,6 +281,7 @@ struct MapHomeView: View {
 
 struct MapRoundButton: View {
     let icon: String
+    let label: String
     let action: () -> Void
 
     var body: some View {
@@ -293,7 +296,9 @@ struct MapRoundButton: View {
                 .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 4)
         }
         .buttonStyle(.plain)
-        .padding(.bottom, 4) // Add a little bottom padding to account for the shadow
+        .padding(.bottom, 4)
+        .accessibilityLabel(label)
+        .contentShape(Circle())
     }
 }
 
