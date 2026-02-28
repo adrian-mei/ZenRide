@@ -20,6 +20,9 @@ struct RideView: View {
     @State private var navigationStartTime: Date? = nil
     @State private var isTracking: Bool = true
     @State private var mapMode: MapMode = .turnByTurn
+    @State private var cruiseOdometerMiles: Double = 0
+    @State private var cruiseLastLocation: CLLocation? = nil
+    @State private var showCruiseSearch = false
 
     init(initialDestinationName: String, onStop: @escaping (RideContext?, PendingDriveSession?) -> Void) {
         self.initialDestinationName = initialDestinationName
@@ -51,6 +54,20 @@ struct RideView: View {
             set: { _ in }
         )) {
             selectionSheet
+        }
+        .sheet(isPresented: $showCruiseSearch) {
+            CruiseSearchSheet { name, coord in
+                showCruiseSearch = false
+                destinationName = name
+                let origin = locationProvider.currentLocation?.coordinate
+                    ?? coord
+                Task {
+                    await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: bunnyPolice.cameras)
+                }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    routeState = .reviewing
+                }
+            }
         }
         .onChange(of: locationProvider.currentSpeedMPH) { _ in
             // Speed-based auto-hide disabled per user request
@@ -88,8 +105,13 @@ struct RideView: View {
             Spacer()
 
             if routeState == .navigating && uiVisible {
-                NavigationBottomPanel(onEnd: { endRide() })
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                NavigationBottomPanel(
+                    onEnd: { endRide() },
+                    onSetDestination: { showCruiseSearch = true },
+                    departureTime: departureTime,
+                    cruiseOdometerMiles: cruiseOdometerMiles
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .zIndex(5)
@@ -251,17 +273,26 @@ struct RideView: View {
     }
     
     private func handleLocationChange(_ location: CLLocation?) {
-        if routeState == .navigating, let loc = location {
-            routingService.checkReroute(currentLocation: loc)
-            bunnyPolice.processLocation(loc, speedMPH: locationProvider.currentSpeedMPH)
-            
-            multiplayerService.broadcastLocalLocation(
-                coordinate: loc.coordinate,
-                heading: loc.course >= 0 ? loc.course : 0,
-                speedMph: locationProvider.currentSpeedMPH,
-                route: routingService.activeRoute,
-                etaSeconds: routingService.routeTimeSeconds
-            )
+        guard routeState == .navigating, let loc = location else { return }
+        routingService.checkReroute(currentLocation: loc)
+        bunnyPolice.processLocation(loc, speedMPH: locationProvider.currentSpeedMPH)
+        multiplayerService.broadcastLocalLocation(
+            coordinate: loc.coordinate,
+            heading: loc.course >= 0 ? loc.course : 0,
+            speedMph: locationProvider.currentSpeedMPH,
+            route: routingService.activeRoute,
+            etaSeconds: routingService.routeTimeSeconds
+        )
+        // Accumulate odometer in cruise mode (no active route)
+        if routingService.activeRoute.isEmpty {
+            if let last = cruiseLastLocation {
+                let deltaMeters = loc.distance(from: last)
+                // Cap wild GPS jumps (> 800m between updates means bad reading)
+                if deltaMeters < 800 {
+                    cruiseOdometerMiles += deltaMeters / 1609.34
+                }
+            }
+            cruiseLastLocation = loc
         }
     }
     
