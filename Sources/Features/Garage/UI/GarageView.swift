@@ -435,6 +435,51 @@ struct HomeBottomSheet: View {
             
             // FashodaMap: Daily Quests inject here!
             QuestDashboardView()
+            
+            // Pinned/Bookmarked Routes
+            let pinned = savedRoutes.pinnedRoutes
+            if !pinned.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Bookmarked")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(Theme.Colors.acTextDark)
+                        Image(systemName: "bookmark.fill")
+                            .foregroundColor(Theme.Colors.acCoral)
+                            .font(.caption.bold())
+                    }
+                    .padding(.horizontal)
+
+                    VStack(spacing: 0) {
+                        ForEach(Array(pinned.enumerated()), id: \.element.id) { index, route in
+                            let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
+                            RecentRow(
+                                icon: route.offlineRoute != nil ? "arrow.down.circle.fill" : "star.fill",
+                                title: route.destinationName,
+                                subtitle: route.offlineRoute != nil ? "Offline Route Available" : "Saved Destination"
+                            ) {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                let origin = locationProvider.currentLocation?.coordinate
+                                    ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+                                
+                                if let offline = route.offlineRoute {
+                                    routingService.loadOfflineRoute(offline)
+                                } else {
+                                    Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+                                }
+                                onDestinationSelected(route.destinationName, coord)
+                            }
+                            if index < pinned.count - 1 {
+                                Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.leading, 50)
+                            }
+                        }
+                    }
+                    .background(Theme.Colors.acField)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.Colors.acBorder, lineWidth: 2))
+                    .padding(.horizontal)
+                }
+            }
                 
             // Places
             VStack(alignment: .leading, spacing: 12) {

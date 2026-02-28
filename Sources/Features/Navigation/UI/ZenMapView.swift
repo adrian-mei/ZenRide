@@ -1,6 +1,5 @@
 import SwiftUI
 import MapKit
-import UIKit
 
 private let carChevronImage: UIImage = {
     let size = CGSize(width: 50, height: 60)
@@ -53,6 +52,8 @@ struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var bunnyPolice: BunnyPolice
+    @EnvironmentObject var vehicleStore: VehicleStore
+    @EnvironmentObject var multiplayerService: MultiplayerService
     @Binding var routeState: RouteState
     @Binding var isTracking: Bool
     var mapMode: MapMode = .turnByTurn // Defaults to 3D driving
@@ -88,6 +89,84 @@ struct ZenMapView: UIViewRepresentable {
         return mapView
     }
 
+    private func getVehicleImage(for type: VehicleType) -> UIImage {
+        let size = CGSize(width: 50, height: 60)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            let context = ctx.cgContext
+            context.setShadow(offset: CGSize(width: 0, height: 4), blur: 6,
+                              color: UIColor.black.withAlphaComponent(0.3).cgColor)
+            
+            // Base properties
+            var bodyColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
+            var bodyRect = CGRect(x: 10, y: 15, width: 30, height: 40)
+            var hasTop = true
+            
+            switch type {
+            case .motorcycle, .scooter:
+                bodyColor = UIColor.systemRed
+                bodyRect = CGRect(x: 18, y: 10, width: 14, height: 40)
+                hasTop = false
+            case .bicycle:
+                bodyColor = UIColor.systemBlue
+                bodyRect = CGRect(x: 22, y: 15, width: 6, height: 35)
+                hasTop = false
+            case .truck:
+                bodyColor = UIColor.systemGray
+                bodyRect = CGRect(x: 5, y: 5, width: 40, height: 50)
+            case .car:
+                bodyColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
+            }
+            
+            // Main Body
+            let bodyPath = UIBezierPath(roundedRect: bodyRect, cornerRadius: type == .truck ? 4 : 10)
+            bodyColor.setFill()
+            bodyPath.fill()
+            
+            // Top/Roof (if applicable)
+            if hasTop {
+                let topPath = UIBezierPath(
+                    roundedRect: CGRect(x: bodyRect.minX, y: bodyRect.minY - 5, width: bodyRect.width, height: bodyRect.height * 0.5),
+                    byRoundingCorners: [.topLeft, .topRight],
+                    cornerRadii: CGSize(width: type == .truck ? 4 : 10, height: type == .truck ? 4 : 10)
+                )
+                UIColor(red: 1.0, green: 0.98, blue: 0.90, alpha: 1.0).setFill()
+                topPath.fill()
+                
+                // Windshield
+                let glassPath = UIBezierPath(roundedRect: CGRect(x: bodyRect.minX + 4, y: bodyRect.minY + 1, width: bodyRect.width - 8, height: 10), cornerRadius: 4)
+                UIColor(red: 0.53, green: 0.81, blue: 0.92, alpha: 1.0).setFill()
+                glassPath.fill()
+            } else if type == .motorcycle || type == .scooter {
+                // Motorcycle Windshield
+                let glassPath = UIBezierPath(roundedRect: CGRect(x: bodyRect.minX - 2, y: bodyRect.minY - 2, width: bodyRect.width + 4, height: 8), cornerRadius: 4)
+                UIColor(red: 0.53, green: 0.81, blue: 0.92, alpha: 1.0).setFill()
+                glassPath.fill()
+                
+                // Handlebars
+                let barPath = UIBezierPath(rect: CGRect(x: bodyRect.minX - 6, y: bodyRect.minY + 6, width: bodyRect.width + 12, height: 3))
+                UIColor.darkGray.setFill()
+                barPath.fill()
+            }
+            
+            // White border around whole camper for map contrast
+            let borderPath = UIBezierPath(roundedRect: CGRect(x: bodyRect.minX, y: bodyRect.minY - (hasTop ? 5 : 0), width: bodyRect.width, height: bodyRect.height + (hasTop ? 5 : 0)), cornerRadius: type == .truck ? 4 : 10)
+            UIColor.white.setStroke()
+            borderPath.lineWidth = 3.0
+            borderPath.stroke()
+            
+            // Headlights
+            if type != .bicycle {
+                let lightY = bodyRect.maxY - 2
+                let leftLight = UIBezierPath(ovalIn: CGRect(x: bodyRect.minX + 4, y: lightY, width: 6, height: 4))
+                let rightLight = UIBezierPath(ovalIn: CGRect(x: bodyRect.maxX - 10, y: lightY, width: 6, height: 4))
+                UIColor(red: 1.0, green: 0.98, blue: 0.8, alpha: 1.0).setFill()
+                leftLight.fill()
+                rightLight.fill()
+            }
+        }
+    }
+
     func updateUIView(_ uiView: MKMapView, context: Context) {
         let coordinator = context.coordinator
 
@@ -107,10 +186,47 @@ struct ZenMapView: UIViewRepresentable {
             uiView.addAnnotations(newCameras)
         }
 
+        // Handle Multiplayer Friends
+        if let session = multiplayerService.activeSession {
+            // Add/Update friends
+            for member in session.members {
+                if let existing = coordinator.friendAnnotations[member.id] {
+                    // Animate the update
+                    UIView.animate(withDuration: 1.0, delay: 0, options: [.curveLinear, .allowUserInteraction]) {
+                        existing.coordinate = member.coordinate
+                        if let friendView = uiView.view(for: existing) {
+                            friendView.transform = CGAffineTransform(rotationAngle: CGFloat(member.heading * .pi / 180.0))
+                        }
+                    }
+                } else {
+                    let newAnn = FriendAnnotation(memberId: member.id, memberName: member.name, memberAvatar: member.avatarURL, coordinate: member.coordinate, heading: member.heading)
+                    coordinator.friendAnnotations[member.id] = newAnn
+                    uiView.addAnnotation(newAnn)
+                }
+            }
+            
+            // Remove missing friends
+            let currentIDs = Set(session.members.map(\.id))
+            let toRemove = coordinator.friendAnnotations.filter { !currentIDs.contains($0.key) }
+            for (id, ann) in toRemove {
+                uiView.removeAnnotation(ann)
+                coordinator.friendAnnotations.removeValue(forKey: id)
+            }
+        } else if !coordinator.friendAnnotations.isEmpty {
+            // Session ended, clean up
+            uiView.removeAnnotations(Array(coordinator.friendAnnotations.values))
+            coordinator.friendAnnotations.removeAll()
+        }
+
         // Handle Car Annotation (Simulated OR Real Navigation)
         if routeState == .navigating || locationProvider.isSimulating, let location = locationProvider.currentLocation {
-            if coordinator.simulatedCarAnnotation == nil {
-                let newCar = SimulatedCarAnnotation(coordinate: location.coordinate)
+            let currentType = vehicleStore.selectedVehicle?.type ?? .car
+            
+            if coordinator.simulatedCarAnnotation == nil || coordinator.simulatedCarAnnotation?.vehicleType != currentType {
+                if let oldCar = coordinator.simulatedCarAnnotation {
+                    uiView.removeAnnotation(oldCar)
+                }
+                let newCar = SimulatedCarAnnotation(coordinate: location.coordinate, vehicleType: currentType)
                 coordinator.simulatedCarAnnotation = newCar
                 uiView.addAnnotation(newCar)
             } else {
@@ -313,6 +429,7 @@ struct ZenMapView: UIViewRepresentable {
         var lastRouteState: RouteState = .search
         var parkingAnnotationsLoaded = false
         var simulatedCarAnnotation: SimulatedCarAnnotation?
+        var friendAnnotations: [String: FriendAnnotation] = [:]
         
         var lastCameraCenter: CLLocationCoordinate2D? = nil
         var lastCameraBearing: Double = 0
@@ -435,8 +552,8 @@ struct ZenMapView: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             if annotation is MKUserLocation { return nil }
 
-            if annotation is SimulatedCarAnnotation {
-                let identifier = "Car"
+            if let carAnn = annotation as? SimulatedCarAnnotation {
+                let identifier = "Car_\(carAnn.vehicleType.rawValue)"
                 var view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
                 if view == nil {
                     view = MKAnnotationView(annotation: annotation, reuseIdentifier: identifier)
@@ -444,7 +561,40 @@ struct ZenMapView: UIViewRepresentable {
                     view?.layer.shadowOpacity = 0.3
                     view?.layer.shadowRadius = 4
                 }
-                view?.image = carChevronImage
+                view?.image = parent.getVehicleImage(for: carAnn.vehicleType)
+                return view
+            }
+            
+            if let friendAnn = annotation as? FriendAnnotation {
+                let identifier = "Friend"
+                var view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
+                if view == nil {
+                    view = MKAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                    view?.layer.shadowColor = UIColor.black.cgColor
+                    view?.layer.shadowOpacity = 0.5
+                    view?.layer.shadowRadius = 4
+                }
+                
+                // Draw a simple friend marker (a circle with an emoji)
+                let size = CGSize(width: 40, height: 40)
+                let renderer = UIGraphicsImageRenderer(size: size)
+                view?.image = renderer.image { ctx in
+                    UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0).setFill()
+                    UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).fill()
+                    UIColor.white.setStroke()
+                    let path = UIBezierPath(ovalIn: CGRect(x: 2, y: 2, width: 36, height: 36))
+                    path.lineWidth = 2
+                    path.stroke()
+                    
+                    let attrs: [NSAttributedString.Key: Any] = [
+                        .font: UIFont.systemFont(ofSize: 20)
+                    ]
+                    let str = friendAnn.memberAvatar ?? "🐶"
+                    let strSize = str.size(withAttributes: attrs)
+                    str.draw(at: CGPoint(x: (size.width - strSize.width) / 2, y: (size.height - strSize.height) / 2), withAttributes: attrs)
+                }
+                
+                view?.transform = CGAffineTransform(rotationAngle: CGFloat(friendAnn.memberHeading * .pi / 180.0))
                 return view
             }
 
@@ -555,9 +705,11 @@ class BorderedPolyline: MKPolyline {
 
 class SimulatedCarAnnotation: NSObject, MKAnnotation {
     @objc dynamic var coordinate: CLLocationCoordinate2D
+    var vehicleType: VehicleType
 
-    init(coordinate: CLLocationCoordinate2D) {
+    init(coordinate: CLLocationCoordinate2D, vehicleType: VehicleType) {
         self.coordinate = coordinate
+        self.vehicleType = vehicleType
         super.init()
     }
 }
@@ -588,6 +740,23 @@ class CameraAnnotation: NSObject, MKAnnotation {
         self.coordinate = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
         self.title = "Speed Camera"
         self.subtitle = "Speed Limit: \(camera.speed_limit_mph) MPH"
+        super.init()
+    }
+}
+
+class FriendAnnotation: NSObject, MKAnnotation {
+    @objc dynamic var coordinate: CLLocationCoordinate2D
+    var memberId: String
+    var memberName: String
+    var memberAvatar: String?
+    var memberHeading: Double
+
+    init(memberId: String, memberName: String, memberAvatar: String?, coordinate: CLLocationCoordinate2D, heading: Double) {
+        self.memberId = memberId
+        self.memberName = memberName
+        self.memberAvatar = memberAvatar
+        self.coordinate = coordinate
+        self.memberHeading = heading
         super.init()
     }
 }

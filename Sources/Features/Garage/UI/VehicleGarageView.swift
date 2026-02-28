@@ -826,6 +826,9 @@ private struct VehicleTypeSelector: View {
 private func statsForType(_ type: VehicleType) -> (Double, Double, Double) {
     switch type {
     case .motorcycle: return (9.0, 8.0, 2.0)
+    case .scooter:    return (4.0, 9.0, 3.0)
+    case .bicycle:    return (2.0, 10.0, 1.0)
+    case .truck:      return (5.0, 3.0, 10.0)
     case .car:        return (6.0, 5.0, 9.0)
     }
 }

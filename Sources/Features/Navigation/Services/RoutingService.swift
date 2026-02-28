@@ -4,11 +4,17 @@ import CoreLocation
 enum VehicleMode: String, CaseIterable {
     case motorcycle
     case car
+    case bicycle
+    case scooter
+    case truck
 
     var icon: String {
         switch self {
         case .motorcycle: return "motorcycle"
         case .car:        return "car.fill"
+        case .bicycle:    return "bicycle"
+        case .scooter:    return "scooter"
+        case .truck:      return "box.truck.fill"
         }
     }
 
@@ -16,11 +22,27 @@ enum VehicleMode: String, CaseIterable {
         switch self {
         case .motorcycle: return "Motorcycle"
         case .car:        return "Car"
+        case .bicycle:    return "Bicycle"
+        case .scooter:    return "Scooter"
+        case .truck:      return "Truck"
         }
     }
 
     /// Camera avoidance default for this mode
-    var defaultAvoidCameras: Bool { self == .motorcycle }
+    var defaultAvoidCameras: Bool {
+        switch self {
+        case .motorcycle, .scooter: return true
+        default: return false
+        }
+    }
+    
+    /// Default highway avoidance
+    var defaultAvoidHighways: Bool {
+        switch self {
+        case .bicycle, .scooter: return true
+        default: return false
+        }
+    }
 }
 
 enum RoutingError: Error {
@@ -164,6 +186,7 @@ class RoutingService: ObservableObject {
             guard vehicleMode != oldValue else { return }
             // Apply mode defaults without overriding explicit user toggles
             avoidSpeedCameras = vehicleMode.defaultAvoidCameras
+            avoidHighways = vehicleMode.defaultAvoidHighways
             Task { await recalculate() }
         }
     }

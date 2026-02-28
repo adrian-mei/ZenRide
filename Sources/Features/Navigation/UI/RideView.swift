@@ -118,9 +118,6 @@ struct RideView: View {
             VStack(alignment: .leading, spacing: 16) {
                 DigitalDashSpeedometer(bunnyPolice: bunnyPolice, locationProvider: locationProvider)
                     .transition(.scale.combined(with: .opacity))
-                    
-                CampCrewView()
-                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
             .padding(.leading, 16)
             .padding(.top, 16)

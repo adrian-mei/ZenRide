@@ -5,11 +5,17 @@ import Foundation
 enum VehicleType: String, Codable, CaseIterable {
     case motorcycle
     case car
+    case bicycle
+    case scooter
+    case truck
 
     var icon: String {
         switch self {
         case .motorcycle: return "motorcycle"
         case .car:        return "car.fill"
+        case .bicycle:    return "bicycle"
+        case .scooter:    return "scooter"
+        case .truck:      return "box.truck.fill"
         }
     }
 
@@ -17,6 +23,9 @@ enum VehicleType: String, Codable, CaseIterable {
         switch self {
         case .motorcycle: return .motorcycle
         case .car:        return .car
+        case .bicycle:    return .bicycle
+        case .scooter:    return .scooter
+        case .truck:      return .truck
         }
     }
 
@@ -24,6 +33,9 @@ enum VehicleType: String, Codable, CaseIterable {
         switch self {
         case .motorcycle: return "Motorcycle"
         case .car:        return "Car"
+        case .bicycle:    return "Bicycle"
+        case .scooter:    return "Scooter"
+        case .truck:      return "Truck"
         }
     }
 }
