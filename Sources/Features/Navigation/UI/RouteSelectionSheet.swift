@@ -254,6 +254,7 @@ private struct AvoidPreferencesSheet: View {
                         Spacer(minLength: 20)
                         
                         Button("Apply Options") {
+                            Task { await routingService.recalculate() }
                             dismiss()
                         }
                         .buttonStyle(ACButtonStyle(variant: .primary))
@@ -265,7 +266,10 @@ private struct AvoidPreferencesSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        Task { await routingService.recalculate() }
+                        dismiss()
+                    }
                         .foregroundColor(Theme.Colors.acWood)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                 }

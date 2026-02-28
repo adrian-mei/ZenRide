@@ -501,7 +501,9 @@ class RoutingService: ObservableObject {
                     self.activeAlternativeRoutes = result.routes.compactMap { route in
                         route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
                     }
-                    let defaultIndex = result.routes.firstIndex(where: { $0.isZeroCameras }) ?? 0
+                    let defaultIndex = self.avoidSpeedCameras 
+                        ? (result.routes.firstIndex(where: { $0.isZeroCameras }) ?? 0)
+                        : 0
                     self.selectRoute(at: defaultIndex)
                     Log.info("Routing", "Got \(result.routes.count) routes (mock)")
                 }

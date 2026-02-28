@@ -50,7 +50,7 @@ struct SavedRouteRow: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(iconColor.opacity(0.13))
+                        .fill(iconColor.opacity(0.15))
                         .frame(width: 36, height: 36)
                     Image(systemName: systemIcon)
                         .font(.system(size: 15, weight: .medium))
@@ -60,11 +60,11 @@ struct SavedRouteRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 16))
-                        .foregroundStyle(Color.primary)
+                        .foregroundStyle(Theme.Colors.acTextDark)
                         .lineLimit(1)
                     Text(subtitle)
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.secondary)
+                        .foregroundStyle(Theme.Colors.acTextMuted)
                         .lineLimit(1)
                 }
             }
@@ -90,30 +90,30 @@ struct SearchResultRow: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.blue.opacity(0.15))
+                            .fill(Theme.Colors.acLeaf.opacity(0.15))
                             .frame(width: 42, height: 42)
                         Image(systemName: "mappin.circle.fill")
                             .font(.system(size: 22))
-                            .foregroundStyle(Color.blue)
+                            .foregroundStyle(Theme.Colors.acLeaf)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.name ?? "Unknown")
                             .font(.system(size: 17, weight: .bold))
-                            .foregroundStyle(Color.primary)
+                            .foregroundStyle(Theme.Colors.acTextDark)
                             .lineLimit(1)
                         HStack(spacing: 6) {
                             Text(item.placemark.zenFormattedAddress)
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.secondary)
+                                .foregroundStyle(Theme.Colors.acTextMuted)
                                 .lineLimit(1)
                             if let dist = distanceString {
                                 Text(dist)
                                     .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(Color.cyan)
+                                    .foregroundStyle(Theme.Colors.acSky)
                                     .padding(.horizontal, 7)
                                     .padding(.vertical, 2)
-                                    .background(Color.cyan.opacity(0.15))
+                                    .background(Theme.Colors.acSky.opacity(0.18))
                                     .clipShape(Capsule())
                             }
                         }
@@ -124,18 +124,18 @@ struct SearchResultRow: View {
             }
             .buttonStyle(.plain)
 
-            // Bookmark save button — shows animated checkmark when saved
+            // Bookmark save button — shows filled bookmark when saved
             Button(action: onSave) {
                 ZStack {
                     Image(systemName: "bookmark.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(Color.blue)
+                        .foregroundStyle(Theme.Colors.acCoral)
                         .scaleEffect(isSaved ? 1 : 0.01)
                         .opacity(isSaved ? 1 : 0)
 
                     Image(systemName: "bookmark")
                         .font(.system(size: 20))
-                        .foregroundStyle(Color.secondary)
+                        .foregroundStyle(Theme.Colors.acTextMuted)
                         .scaleEffect(isSaved ? 0.01 : 1)
                         .opacity(isSaved ? 0 : 1)
                 }
