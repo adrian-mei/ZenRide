@@ -133,9 +133,7 @@ struct CruiseSearchSheet: View {
                             .buttonStyle(.plain)
 
                             if idx < min(searcher.searchResults.count, 10) - 1 {
-                                Divider()
-                                    .background(Theme.Colors.acBorder.opacity(0.3))
-                                    .padding(.leading, 68)
+                                ACSectionDivider(leadingInset: 68)
                             }
                         }
                     }

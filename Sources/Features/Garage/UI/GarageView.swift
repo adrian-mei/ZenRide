@@ -653,7 +653,7 @@ struct HomeBottomSheet: View {
                                 onDestinationSelected(route.destinationName, coord)
                             }
                             if index < recents.count - 1 {
-                                Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.leading, 50)
+                                ACSectionDivider(leadingInset: 50)
                             }
                         }
                     }
@@ -791,7 +791,7 @@ struct HomeBottomSheet: View {
                     }
 
                     if idx < min(searcher.searchResults.count, 12) - 1 {
-                        Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.leading, 66)
+                        ACSectionDivider(leadingInset: 66)
                     }
                 }
             }

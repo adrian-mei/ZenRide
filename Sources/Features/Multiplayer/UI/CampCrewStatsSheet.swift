@@ -86,12 +86,7 @@ struct CampCrewStatsSheet: View {
     private func sharedRouteCard(_ waypoints: [QuestWaypoint], isOffline: Bool) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "map.fill")
-                    .foregroundColor(Theme.Colors.acLeaf)
-                Text("SHARED ROUTE")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acLeaf)
-                    .kerning(1.5)
+                ACSectionHeader(title: "SHARED ROUTE", icon: "map.fill", color: Theme.Colors.acLeaf)
                 Spacer()
                 if isOffline {
                     HStack(spacing: 4) {

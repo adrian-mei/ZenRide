@@ -310,8 +310,8 @@ private struct VehicleCard: View {
                     .lineLimit(1)
             }
             
-            Divider().background(Theme.Colors.acBorder.opacity(0.3))
-            
+            ACSectionDivider(leadingInset: 0)
+
             // Stats Bars
             VStack(spacing: 8) {
                 ACStatBar(label: "Speed", value: vehicle.speedStat, color: Theme.Colors.acSky)
@@ -525,8 +525,7 @@ private struct MaintenanceLogSection: View {
                     ForEach(Array(vehicle.maintenanceLog.enumerated()), id: \.element.id) { idx, record in
                         MaintenanceRow(record: record)
                         if idx < vehicle.maintenanceLog.count - 1 {
-                            Divider().background(Theme.Colors.acBorder.opacity(0.3))
-                                .padding(.leading, 16)
+                            ACSectionDivider(leadingInset: 16)
                         }
                     }
                 }
