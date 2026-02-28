@@ -524,7 +524,7 @@ struct HomeBottomSheet: View {
                         Text("Camp & Cruise")
                             .font(Theme.Typography.title)
                             .foregroundColor(.white)
-                        Text("Start a Social Road Trip")
+                        Text("Plan a Multi-Stop Drive")
                             .font(Theme.Typography.body)
                             .foregroundColor(.white.opacity(0.9))
                     }
@@ -597,35 +597,26 @@ struct HomeBottomSheet: View {
                     }
                     .padding(.horizontal)
 
-                    VStack(spacing: 0) {
-                        ForEach(Array(pinned.enumerated()), id: \.element.id) { index, route in
-                            let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
-                            RecentRow(
-                                icon: route.offlineRoute != nil ? "arrow.down.circle.fill" : "star.fill",
-                                title: route.destinationName,
-                                subtitle: route.offlineRoute != nil ? "Offline Route Available" : "Saved Destination",
-                                iconColor: Theme.Colors.acCoral
-                            ) {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                let origin = locationProvider.currentLocation?.coordinate
-                                    ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
-                                
-                                if let offline = route.offlineRoute {
-                                    routingService.loadOfflineRoute(offline)
-                                } else {
-                                    Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(pinned) { route in
+                                let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
+                                BookmarkRouteCard(route: route) {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    let origin = locationProvider.currentLocation?.coordinate
+                                        ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+                                    if let offline = route.offlineRoute {
+                                        routingService.loadOfflineRoute(offline)
+                                    } else {
+                                        Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+                                    }
+                                    onDestinationSelected(route.destinationName, coord)
                                 }
-                                onDestinationSelected(route.destinationName, coord)
-                            }
-                            if index < pinned.count - 1 {
-                                Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.leading, 50)
                             }
                         }
+                        .padding(.horizontal)
+                        .padding(.bottom, 6)
                     }
-                    .background(Theme.Colors.acField)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.Colors.acBorder, lineWidth: 2))
-                    .padding(.horizontal)
                 }
             }
                 
@@ -1031,6 +1022,50 @@ struct GuideCard: View {
             .padding(12)
         }
         .frame(width: 140, height: 180)
+    }
+}
+
+// MARK: - BookmarkRouteCard
+
+private struct BookmarkRouteCard: View {
+    let route: SavedRoute
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Theme.Colors.acCoral)
+                    Spacer()
+                    if route.offlineRoute != nil {
+                        Text("Offline")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundColor(Theme.Colors.acSky)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.Colors.acSky.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text(route.destinationName)
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 0)
+            }
+            .frame(width: 160, height: 110)
+            .padding(14)
+            .background(Theme.Colors.acField)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.Colors.acBorder, lineWidth: 2))
+            .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
     }
 }
 

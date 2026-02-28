@@ -49,7 +49,6 @@ struct CampCruiseSetupSheet: View {
                 VStack(spacing: 24) {
                     routePlannerCard
                     optionsCard
-                    crewCard
                     startButton
                 }
                 .padding()
@@ -257,12 +256,7 @@ struct CampCruiseSetupSheet: View {
             Log.info("CampCruise", "Route saved for offline: \(waypoints.count) stops")
         }
 
-        multiplayerService.startHostingSession(
-            destinationName: destName,
-            destinationCoordinate: destCoord,
-            waypoints: waypoints,
-            isOfflineSaved: saveOffline
-        )
+        // multiplayerService.startHostingSession(…) ← TBD for crew mode
 
         dismiss()
         onStartCruise()

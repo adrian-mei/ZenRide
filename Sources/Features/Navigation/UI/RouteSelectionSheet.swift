@@ -67,7 +67,8 @@ struct RouteSelectionSheet: View {
                             RouteOptionCard(
                                 route: route,
                                 isSelected: index == routingService.selectedRouteIndex,
-                                index: index
+                                index: index,
+                                totalCount: routingService.availableRoutes.count
                             )
                             .onTapGesture {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -76,9 +77,11 @@ struct RouteSelectionSheet: View {
                             }
                         }
                     }
+                    .scrollTargetLayout()
                     .padding(.horizontal, 24)
                     .padding(.bottom, 16)
                 }
+                .scrollTargetBehavior(.viewAligned)
 
                 // MARK: Action Buttons
                 VStack(spacing: 16) {
@@ -170,6 +173,7 @@ private struct RouteOptionCard: View {
     let route: TomTomRoute
     let isSelected: Bool
     let index: Int
+    let totalCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -211,7 +215,7 @@ private struct RouteOptionCard: View {
                 }
             }
         }
-        .frame(width: 140)
+        .frame(minWidth: 140, maxWidth: totalCount <= 2 ? 220 : 160)
         .padding(16)
         .background(isSelected ? Theme.Colors.acCream : Theme.Colors.acField)
         .clipShape(RoundedRectangle(cornerRadius: 20))
