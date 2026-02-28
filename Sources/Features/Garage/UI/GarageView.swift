@@ -350,6 +350,7 @@ struct HomeBottomSheet: View {
     @State private var nearbyParking: [ParkingSpot] = []
     @State private var showQuestBuilder = false
     @State private var questBuilderPreloaded: [QuestWaypoint] = []
+    @State private var showCampCruiseSetup = false
 
     var body: some View {
         ScrollView {
@@ -473,6 +474,11 @@ struct HomeBottomSheet: View {
         .onChange(of: showQuestBuilder) { isShowing in
             if !isShowing { questBuilderPreloaded = [] }
         }
+        .sheet(isPresented: $showCampCruiseSetup) {
+            CampCruiseSetupSheet(onStartCruise: onRollOut)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Idle Content
@@ -516,7 +522,7 @@ struct HomeBottomSheet: View {
             .padding(.horizontal)
             
             // Camp & Cruise Button
-            Button(action: onCruiseTap) {
+            Button(action: { showCampCruiseSetup = true }) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Camp & Cruise")

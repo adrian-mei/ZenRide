@@ -70,24 +70,38 @@ struct CampCrewMember: Identifiable, Codable {
     }
 }
 
-/// Represents an active multiplayer session sharing a destination
+/// Represents an active multiplayer session sharing a destination (and optionally a multi-stop route)
 struct CampCrewSession: Identifiable, Codable {
     var id: String
     var destinationName: String
     var destinationCoordinate: CLLocationCoordinate2D
+    /// Multi-stop shared route. Empty means free-cruise / single destination.
+    var waypoints: [QuestWaypoint]
     var members: [CampCrewMember]
     var isHost: Bool
-    
+    /// Whether the route has been saved for offline use by the host.
+    var isOfflineSaved: Bool
+
     enum CodingKeys: String, CodingKey {
-        case id, destinationName, latitude, longitude, members, isHost
+        case id, destinationName, latitude, longitude, waypoints, members, isHost, isOfflineSaved
     }
 
-    init(id: String, destinationName: String, destinationCoordinate: CLLocationCoordinate2D, members: [CampCrewMember] = [], isHost: Bool = false) {
+    init(
+        id: String,
+        destinationName: String,
+        destinationCoordinate: CLLocationCoordinate2D,
+        waypoints: [QuestWaypoint] = [],
+        members: [CampCrewMember] = [],
+        isHost: Bool = false,
+        isOfflineSaved: Bool = false
+    ) {
         self.id = id
         self.destinationName = destinationName
         self.destinationCoordinate = destinationCoordinate
+        self.waypoints = waypoints
         self.members = members
         self.isHost = isHost
+        self.isOfflineSaved = isOfflineSaved
     }
 
     init(from decoder: Decoder) throws {
@@ -97,17 +111,21 @@ struct CampCrewSession: Identifiable, Codable {
         let lat = try container.decode(Double.self, forKey: .latitude)
         let lng = try container.decode(Double.self, forKey: .longitude)
         destinationCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        waypoints = (try? container.decode([QuestWaypoint].self, forKey: .waypoints)) ?? []
         members = try container.decode([CampCrewMember].self, forKey: .members)
         isHost = try container.decode(Bool.self, forKey: .isHost)
+        isOfflineSaved = (try? container.decode(Bool.self, forKey: .isOfflineSaved)) ?? false
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(destinationName, forKey: .destinationName)
         try container.encode(destinationCoordinate.latitude, forKey: .latitude)
         try container.encode(destinationCoordinate.longitude, forKey: .longitude)
+        try container.encode(waypoints, forKey: .waypoints)
         try container.encode(members, forKey: .members)
         try container.encode(isHost, forKey: .isHost)
+        try container.encode(isOfflineSaved, forKey: .isOfflineSaved)
     }
 }

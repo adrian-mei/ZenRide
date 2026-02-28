@@ -12,15 +12,22 @@ class MultiplayerService: ObservableObject {
     private var mockUpdateTimer: Timer?
     
     // Create a new session where we are the host.
-    func startHostingSession(destinationName: String, destinationCoordinate: CLLocationCoordinate2D) {
+    func startHostingSession(
+        destinationName: String,
+        destinationCoordinate: CLLocationCoordinate2D,
+        waypoints: [QuestWaypoint] = [],
+        isOfflineSaved: Bool = false
+    ) {
         let session = CampCrewSession(
             id: UUID().uuidString,
             destinationName: destinationName,
             destinationCoordinate: destinationCoordinate,
-            isHost: true
+            waypoints: waypoints,
+            isHost: true,
+            isOfflineSaved: isOfflineSaved
         )
         self.activeSession = session
-        Log.info("Multiplayer", "Started hosting session to \(destinationName)")
+        Log.info("Multiplayer", "Started hosting session to \(destinationName) (\(waypoints.count) stops, offline: \(isOfflineSaved))")
         
         // Simulate a friend joining shortly after
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
@@ -28,6 +35,12 @@ class MultiplayerService: ObservableObject {
         }
     }
     
+    /// Stable short code derived from session id — share with friends to join.
+    var inviteCode: String? {
+        guard let id = activeSession?.id else { return nil }
+        return String(id.prefix(6).uppercased())
+    }
+
     func endSession() {
         self.activeSession = nil
         mockUpdateTimer?.invalidate()

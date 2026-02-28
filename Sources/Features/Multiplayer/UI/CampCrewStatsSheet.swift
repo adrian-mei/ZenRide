@@ -3,12 +3,13 @@ import SwiftUI
 struct CampCrewStatsSheet: View {
     @EnvironmentObject var multiplayerService: MultiplayerService
     @Environment(\.dismiss) private var dismiss
-    
+    @State private var showInvite = false
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.Colors.acField.ignoresSafeArea()
-                
+
                 if let session = multiplayerService.activeSession {
                     ScrollView {
                         VStack(spacing: 24) {
@@ -18,26 +19,31 @@ struct CampCrewStatsSheet: View {
                                     .font(.system(size: 12, weight: .bold, design: .rounded))
                                     .foregroundColor(Theme.Colors.acWood)
                                     .kerning(1.2)
-                                
                                 Text(session.destinationName)
                                     .font(Theme.Typography.title)
                                     .foregroundColor(Theme.Colors.acTextDark)
                                     .multilineTextAlignment(.center)
                             }
                             .padding(.top, 24)
-                            
+
+                            // Multi-stop route (if any)
+                            if !session.waypoints.isEmpty {
+                                sharedRouteCard(session.waypoints, isOffline: session.isOfflineSaved)
+                            }
+
+                            // Invite / Share
+                            inviteRow
+
                             // Members List
                             VStack(spacing: 16) {
-                                // Self (mocked stats for now)
                                 CrewMemberRow(
                                     name: "You",
                                     emoji: "🦊",
-                                    speedMph: 45.0, // Should be injected or read from LocationProvider, hardcoded for UI demo
-                                    etaSeconds: 600, // Should be from RoutingService
+                                    speedMph: 45.0,
+                                    etaSeconds: 600,
                                     distanceMeters: 8000,
                                     isHost: session.isHost
                                 )
-                                
                                 ForEach(session.members) { member in
                                     CrewMemberRow(
                                         name: member.name,
@@ -69,6 +75,94 @@ struct CampCrewStatsSheet: View {
                 }
             }
         }
+        .sheet(isPresented: $showInvite) {
+            InviteCrewSheet()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    @ViewBuilder
+    private func sharedRouteCard(_ waypoints: [QuestWaypoint], isOffline: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "map.fill")
+                    .foregroundColor(Theme.Colors.acLeaf)
+                Text("SHARED ROUTE")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundColor(Theme.Colors.acLeaf)
+                    .kerning(1.5)
+                Spacer()
+                if isOffline {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 12))
+                        Text("Offline")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(Theme.Colors.acSky)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Theme.Colors.acSky.opacity(0.15))
+                    .clipShape(Capsule())
+                }
+            }
+
+            ForEach(Array(waypoints.enumerated()), id: \.element.id) { index, wp in
+                HStack(spacing: 10) {
+                    Image(systemName: "\(index + 1).circle.fill")
+                        .foregroundColor(Theme.Colors.acLeaf)
+                        .font(.system(size: 16))
+                    Image(systemName: wp.icon)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                        .font(.system(size: 14))
+                    Text(wp.name)
+                        .font(Theme.Typography.body)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .acCardStyle(padding: 16)
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var inviteRow: some View {
+        Button {
+            showInvite = true
+        } label: {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Theme.Colors.acWood.opacity(0.15))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Theme.Colors.acWood)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Invite Friends")
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                    if let code = multiplayerService.inviteCode {
+                        Text("Code: \(code)")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(Theme.Colors.acLeaf)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Theme.Colors.acBorder)
+            }
+            .padding(14)
+            .background(Theme.Colors.acCream)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
     }
 }
 
