@@ -206,7 +206,6 @@ struct CharacterSelectionView: View {
                     Button {
                         if isUnlocked {
                             playerStore.selectCharacter(character)
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         }
                     } label: {
                         VStack(spacing: 12) {
@@ -253,6 +252,7 @@ struct CharacterSelectionView: View {
                         .overlay(RoundedRectangle(cornerRadius: 20).stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.4), lineWidth: 2))
                         .opacity(isUnlocked ? 1.0 : 0.6)
                         .shadow(color: isSelected ? Theme.Colors.acLeaf.opacity(0.2) : .clear, radius: 8, y: 4)
+                        .bunnyPaw()
                     }
                     .buttonStyle(.plain)
                     .disabled(!isUnlocked)

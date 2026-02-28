@@ -106,20 +106,20 @@ struct NavigationBottomPanel: View {
                     .foregroundColor(Theme.Colors.acLeaf)
                     .opacity(arrivingPulse ? 1.0 : 0.5)
                     .padding(.vertical, 24)
-                endRouteButton
+                ACDangerButton(title: "End Route", isFullWidth: false, action: onEnd)
                     .padding(.bottom, 32)
             } else {
                 // 3-column route progress layout
                 HStack(spacing: 0) {
-                    metricsColumn(value: arrivalTime, label: "arrival")
+                    ACMetricsColumn(value: arrivalTime, label: "arrival")
                     columnDivider
-                    metricsColumn(value: "\(remainingMinutes)", label: "min")
+                    ACMetricsColumn(value: "\(remainingMinutes)", label: "min")
                     columnDivider
-                    metricsColumn(value: distanceValue, label: distanceUnit)
+                    ACMetricsColumn(value: distanceValue, label: distanceUnit)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
-                endRouteButton
+                ACDangerButton(title: "End Route", isFullWidth: false, action: onEnd)
                     .padding(.bottom, 32)
             }
         }
@@ -147,11 +147,11 @@ struct NavigationBottomPanel: View {
 
             // Live stats: time · distance · speed
             HStack(spacing: 0) {
-                metricsColumn(value: elapsedFormatted, label: "time")
+                ACMetricsColumn(value: elapsedFormatted, label: "time")
                 columnDivider
-                metricsColumn(value: cruiseDistanceFormatted, label: cruiseDistanceUnit)
+                ACMetricsColumn(value: cruiseDistanceFormatted, label: cruiseDistanceUnit)
                 columnDivider
-                metricsColumn(value: currentSpeedString, label: "mph")
+                ACMetricsColumn(value: currentSpeedString, label: "mph")
             }
             .padding(.horizontal, 16)
 
@@ -192,33 +192,8 @@ struct NavigationBottomPanel: View {
 
             // Action buttons
             HStack(spacing: 12) {
-                Button(action: { onSetDestination?() }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Find a Place")
-                            .font(Theme.Typography.button)
-                    }
-                    .foregroundColor(Theme.Colors.acTextDark)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.Colors.acCream)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                }
-                .buttonStyle(.plain)
-
-                Button(action: onEnd) {
-                    Text("End Drive")
-                        .font(Theme.Typography.button)
-                        .foregroundColor(Theme.Colors.acCoral)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Theme.Colors.acCream)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Theme.Colors.acCoral, lineWidth: 2))
-                }
-                .buttonStyle(.plain)
+                ACPillButton(title: "Find a Place", icon: "magnifyingglass", isFullWidth: true, action: { onSetDestination?() })
+                ACDangerButton(title: "End Drive", action: onEnd)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 32)
@@ -226,32 +201,6 @@ struct NavigationBottomPanel: View {
     }
 
     // MARK: - Helpers
-
-    private var endRouteButton: some View {
-        Button(action: onEnd) {
-            Text("End Route")
-                .font(Theme.Typography.button)
-                .foregroundColor(Theme.Colors.acCoral)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 32)
-                .background(Theme.Colors.acCream)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Theme.Colors.acCoral, lineWidth: 2))
-        }
-    }
-
-    private func metricsColumn(value: String, label: String, fontSize: CGFloat = 40) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(size: fontSize, weight: .black, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextDark)
-                .contentTransition(.numericText())
-            Text(label)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-        }
-        .frame(maxWidth: .infinity)
-    }
 
     private var columnDivider: some View {
         Rectangle()

@@ -71,7 +71,6 @@ struct MapHomeView: View {
                         label: is3DMap ? "Switch to 2D map" : "Switch to 3D map",
                         isActive: is3DMap,
                         action: {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             is3DMap.toggle()
                             NotificationCenter.default.post(name: NSNotification.Name("Toggle3DMap"), object: is3DMap)
                         }
@@ -80,7 +79,6 @@ struct MapHomeView: View {
                         icon: vehicleStore.selectedVehicleMode.icon,
                         label: "Open vehicle garage",
                         action: {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             activeSheet = .garage
                         }
                     )
@@ -89,7 +87,6 @@ struct MapHomeView: View {
                         label: isTracking ? "Location tracking active" : "Center map on my location",
                         isActive: isTracking,
                         action: {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             isTracking = true
                             NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
                         }
@@ -178,18 +175,12 @@ struct MapHomeView: View {
                         }
                         
                         HStack(spacing: 12) {
-                            Button("Clear") {
+                            ACDangerButton(title: "Clear", isFullWidth: true) {
                                 withAnimation {
                                     questWaypoints.removeAll()
                                     showQuestBuilderFloating = false
                                 }
                             }
-                            .font(Theme.Typography.button)
-                            .foregroundColor(Theme.Colors.acCoral)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .background(Theme.Colors.acCoral.opacity(0.1))
-                            .clipShape(Capsule())
                             
                             Button("Start Route") {
                                 if questWaypoints.count >= 2 {
@@ -290,36 +281,6 @@ struct MapHomeView: View {
     }
 }
 
-// MARK: - Map Round Button
-
-struct MapRoundButton: View {
-    let icon: String
-    let label: String
-    var isActive: Bool = false
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(isActive ? Theme.Colors.acLeaf : Theme.Colors.acTextDark)
-                .frame(width: 52, height: 52)
-                .background(isActive ? Theme.Colors.acLeaf.opacity(0.12) : Theme.Colors.acCream)
-                .clipShape(Circle())
-                .overlay(
-                    Circle().stroke(
-                        isActive ? Theme.Colors.acLeaf : Theme.Colors.acBorder,
-                        lineWidth: isActive ? 2.5 : 2
-                    )
-                )
-                .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 4)
-        }
-        .buttonStyle(.plain)
-        .padding(.bottom, 4)
-        .accessibilityLabel(label)
-        .contentShape(Circle())
-    }
-}
 
 // MARK: - Home Bottom Sheet
 
@@ -938,6 +899,7 @@ struct PlaceIcon: View {
                 .font(Theme.Typography.button)
                 .foregroundColor(Theme.Colors.acTextDark)
         }
+        .bunnyPaw()
     }
 }
 
