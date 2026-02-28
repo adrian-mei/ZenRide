@@ -82,56 +82,32 @@ private struct EmptyHistoryView: View {
 
 private struct RiderStatsBanner: View {
     @EnvironmentObject var driveStore: DriveStore
-    
+
     var body: some View {
         HStack(spacing: 12) {
             let streak = driveStore.currentStreak
-            StatBox(
-                icon: streak > 0 ? "flame.fill" : "flame",
+            ACStatBox(
+                title: "Day Streak",
                 value: "\(streak)",
-                label: "Day Streak",
-                color: streak > 0 ? Theme.Colors.acCoral : Theme.Colors.acTextMuted
+                icon: streak > 0 ? "flame.fill" : "flame",
+                iconColor: streak > 0 ? Theme.Colors.acCoral : Theme.Colors.acTextMuted,
+                padding: 12
             )
-            
-            StatBox(
-                icon: "map.fill",
+            ACStatBox(
+                title: "Miles",
                 value: String(format: "%.0f", driveStore.totalDistanceMiles),
-                label: "Miles",
-                color: Theme.Colors.acSky
+                icon: "map.fill",
+                iconColor: Theme.Colors.acSky,
+                padding: 12
             )
-            
-            StatBox(
-                icon: "star.circle.fill",
+            ACStatBox(
+                title: "Avg Score",
                 value: String(format: "%.0f", driveStore.avgZenScore),
-                label: "Avg Score",
-                color: Theme.Colors.acGold
+                icon: "star.circle.fill",
+                iconColor: Theme.Colors.acGold,
+                padding: 12
             )
         }
-    }
-}
-
-private struct StatBox: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(color)
-            Text(value)
-                .font(Theme.Typography.headline)
-                .foregroundColor(Theme.Colors.acTextDark)
-            Text(label)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity)
-        .acCardStyle(padding: 12)
     }
 }
 

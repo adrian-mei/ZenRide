@@ -62,12 +62,12 @@ struct WindDownView: View {
                     // Stats Card
                     VStack(spacing: 16) {
                         HStack {
-                            StatBox(title: "Safety Score", value: "\(zenScore)", icon: "shield.fill", color: Theme.Colors.acSky)
+                            ACStatBox(title: "Safety Score", value: "\(zenScore)", icon: "shield.fill", iconColor: Theme.Colors.acSky)
                             if let ctx = rideContext {
                                 let miles = Double(ctx.routeDistanceMeters) * 0.000621371
-                                StatBox(title: "Distance", value: String(format: "%.1f mi", miles), icon: "ruler.fill", color: Theme.Colors.acCoral)
+                                ACStatBox(title: "Distance", value: String(format: "%.1f mi", miles), icon: "ruler.fill", iconColor: Theme.Colors.acCoral)
                                 let duration = Int(Date().timeIntervalSince(ctx.departureTime))
-                                StatBox(title: "Time", value: formatDuration(duration), icon: "clock.fill", color: Theme.Colors.acGold)
+                                ACStatBox(title: "Time", value: formatDuration(duration), icon: "clock.fill", iconColor: Theme.Colors.acGold)
                             }
                         }
                     }
@@ -145,32 +145,6 @@ struct WindDownView: View {
     }
 }
 
-private struct StatBox: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(Theme.Typography.headline)
-                .foregroundColor(Theme.Colors.acTextDark)
-            
-            Text(title)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity)
-        .acCardStyle(padding: 16)
-    }
-}
 
 private struct MoodButton: View {
     let emoji: String

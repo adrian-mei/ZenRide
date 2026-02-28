@@ -206,13 +206,21 @@ struct ACStatBar: View {
 
 // MARK: - ACStatBox
 
-/// Card-style stat box showing a value and label.
+/// Card-style stat box showing an optional icon, a value, and a label.
 struct ACStatBox: View {
     let title: String
     let value: String
+    var icon: String? = nil
+    var iconColor: Color = Theme.Colors.acLeaf
+    var padding: CGFloat = 16
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: icon != nil ? 8 : 6) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundColor(iconColor)
+            }
             Text(value)
                 .font(Theme.Typography.headline)
                 .foregroundColor(Theme.Colors.acTextDark)
@@ -222,9 +230,11 @@ struct ACStatBox: View {
                 .font(Theme.Typography.caption)
                 .foregroundColor(Theme.Colors.acTextMuted)
                 .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
-        .acCardStyle(padding: 16)
+        .acCardStyle(padding: padding)
     }
 }
 
