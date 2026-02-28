@@ -1,3 +1,5 @@
+import CoreLocation
+
 import Foundation
 
 struct CameraDataFile: Codable {
@@ -51,6 +53,7 @@ struct SpeedCamera: Codable, Identifiable {
 
 class CameraStore: ObservableObject {
     @Published var cameras: [SpeedCamera] = []
+    private var hasGeneratedMocks = false
     
     init() {
         loadCameras()
@@ -69,6 +72,44 @@ class CameraStore: ObservableObject {
             Log.info("CameraStore", "Loaded \(self.cameras.count) cameras")
         } catch {
             Log.error("CameraStore", "Failed to load cameras: \(error)")
+        }
+    }
+    
+    func generateGlobalMockCameras(around location: CLLocationCoordinate2D) {
+        guard !hasGeneratedMocks else { return }
+        
+        // If we are in SF, don't generate mocks, rely on real data
+        let sfLoc = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        let distanceToSF = location.distance(to: sfLoc)
+        if distanceToSF < 50000 { // within ~50km of SF
+            return
+        }
+        
+        hasGeneratedMocks = true
+        var mockCameras: [SpeedCamera] = []
+        
+        // Generate 30 random cameras within a ~5km radius of the user
+        let radiusDeg = 5000.0 / 111320.0
+        
+        for i in 1...30 {
+            let randLatOffset = Double.random(in: -radiusDeg...radiusDeg)
+            let randLngOffset = Double.random(in: -radiusDeg...radiusDeg)
+            
+            let mockCamera = SpeedCamera(
+                id: "mock_camera_\(i)",
+                street: "Local Patrol \(i)",
+                from_cross_street: "Intersection \(i)",
+                to_cross_street: nil,
+                speed_limit_mph: [25, 30, 35, 45].randomElement()!,
+                lat: location.latitude + randLatOffset,
+                lng: location.longitude + randLngOffset
+            )
+            mockCameras.append(mockCamera)
+        }
+        
+        DispatchQueue.main.async {
+            self.cameras.append(contentsOf: mockCameras)
+            Log.info("CameraStore", "Generated \(mockCameras.count) dynamic mock cameras for global support")
         }
     }
 }
