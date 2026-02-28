@@ -75,7 +75,7 @@ struct MapHomeView: View {
                         }
                     )
                     MapRoundButton(
-                        icon: "car.fill",
+                        icon: vehicleStore.selectedVehicleMode.icon,
                         label: "Open vehicle garage",
                         action: {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
