@@ -17,6 +17,10 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         NSLocationWhenInUseUsageDescription: The map needs your location to follow your custom daily routine.
+        NSLocationAlwaysAndWhenInUseUsageDescription: We need your location in the background to continue navigating and alerting you of speed cameras.
+        UIBackgroundModes:
+          - location
+          - audio
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

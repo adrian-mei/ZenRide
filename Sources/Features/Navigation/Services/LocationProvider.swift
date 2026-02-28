@@ -23,7 +23,11 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         locationManager.distanceFilter = 2.0 // Only update if moved > 2 meters to avoid UI thrash on noisy GPS
-        locationManager.requestWhenInUseAuthorization()
+        #if os(iOS)
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.showsBackgroundLocationIndicator = true
+        #endif
+        locationManager.requestAlwaysAuthorization()
     }
     
     func startUpdatingLocation() {

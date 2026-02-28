@@ -1,15 +1,49 @@
-import yaml
-import os
+import sys
 
-with open("project.yml", "r") as f:
-    project = yaml.safe_load(f)
+yml_content = """name: FashodaMap
+options:
+  bundleIdPrefix: com.adrian
+  minimumXcodeGenVersion: 2.30.0
+targets:
+  FashodaMap:
+    type: application
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+    - Sources
+    - Resources
+    info:
+      path: Info.plist
+      properties:
+        UILaunchStoryboardName: LaunchScreen
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSLocationWhenInUseUsageDescription: The map needs your location to follow your custom daily routine.
+        NSLocationAlwaysAndWhenInUseUsageDescription: We need your location in the background to continue navigating and alerting you of speed cameras.
+        UIBackgroundModes:
+          - location
+          - audio
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      CODE_SIGN_STYLE: Automatic
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
-# Add signing settings
-project["targets"]["ZenRide"]["settings"] = {
-    "CODE_SIGN_STYLE": "Automatic",
-    "DEVELOPMENT_TEAM": "U79GV5TEWJ",
-    "CODE_SIGN_IDENTITY": "Apple Development"
-}
+  FashodaMapTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+    - Tests
+    dependencies:
+    - target: FashodaMap
+    settings:
+      CODE_SIGN_STYLE: Automatic
+      GENERATE_INFOPLIST_FILE: YES
+"""
 
-with open("project.yml", "w") as f:
-    yaml.dump(project, f, sort_keys=False)
+with open('project.yml', 'w') as f:
+    f.write(yml_content)
