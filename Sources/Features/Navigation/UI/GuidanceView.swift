@@ -80,12 +80,12 @@ struct GuidanceView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 // Navigation Logic
-                .onChange(of: locationProvider.distanceTraveledInSimulationMeters) { traveled in
+                .onChange(of: locationProvider.distanceTraveledInSimulationMeters) { _, traveled in
                     if locationProvider.isSimulating {
                         updateProgress(traveled: traveled, instruction: instruction)
                     }
                 }
-                .onChange(of: routingService.distanceTraveledMeters) { traveled in
+                .onChange(of: routingService.distanceTraveledMeters) { _, traveled in
                     if !locationProvider.isSimulating {
                         updateProgress(traveled: traveled, instruction: instruction)
                     }
@@ -95,7 +95,7 @@ struct GuidanceView: View {
         .onAppear {
             currentInstructionIndex = routingService.currentInstructionIndex
         }
-        .onChange(of: routingService.currentInstructionIndex) { newValue in
+        .onChange(of: routingService.currentInstructionIndex) { _, newValue in
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 currentInstructionIndex = newValue
             }

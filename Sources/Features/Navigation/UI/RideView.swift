@@ -69,12 +69,12 @@ struct RideView: View {
                 }
             }
         }
-        .onChange(of: locationProvider.currentSpeedMPH) { _ in
+        .onChange(of: locationProvider.currentSpeedMPH) { _, _ in
             // Speed-based auto-hide disabled per user request
         }
-        .onChange(of: routeState, perform: handleRouteStateChange)
-        .onChange(of: locationProvider.currentLocation, perform: handleLocationChange)
-        .onChange(of: locationProvider.simulationCompletedNaturally, perform: handleSimulationCompletion)
+        .onChange(of: routeState) { _, newValue in handleRouteStateChange(newValue) }
+        .onChange(of: locationProvider.currentLocation) { _, newValue in handleLocationChange(newValue) }
+        .onChange(of: locationProvider.simulationCompletedNaturally) { _, newValue in handleSimulationCompletion(newValue) }
     }
 
     private var mapLayer: some View {

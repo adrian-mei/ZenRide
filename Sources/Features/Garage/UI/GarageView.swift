@@ -372,7 +372,7 @@ struct HomeBottomSheet: View {
                             .autocorrectionDisabled()
                             .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acTextDark)
-                            .onChange(of: searcher.searchQuery) { query in
+                            .onChange(of: searcher.searchQuery) { _, query in
                                 searchTask?.cancel()
                                 if query.trimmingCharacters(in: .whitespaces).isEmpty {
                                     searcher.searchResults = []
@@ -455,7 +455,7 @@ struct HomeBottomSheet: View {
         // .preferredColorScheme(.dark) // Remove dark mode preference
         .scrollDismissesKeyboard(.interactively)
         .onAppear { refreshNearbyParking() }
-        .onChange(of: isSearchFocused) { focused in
+        .onChange(of: isSearchFocused) { _, focused in
             if focused { onSearchFocused?() }
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
@@ -467,7 +467,7 @@ struct HomeBottomSheet: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .onChange(of: showQuestBuilder) { isShowing in
+        .onChange(of: showQuestBuilder) { _, isShowing in
             if !isShowing { questBuilderPreloaded = [] }
         }
         .sheet(isPresented: $showCampCruiseSetup) {

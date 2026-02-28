@@ -278,7 +278,7 @@ private struct AddStopSheet: View {
                             .autocorrectionDisabled()
                             .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acTextDark)
-                            .onChange(of: searcher.searchQuery) { query in
+                            .onChange(of: searcher.searchQuery) { _, query in
                                 searchTask?.cancel()
                                 guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
                                     searcher.searchResults = []

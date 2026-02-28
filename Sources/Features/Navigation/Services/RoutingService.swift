@@ -463,6 +463,8 @@ class RoutingService: ObservableObject {
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "key", value: apiKey),
             URLQueryItem(name: "routeType", value: "fastest"),
+            URLQueryItem(name: "computeBestOrder", value: "false"),
+            URLQueryItem(name: "maxAlternatives", value: "2"),
             URLQueryItem(name: "traffic", value: "true"),
             URLQueryItem(name: "instructionsType", value: "text"),
             URLQueryItem(name: "language", value: "en-US"),

@@ -447,7 +447,7 @@ private struct PhotoTimelineSection: View {
                 .padding(.bottom, 8)
             }
         }
-        .onChange(of: selectedItem) { item in
+        .onChange(of: selectedItem) { _, item in
             guard let item else { return }
             isLoading = true
             Task {

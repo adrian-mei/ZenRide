@@ -252,7 +252,7 @@ struct CampCruiseSetupSheet: View {
         }
 
         if saveOffline && !waypoints.isEmpty {
-            let coords = waypoints.map { $0.coordinate }
+            _ = waypoints.map { $0.coordinate }
             savedRoutes.savePlace(name: destName, coordinate: destCoord)
             Log.info("CampCruise", "Route saved for offline: \(waypoints.count) stops")
         }
@@ -314,7 +314,7 @@ private struct CruiseStopPickerSheet: View {
                 .autocorrectionDisabled()
                 .font(Theme.Typography.body)
                 .foregroundColor(Theme.Colors.acTextDark)
-                .onChange(of: searcher.searchQuery) { query in
+                .onChange(of: searcher.searchQuery) { _, query in
                     searchTask?.cancel()
                     guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
                         searcher.searchResults = []; searcher.isSearching = false; return

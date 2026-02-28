@@ -128,7 +128,7 @@ struct NavigationBottomPanel: View {
         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
         .ignoresSafeArea(edges: .bottom)
         .onReceive(clock) { now = $0 }
-        .onChange(of: isArriving) { arriving in
+        .onChange(of: isArriving) { _, arriving in
             if !isCruiseMode && arriving {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
