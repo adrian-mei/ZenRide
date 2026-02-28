@@ -252,6 +252,15 @@ struct RideView: View {
     private func handleLocationChange(_ location: CLLocation?) {
         if routeState == .navigating, let loc = location {
             routingService.checkReroute(currentLocation: loc)
+            bunnyPolice.processLocation(loc, speedMPH: locationProvider.currentSpeedMPH)
+            
+            multiplayerService.broadcastLocalLocation(
+                coordinate: loc.coordinate,
+                heading: loc.course >= 0 ? loc.course : 0,
+                speedMph: locationProvider.currentSpeedMPH,
+                route: routingService.activeRoute,
+                etaSeconds: routingService.routeTimeSeconds
+            )
         }
     }
     
