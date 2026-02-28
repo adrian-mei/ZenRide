@@ -132,66 +132,80 @@ public struct ACButtonStyle: ButtonStyle {
     public enum Variant {
         case primary // Green
         case secondary // Field / Cream
+        case largePrimary // Green, cornerRadius 24, label provides own layout
+        case largeSecondary // Field/tan, cornerRadius 24, label provides own layout
     }
-    
+
     var variant: Variant
-    
+
     public func makeBody(configuration: Configuration) -> some View {
         let liftY: CGFloat = configuration.isPressed ? 0 : 4
+        let radius: CGFloat = isLarge ? 24 : 20
 
         ZStack {
             // Bottom depth slab (stationary — creates the chunky 3D base)
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(shadowColor)
 
             // Top face (lifts when idle, snaps down when pressed)
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(backgroundColor(isPressed: configuration.isPressed))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
                 )
                 .offset(y: -liftY)
         }
-        .frame(minHeight: 52) // 48pt face + 4pt slab peeking below
+        .frame(minHeight: isLarge ? nil : 52) // standard: 48pt face + 4pt slab
         .overlay(
-            configuration.label
-                .font(Theme.Typography.button)
-                .foregroundColor(textColor)
-                .padding(.horizontal, 24)
-                .offset(y: -liftY)
+            Group {
+                if isLarge {
+                    configuration.label
+                        .offset(y: -liftY)
+                } else {
+                    configuration.label
+                        .font(Theme.Typography.button)
+                        .foregroundColor(textColor)
+                        .padding(.horizontal, 24)
+                        .offset(y: -liftY)
+                }
+            }
         )
         .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
         .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
     }
+
+    private var isLarge: Bool {
+        variant == .largePrimary || variant == .largeSecondary
+    }
     
     private func backgroundColor(isPressed: Bool) -> Color {
         switch variant {
-        case .primary:
+        case .primary, .largePrimary:
             return isPressed ? Theme.Colors.acLeaf.opacity(0.8) : Theme.Colors.acLeaf
-        case .secondary:
+        case .secondary, .largeSecondary:
             return isPressed ? Theme.Colors.acCream : Theme.Colors.acField
         }
     }
-    
+
     private var textColor: Color {
         switch variant {
-        case .primary: return .white
-        case .secondary: return Theme.Colors.acTextDark
+        case .primary, .largePrimary: return .white
+        case .secondary, .largeSecondary: return Theme.Colors.acTextDark
         }
     }
-    
+
     private var borderColor: Color {
         switch variant {
-        case .primary: return Color(hex: "388E3C")
-        case .secondary: return Theme.Colors.acBorder
+        case .primary, .largePrimary: return Color(hex: "388E3C")
+        case .secondary, .largeSecondary: return Theme.Colors.acBorder
         }
     }
-    
+
     private var shadowColor: Color {
         switch variant {
-        case .primary: return Color(hex: "388E3C")
-        case .secondary: return Theme.Colors.acBorder
+        case .primary, .largePrimary: return Color(hex: "388E3C")
+        case .secondary, .largeSecondary: return Theme.Colors.acBorder
         }
     }
 }

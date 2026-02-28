@@ -486,7 +486,6 @@ struct InviteCrewSheet: View {
                             .padding(.vertical, 14)
                             .background(Theme.Colors.acLeaf)
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color(hex: "388E3C"), lineWidth: 3))
                             .shadow(color: Color(hex: "388E3C").opacity(0.8), radius: 0, x: 0, y: 5)
                         }
                         .padding(.horizontal)

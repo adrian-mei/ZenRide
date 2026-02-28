@@ -519,15 +519,11 @@ struct HomeBottomSheet: View {
                     }
                 }
                 .padding(20)
-                .background(Theme.Colors.acLeaf)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color(hex: "388E3C"), lineWidth: 3))
-                .shadow(color: Color(hex: "388E3C").opacity(0.8), radius: 0, x: 0, y: 6)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ACButtonStyle(variant: .largePrimary))
             .padding(.horizontal)
             .padding(.top, 8)
-            .padding(.bottom, 6) // For shadow
+            .padding(.bottom, 4)
 
             // Plan a Trip Button
             Button {
@@ -550,14 +546,10 @@ struct HomeBottomSheet: View {
                         .foregroundColor(Theme.Colors.acWood)
                 }
                 .padding(20)
-                .background(Theme.Colors.acField)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 3))
-                .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 6)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ACButtonStyle(variant: .largeSecondary))
             .padding(.horizontal)
-            .padding(.bottom, 6) // For shadow
+            .padding(.bottom, 4)
 
             // FashodaMap: Daily Quests inject here!
             QuestDashboardView()
