@@ -26,7 +26,7 @@ struct QuestBuilderView: View {
     @Environment(\.dismiss) private var dismiss
 
     var preloadedWaypoints: [QuestWaypoint] = []
-    var onStartTrip: (() -> Void)? = nil
+    var onStartTrip: ((String, CLLocationCoordinate2D) -> Void)? = nil
 
     @State private var questName = "My Cozy Commute"
     @State private var waypoints: [QuestWaypoint] = []
@@ -222,8 +222,14 @@ struct QuestBuilderView: View {
         let quest = DailyQuest(title: questName, waypoints: allWaypoints)
         questStore.addQuest(quest)
         routingService.startQuest(quest, currentLocation: startCoord)
+
+        let firstStopName = allWaypoints.first?.name ?? questName
+        let firstStopCoord = allWaypoints.first?.coordinate
+            ?? startCoord
+            ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+
         dismiss()
-        onStartTrip?()
+        onStartTrip?(firstStopName, firstStopCoord)
     }
 }
 
@@ -345,7 +351,11 @@ private struct AddStopSheet: View {
                                         )
                                         onSelect(wp)
                                         dismiss()
-                                    } onSave: {}
+                                    } onSave: {
+                                        guard let coord = item.placemark.location?.coordinate else { return }
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                        savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
+                                    }
 
                                     if idx < min(searcher.searchResults.count, 12) - 1 {
                                         ACSectionDivider(leadingInset: 66)

@@ -65,27 +65,39 @@ struct RouteSelectionSheet: View {
                 .padding(.bottom, 16)
 
                 // MARK: Route List
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
+                VStack(spacing: 0) {
+                    if routingService.isCalculatingRoute {
+                        HStack(spacing: 12) {
+                            ProgressView().tint(Theme.Colors.acLeaf)
+                            Text("Calculating routes…")
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.acTextMuted)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(20)
+                        .background(Theme.Colors.acCream)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 16)
+                    } else {
                         ForEach(Array(routingService.availableRoutes.enumerated()), id: \.offset) { index, route in
-                            RouteOptionCard(
-                                route: route,
-                                isSelected: index == routingService.selectedRouteIndex,
-                                index: index,
-                                totalCount: routingService.availableRoutes.count
-                            )
-                            .onTapGesture {
+                            RouteListRow(route: route, isSelected: index == routingService.selectedRouteIndex) {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     routingService.selectRoute(at: index)
                                 }
                             }
+                            if index < routingService.availableRoutes.count - 1 {
+                                ACSectionDivider(leadingInset: 52)
+                            }
                         }
                     }
-                    .scrollTargetLayout()
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
                 }
-                .scrollTargetBehavior(.viewAligned)
+                .background(Theme.Colors.acCream)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.Colors.acBorder, lineWidth: 2))
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
 
                 // MARK: Action Buttons
                 VStack(spacing: 16) {
@@ -129,11 +141,13 @@ struct RouteSelectionSheet: View {
                             onSimulate()
                         }
                         .buttonStyle(ACButtonStyle(variant: .secondary))
+                        .disabled(routingService.isCalculatingRoute || routingService.availableRoutes.isEmpty)
 
                         Button("Start Drive") {
                             onDrive()
                         }
                         .buttonStyle(ACButtonStyle(variant: .primary))
+                        .disabled(routingService.isCalculatingRoute || routingService.availableRoutes.isEmpty)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -174,74 +188,65 @@ struct RouteSelectionSheet: View {
     }
 }
 
-// MARK: - Route Option Card
-private struct RouteOptionCard: View {
+// MARK: - Route List Row
+private struct RouteListRow: View {
     let route: TomTomRoute
     let isSelected: Bool
-    let index: Int
-    let totalCount: Int
+    let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(formatTime(seconds: route.summary.travelTimeInSeconds))
-                    .font(Theme.Typography.headline)
-                    .foregroundColor(Theme.Colors.acTextDark)
-                Spacer()
-                
-                if route.isSafeRoute {
-                    Image(systemName: "shield.fill")
-                        .foregroundColor(Theme.Colors.acSky)
+        Button(action: onTap) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder, lineWidth: 2)
+                        .frame(width: 22, height: 22)
+                    if isSelected {
+                        Circle().fill(Theme.Colors.acLeaf).frame(width: 12, height: 12)
+                    }
                 }
-                if route.hasTolls {
-                    Image(systemName: "dollarsign.circle.fill")
-                        .foregroundColor(Theme.Colors.acGold)
-                }
-                if route.isZeroCameras {
-                    Image(systemName: "eye.slash.fill")
-                        .foregroundColor(Theme.Colors.acLeaf)
-                }
-            }
-            
-            Text(formatDistance(meters: route.summary.lengthInMeters))
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-            
-            HStack(spacing: 6) {
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(Theme.Colors.acLeaf)
-                    Text("Selected")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundColor(Theme.Colors.acLeaf)
-                } else {
-                    Text("Route \(index + 1)")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(formatTime(route.summary.travelTimeInSeconds))
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(Theme.Colors.acTextDark)
+                        Spacer()
+                        if route.isSafeRoute {
+                            Image(systemName: "shield.fill")
+                                .foregroundColor(Theme.Colors.acSky)
+                                .font(.system(size: 13))
+                        }
+                        if route.isZeroCameras {
+                            Image(systemName: "eye.slash.fill")
+                                .foregroundColor(Theme.Colors.acLeaf)
+                                .font(.system(size: 13))
+                        }
+                        if route.hasTolls {
+                            Image(systemName: "dollarsign.circle.fill")
+                                .foregroundColor(Theme.Colors.acGold)
+                                .font(.system(size: 13))
+                        }
+                    }
+                    Text(formatDistance(route.summary.lengthInMeters))
+                        .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextMuted)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(isSelected ? Theme.Colors.acLeaf.opacity(0.08) : Color.clear)
+            .contentShape(Rectangle())
         }
-        .frame(minWidth: 140, maxWidth: totalCount <= 2 ? 220 : 160)
-        .padding(16)
-        .background(isSelected ? Theme.Colors.acCream : Theme.Colors.acField)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.5), lineWidth: 2)
-        )
-        .shadow(color: isSelected ? Theme.Colors.acBorder : .clear, radius: 0, x: 0, y: isSelected ? 4 : 0)
-        .offset(y: isSelected ? -4 : 0)
+        .buttonStyle(.plain)
     }
 
-    private func formatTime(seconds: Int) -> String {
+    private func formatTime(_ seconds: Int) -> String {
         let min = seconds / 60
-        if min < 60 { return "\(min) min" }
-        return "\(min / 60)h \(min % 60)m"
+        return min < 60 ? "\(min) min" : "\(min / 60)h \(min % 60)m"
     }
 
-    private func formatDistance(meters: Int) -> String {
-        let miles = Double(meters) * 0.000621371
-        return String(format: "%.1f mi", miles)
+    private func formatDistance(_ meters: Int) -> String {
+        String(format: "%.1f mi", Double(meters) * 0.000621371)
     }
 }
 

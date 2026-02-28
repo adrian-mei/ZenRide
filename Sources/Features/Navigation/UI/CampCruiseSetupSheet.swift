@@ -354,7 +354,11 @@ private struct CruiseStopPickerSheet: View {
                             let wp = QuestWaypoint(name: item.name ?? "Stop", coordinate: coord, icon: "mappin.circle.fill")
                             onSelect(wp)
                             dismiss()
-                        } onSave: {}
+                        } onSave: {
+                            guard let coord = item.placemark.location?.coordinate else { return }
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
+                        }
                         if idx < min(searcher.searchResults.count, 12) - 1 {
                             ACSectionDivider(leadingInset: 66)
                         }

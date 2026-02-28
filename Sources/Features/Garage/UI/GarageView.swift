@@ -195,13 +195,15 @@ struct MapHomeView: View {
                                 if questWaypoints.count >= 2 {
                                     let quest = DailyQuest(title: "Custom Route", waypoints: questWaypoints)
                                     routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
+                                    let firstCoord = questWaypoints.first?.coordinate
+                                        ?? locationProvider.currentLocation?.coordinate
+                                        ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
                                     withAnimation {
                                         questWaypoints.removeAll()
                                         showQuestBuilderFloating = false
                                     }
-                                    performRollOut() // Go to RideView
+                                    onDestinationSelected(quest.title, firstCoord)
                                 } else {
-                                    // Handle single destination
                                     if let first = questWaypoints.first {
                                         onDestinationSelected(first.name, first.coordinate)
                                         withAnimation {
@@ -321,6 +323,7 @@ struct HomeBottomSheet: View {
     @State private var nearbyParking: [ParkingSpot] = []
     @State private var activeSheet: BottomSheetChild? = nil
     @State private var questBuilderPreloaded: [QuestWaypoint] = []
+    @State private var loadingRouteId: UUID? = nil
 
     var body: some View {
         ScrollView {
@@ -438,7 +441,7 @@ struct HomeBottomSheet: View {
             case .questBuilder:
                 QuestBuilderView(
                     preloadedWaypoints: questBuilderPreloaded,
-                    onStartTrip: onRollOut
+                    onStartTrip: { name, coord in onDestinationSelected(name, coord) }
                 )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
@@ -577,16 +580,22 @@ struct HomeBottomSheet: View {
                         HStack(spacing: 16) {
                             ForEach(pinned) { route in
                                 let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
-                                BookmarkRouteCard(route: route) {
+                                BookmarkRouteCard(route: route, isLoading: loadingRouteId == route.id) {
+                                    guard loadingRouteId == nil else { return }
                                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                     let origin = locationProvider.currentLocation?.coordinate
                                         ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
                                     if let offline = route.offlineRoute {
                                         routingService.loadOfflineRoute(offline)
+                                        onDestinationSelected(route.destinationName, coord)
                                     } else {
-                                        Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
+                                        loadingRouteId = route.id
+                                        Task {
+                                            await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras)
+                                            loadingRouteId = nil
+                                            onDestinationSelected(route.destinationName, coord)
+                                        }
                                     }
-                                    onDestinationSelected(route.destinationName, coord)
                                 }
                             }
                         }
@@ -1006,6 +1015,7 @@ struct GuideCard: View {
 
 private struct BookmarkRouteCard: View {
     let route: SavedRoute
+    var isLoading: Bool = false
     let onTap: () -> Void
 
     var body: some View {
@@ -1041,6 +1051,15 @@ private struct BookmarkRouteCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.Colors.acBorder, lineWidth: 2))
             .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 4)
+            .overlay(
+                Group {
+                    if isLoading {
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(Theme.Colors.acCream.opacity(0.85))
+                        ProgressView().tint(Theme.Colors.acLeaf)
+                    }
+                }
+            )
         }
         .buttonStyle(.plain)
     }
