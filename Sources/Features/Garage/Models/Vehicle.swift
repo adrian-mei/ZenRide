@@ -3,39 +3,79 @@ import Foundation
 // MARK: - Vehicle Type
 
 enum VehicleType: String, Codable, CaseIterable {
-    case motorcycle
+    // --- Cars ---
     case car
-    case bicycle
-    case scooter
+    case sportsCar
+    case electricCar
+    case suv
     case truck
+    // --- Two-wheelers ---
+    case motorcycle
+    case scooter
+    // --- Human-powered ---
+    case bicycle
+    case mountainBike
+    // --- On-foot / micro ---
+    case walking
+    case running
+    case skateboard
 
     var icon: String {
         switch self {
-        case .motorcycle: return "motorcycle"
-        case .car:        return "car.fill"
-        case .bicycle:    return "bicycle"
-        case .scooter:    return "scooter"
-        case .truck:      return "box.truck.fill"
-        }
-    }
-
-    var vehicleMode: VehicleMode {
-        switch self {
-        case .motorcycle: return .motorcycle
-        case .car:        return .car
-        case .bicycle:    return .bicycle
-        case .scooter:    return .scooter
-        case .truck:      return .truck
+        case .car:          return "car.fill"
+        case .sportsCar:    return "car.rear.fill"
+        case .electricCar:  return "bolt.car.fill"
+        case .suv:          return "suv.side.fill"
+        case .truck:        return "box.truck.fill"
+        case .motorcycle:   return "motorcycle"
+        case .scooter:      return "scooter"
+        case .bicycle:      return "bicycle"
+        case .mountainBike: return "figure.outdoor.cycle"
+        case .walking:      return "figure.walk"
+        case .running:      return "figure.run"
+        case .skateboard:   return "skateboard"
         }
     }
 
     var displayName: String {
         switch self {
-        case .motorcycle: return "Motorcycle"
-        case .car:        return "Car"
-        case .bicycle:    return "Bicycle"
-        case .scooter:    return "Scooter"
-        case .truck:      return "Truck"
+        case .car:          return "Car"
+        case .sportsCar:    return "Sports"
+        case .electricCar:  return "Electric"
+        case .suv:          return "SUV"
+        case .truck:        return "Truck"
+        case .motorcycle:   return "Moto"
+        case .scooter:      return "Scooter"
+        case .bicycle:      return "Bicycle"
+        case .mountainBike: return "MTB"
+        case .walking:      return "Walk"
+        case .running:      return "Run"
+        case .skateboard:   return "Skate"
+        }
+    }
+
+    var vehicleMode: VehicleMode {
+        switch self {
+        case .car:          return .car
+        case .sportsCar:    return .sportsCar
+        case .electricCar:  return .electricCar
+        case .suv:          return .suv
+        case .truck:        return .truck
+        case .motorcycle:   return .motorcycle
+        case .scooter:      return .scooter
+        case .bicycle:      return .bicycle
+        case .mountainBike: return .mountainBike
+        case .walking:      return .walking
+        case .running:      return .running
+        case .skateboard:   return .skateboard
+        }
+    }
+
+    /// Whether this type represents an on-foot / no-vehicle mode.
+    var isOnFoot: Bool {
+        switch self {
+        case .walking, .running, .skateboard: return true
+        default: return false
         }
     }
 }
@@ -52,12 +92,12 @@ struct Vehicle: Codable, Identifiable {
     var colorHex: String        // e.g. "00FFFF"
     var licensePlate: String
     var odometerMiles: Double   // manually entered starting odometer
-    
+
     // MARK: - Mario Kart Stats (0.0 to 10.0)
     var speedStat: Double = 5.0
     var handlingStat: Double = 5.0
     var safetyStat: Double = 5.0
-    
+
     var photoTimeline: [VehiclePhoto] = []
     var maintenanceLog: [MaintenanceRecord] = []
     var addedDate: Date = Date()

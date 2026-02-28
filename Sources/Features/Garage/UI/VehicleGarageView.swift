@@ -892,43 +892,75 @@ private func acTextField(title: String, placeholder: String, text: Binding<Strin
 
 private struct VehicleTypeSelector: View {
     @Binding var selectedType: VehicleType
-    
+
+    // Group types into labelled sections for clarity
+    private let groups: [(label: String, types: [VehicleType])] = [
+        ("Cars",       [.car, .sportsCar, .electricCar, .suv, .truck]),
+        ("Two-wheels", [.motorcycle, .scooter, .bicycle, .mountainBike]),
+        ("On Foot",    [.walking, .running, .skateboard])
+    ]
+
     var body: some View {
-        HStack(spacing: 16) {
-            ForEach(VehicleType.allCases, id: \.self) { type in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        selectedType = type
+        VStack(alignment: .leading, spacing: 16) {
+            ForEach(groups, id: \.label) { group in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(group.label.uppercased())
+                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                        .kerning(1.2)
+
+                    let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
+                    LazyVGrid(columns: columns, spacing: 10) {
+                        ForEach(group.types, id: \.self) { type in
+                            Button {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    selectedType = type
+                                }
+                            } label: {
+                                VStack(spacing: 6) {
+                                    Image(systemName: type.icon)
+                                        .font(.system(size: 22, weight: .bold))
+                                    Text(type.displayName)
+                                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(selectedType == type ? Theme.Colors.acLeaf.opacity(0.15) : Theme.Colors.acCream)
+                                .foregroundColor(selectedType == type ? Theme.Colors.acLeaf : Theme.Colors.acTextMuted)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .strokeBorder(
+                                            selectedType == type ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.4),
+                                            lineWidth: selectedType == type ? 2 : 1
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                } label: {
-                    VStack(spacing: 12) {
-                        Image(systemName: type.icon)
-                            .font(.system(size: 32, weight: .bold))
-                        Text(type.displayName)
-                            .font(Theme.Typography.button)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .background(selectedType == type ? Theme.Colors.acLeaf.opacity(0.15) : Theme.Colors.acCream)
-                    .foregroundColor(selectedType == type ? Theme.Colors.acLeaf : Theme.Colors.acTextMuted)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(selectedType == type ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.5), lineWidth: 2)
-                    )
                 }
-                .buttonStyle(.plain)
             }
         }
     }
 }
 
+// Speed, Handling, Safety
 private func statsForType(_ type: VehicleType) -> (Double, Double, Double) {
     switch type {
-    case .motorcycle: return (9.0, 8.0, 2.0)
-    case .scooter:    return (4.0, 9.0, 3.0)
-    case .bicycle:    return (2.0, 10.0, 1.0)
-    case .truck:      return (5.0, 3.0, 10.0)
-    case .car:        return (6.0, 5.0, 9.0)
+    case .car:          return (6.0, 5.0, 9.0)
+    case .sportsCar:    return (10.0, 9.0, 3.0)
+    case .electricCar:  return (7.0, 8.0, 8.0)
+    case .suv:          return (5.0, 4.0, 9.5)
+    case .truck:        return (5.0, 3.0, 10.0)
+    case .motorcycle:   return (9.0, 8.0, 2.0)
+    case .scooter:      return (4.0, 9.0, 3.0)
+    case .bicycle:      return (2.0, 10.0, 1.0)
+    case .mountainBike: return (3.0, 9.0, 4.0)
+    case .walking:      return (1.0, 10.0, 10.0)
+    case .running:      return (3.0, 10.0, 8.0)
+    case .skateboard:   return (4.0, 9.0, 2.0)
     }
 }

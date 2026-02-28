@@ -2,44 +2,69 @@ import Foundation
 import CoreLocation
 
 enum VehicleMode: String, CaseIterable {
-    case motorcycle
+    // Cars
     case car
-    case bicycle
-    case scooter
+    case sportsCar
+    case electricCar
+    case suv
     case truck
+    // Two-wheelers
+    case motorcycle
+    case scooter
+    // Human-powered
+    case bicycle
+    case mountainBike
+    // On-foot / micro
+    case walking
+    case running
+    case skateboard
 
     var icon: String {
         switch self {
-        case .motorcycle: return "motorcycle"
-        case .car:        return "car.fill"
-        case .bicycle:    return "bicycle"
-        case .scooter:    return "scooter"
-        case .truck:      return "box.truck.fill"
+        case .car:          return "car.fill"
+        case .sportsCar:    return "car.rear.fill"
+        case .electricCar:  return "bolt.car.fill"
+        case .suv:          return "suv.side.fill"
+        case .truck:        return "box.truck.fill"
+        case .motorcycle:   return "motorcycle"
+        case .scooter:      return "scooter"
+        case .bicycle:      return "bicycle"
+        case .mountainBike: return "figure.outdoor.cycle"
+        case .walking:      return "figure.walk"
+        case .running:      return "figure.run"
+        case .skateboard:   return "skateboard"
         }
     }
 
     var displayName: String {
         switch self {
-        case .motorcycle: return "Motorcycle"
-        case .car:        return "Car"
-        case .bicycle:    return "Bicycle"
-        case .scooter:    return "Scooter"
-        case .truck:      return "Truck"
+        case .car:          return "Car"
+        case .sportsCar:    return "Sports Car"
+        case .electricCar:  return "Electric"
+        case .suv:          return "SUV"
+        case .truck:        return "Truck"
+        case .motorcycle:   return "Motorcycle"
+        case .scooter:      return "Scooter"
+        case .bicycle:      return "Bicycle"
+        case .mountainBike: return "Mountain Bike"
+        case .walking:      return "Walking"
+        case .running:      return "Running"
+        case .skateboard:   return "Skateboard"
         }
     }
 
     /// Camera avoidance default for this mode
     var defaultAvoidCameras: Bool {
         switch self {
-        case .motorcycle, .scooter: return true
+        case .motorcycle, .scooter, .sportsCar: return true
         default: return false
         }
     }
-    
+
     /// Default highway avoidance
     var defaultAvoidHighways: Bool {
         switch self {
-        case .bicycle, .scooter: return true
+        case .bicycle, .mountainBike, .scooter, .walking, .running, .skateboard: return true
         default: return false
         }
     }
