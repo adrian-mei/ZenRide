@@ -183,31 +183,31 @@ public struct ACButtonStyle: ButtonStyle {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(shadowColor)
 
-            // Top face (lifts when idle, snaps down when pressed)
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .fill(backgroundColor(isPressed: configuration.isPressed))
-                .overlay(
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1.5)
-                )
-                .offset(y: -liftY)
-        }
-        .frame(minHeight: isLarge ? nil : 56) // standard: 50pt face + 6pt slab
-        .overlay(
+            // Top face + Label
             Group {
                 if isLarge {
                     configuration.label
-                        .offset(y: -liftY)
                 } else {
                     configuration.label
                         .font(Theme.Typography.button)
                         .foregroundColor(textColor)
                         .padding(.horizontal, 24)
-                        .offset(y: -liftY)
                 }
             }
-        )
-        .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .frame(maxWidth: isLarge ? .infinity : nil)
+            .frame(minHeight: isLarge ? 84 : 56)
+            .background(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(backgroundColor(isPressed: configuration.isPressed))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: radius, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.2), lineWidth: 1.5)
+                    )
+            )
+            .offset(y: -liftY)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
         .rotationEffect(.degrees(configuration.isPressed ? -1 : 0))
         .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
     }
