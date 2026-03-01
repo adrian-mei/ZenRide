@@ -296,12 +296,12 @@ struct MapHomeView: View {
 // MARK: - Home Bottom Sheet
 
 private enum BottomSheetChild: Identifiable {
-    case destinationSearch(RoutineCategory?), campCruise
+    case destinationSearch(RoutineCategory?, Int?), campCruise
     
     var id: String {
         switch self {
-        case .destinationSearch(let category):
-            return "search-\(category?.rawValue ?? "none")"
+        case .destinationSearch(let category, let index):
+            return "search-\(category?.rawValue ?? "none")-\(index ?? -1)"
         case .campCruise:
             return "cruise"
         }
@@ -448,8 +448,8 @@ struct HomeBottomSheet: View {
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
         .sheet(item: $activeSheet) { child in
             switch child {
-            case .destinationSearch(let category):
-                DestinationSearchView(category: category) { name, coordinate in
+            case .destinationSearch(let category, let index):
+                DestinationSearchView(category: category, slotIndex: index) { name, coordinate in
                     onDestinationSelected(name, coordinate)
                 }
                 .presentationDetents([.large])
@@ -518,7 +518,7 @@ struct HomeBottomSheet: View {
                 // Discover New Button (Old Search)
                 Button {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    isSearchFocused = true
+                    activeSheet = .destinationSearch(nil, nil)
                 } label: {
                     VStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
@@ -542,7 +542,7 @@ struct HomeBottomSheet: View {
                     routeTo(item: MKMapItem(placemark: MKPlacemark(coordinate: coord)))
                 },
                 onAssign: { category, idx in
-                    activeSheet = .destinationSearch(category)
+                    activeSheet = .destinationSearch(category, idx)
                 }
             )
 

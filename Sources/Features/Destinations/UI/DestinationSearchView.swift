@@ -90,86 +90,116 @@ class DestinationSearcher: ObservableObject {
         searchTask = Task { @MainActor [weak self] in
             guard let self = self else { return }
             
-            do {
-                // Run geocoding and search concurrently
-                let clLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
-                
-                async let geocodeResult = try? CLGeocoder().reverseGeocodeLocation(clLocation)
-                async let searchResult = try? search.start()
-                
-                let (placemarks, response) = await (geocodeResult, searchResult)
-                
-                if Task.isCancelled { return }
-                
-                self.isSearching = false
-                
-                guard let response = response else {
-                    if !matchedRecents.isEmpty {
-                        self.searchResults = matchedRecents
-                    } else {
-                        Log.error("Search", "MKLocalSearch failed")
-                    }
-                    return
+            // Run geocoding and search concurrently
+            let clLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
+            
+            async let geocodeResult = try? CLGeocoder().reverseGeocodeLocation(clLocation)
+            async let searchResult = try? search.start()
+            
+            let (placemarks, response) = await (geocodeResult, searchResult)
+            
+            if Task.isCancelled { return }
+            
+            self.isSearching = false
+            
+            guard let response = response else {
+                if !matchedRecents.isEmpty {
+                    self.searchResults = matchedRecents
+                } else {
+                    Log.error("Search", "MKLocalSearch failed")
                 }
-                
+                return
+            }
+            
                 let userCity = placemarks?.first?.locality?.lowercased()
                 
-                let sortedNetworkResults = response.mapItems.sorted { item1, item2 in
-                    let name1 = (item1.name ?? "").lowercased()
-                    let name2 = (item2.name ?? "").lowercased()
+                let filteredNetworkResults = response.mapItems.filter { item in
+                    guard let cat = self.category else { return true }
                     
-                    let score1 = Self.score(name: name1, query: lowerQuery)
-                    let score2 = Self.score(name: name2, query: lowerQuery)
-                    
-                    if score1 != score2 {
-                        return score1 > score2
-                    }
-                    
-                    if let userCity = userCity {
-                        let city1 = item1.placemark.locality?.lowercased()
-                        let city2 = item2.placemark.locality?.lowercased()
-                        
-                        let isCity1Match = city1 == userCity
-                        let isCity2Match = city2 == userCity
-                        
-                        if isCity1Match && !isCity2Match {
+                    // Always allow results that strongly match the user's manual query
+                    if !lowerQuery.isEmpty {
+                        let name = (item.name ?? "").lowercased()
+                        if name.contains(lowerQuery) || lowerQuery.contains(name) {
                             return true
-                        } else if !isCity1Match && isCity2Match {
-                            return false
                         }
                     }
+
+                    switch cat {
+                    case .home, .work:
+                        return item.pointOfInterestCategory == nil
+                    case .gym:
+                        return item.pointOfInterestCategory == .fitnessCenter
+                    case .school, .dayCare, .afterSchool:
+                        return item.pointOfInterestCategory == .school || item.pointOfInterestCategory == .university
+                    case .dateSpot:
+                        let dateCategories: [MKPointOfInterestCategory] = [.restaurant, .cafe, .theater, .movieTheater, .museum, .park]
+                        if let itemCat = item.pointOfInterestCategory {
+                            return dateCategories.contains(itemCat)
+                        }
+                        return false
+                    case .holySpot:
+                        let zenCategories: [MKPointOfInterestCategory] = [.park, .beach, .nationalPark]
+                        if let itemCat = item.pointOfInterestCategory {
+                            return zenCategories.contains(itemCat)
+                        }
+                        return false
+                    default:
+                        return true
+                    }
+                }
+
+                let sortedNetworkResults = filteredNetworkResults.sorted { item1, item2 in
+
+                let name1 = (item1.name ?? "").lowercased()
+                let name2 = (item2.name ?? "").lowercased()
+                
+                let score1 = Self.score(name: name1, query: lowerQuery)
+                let score2 = Self.score(name: name2, query: lowerQuery)
+                
+                if score1 != score2 {
+                    return score1 > score2
+                }
+                
+                if let userCity = userCity {
+                    let city1 = item1.placemark.locality?.lowercased()
+                    let city2 = item2.placemark.locality?.lowercased()
                     
-                    guard let loc1 = item1.placemark.location, let loc2 = item2.placemark.location else {
+                    let isCity1Match = city1 == userCity
+                    let isCity2Match = city2 == userCity
+                    
+                    if isCity1Match && !isCity2Match {
+                        return true
+                    } else if !isCity1Match && isCity2Match {
                         return false
                     }
-                    let centerLoc = CLLocation(latitude: center.latitude, longitude: center.longitude)
-                    return loc1.distance(from: centerLoc) < loc2.distance(from: centerLoc)
                 }
                 
-                var finalResults = matchedRecents
-                var seenCoordinates = Set<String>()
+                guard let loc1 = item1.placemark.location, let loc2 = item2.placemark.location else {
+                    return false
+                }
+                let centerLoc = CLLocation(latitude: center.latitude, longitude: center.longitude)
+                return loc1.distance(from: centerLoc) < loc2.distance(from: centerLoc)
+            }
+            
+            var finalResults = matchedRecents
+            var seenCoordinates = Set<String>()
+            
+            // Keep track of coordinates we've already added (from recents)
+            for r in matchedRecents {
+                let coordStr = "\(String(format: "%.4f", r.placemark.coordinate.latitude)),\(String(format: "%.4f", r.placemark.coordinate.longitude))"
+                seenCoordinates.insert(coordStr)
+            }
+            
+            for item in sortedNetworkResults {
+                let coordStr = "\(String(format: "%.4f", item.placemark.coordinate.latitude)),\(String(format: "%.4f", item.placemark.coordinate.longitude))"
                 
-                // Keep track of coordinates we've already added (from recents)
-                for r in matchedRecents {
-                    let coordStr = "\(String(format: "%.4f", r.placemark.coordinate.latitude)),\(String(format: "%.4f", r.placemark.coordinate.longitude))"
+                if !seenCoordinates.contains(coordStr) {
+                    finalResults.append(item)
                     seenCoordinates.insert(coordStr)
                 }
-                
-                for item in sortedNetworkResults {
-                    let coordStr = "\(String(format: "%.4f", item.placemark.coordinate.latitude)),\(String(format: "%.4f", item.placemark.coordinate.longitude))"
-                    
-                    if !seenCoordinates.contains(coordStr) {
-                        finalResults.append(item)
-                        seenCoordinates.insert(coordStr)
-                    }
-                }
-                
-                self.searchResults = finalResults
-            } catch {
-                if !Task.isCancelled {
-                    self.isSearching = false
-                }
             }
+            
+            self.searchResults = finalResults
         }
     }
     
@@ -191,10 +221,12 @@ struct DestinationSearchView: View {
     @Environment(\.dismiss) private var dismiss
 
     var category: RoutineCategory?
+    var slotIndex: Int?
     var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
 
-    init(category: RoutineCategory? = nil, onDestinationSelected: @escaping (String, CLLocationCoordinate2D) -> Void) {
+    init(category: RoutineCategory? = nil, slotIndex: Int? = nil, onDestinationSelected: @escaping (String, CLLocationCoordinate2D) -> Void) {
         self.category = category
+        self.slotIndex = slotIndex
         self.onDestinationSelected = onDestinationSelected
     }
 
@@ -254,8 +286,23 @@ struct DestinationSearchView: View {
                     }
                     .padding()
 
+                    if let category = category {
+                        HStack {
+                            Label("Filtering for \(category.displayName)", systemImage: category.icon)
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundColor(categoryColor(category))
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                        .background(categoryColor(category).opacity(0.12))
+                        .clipShape(Capsule())
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    }
+
                     // Content
-                    if !searcher.searchQuery.isEmpty {
+                    if !searcher.searchQuery.isEmpty || category != nil {
                         searchResultsList
                     } else {
                         ScrollView {
@@ -293,9 +340,15 @@ struct DestinationSearchView: View {
             ACSectionHeader(title: "BOOKMARKS", icon: "bookmark.fill", color: Theme.Colors.acCoral)
                 .padding(.horizontal)
 
-            let pinned = savedRoutes.pinnedRoutes
+            let pinned = savedRoutes.pinnedRoutes.filter { route in
+                if let cat = category {
+                    return route.category == cat
+                }
+                return true
+            }
+            
             if pinned.isEmpty {
-                Text("No bookmarked spots yet.")
+                Text(category != nil ? "No bookmarked \(category!.displayName) yet." : "No bookmarked spots yet.")
                     .font(Theme.Typography.body)
                     .foregroundColor(Theme.Colors.acTextMuted)
                     .padding(.horizontal)
@@ -419,7 +472,12 @@ struct DestinationSearchView: View {
         
         // Save to recents
         let subtitle = placemark?.zenFormattedAddress ?? "Saved Destination"
-        savedRoutes.addRecentSearch(name: name, subtitle: subtitle, coordinate: coordinate)
+        
+        if let category = category, let slotIndex = slotIndex {
+            savedRoutes.saveAndAssignToRoutine(name: name, coordinate: coordinate, category: category, index: slotIndex)
+        } else {
+            savedRoutes.addRecentSearch(name: name, subtitle: subtitle, coordinate: coordinate)
+        }
         
         // Start navigation directly (single destination mission)
         onDestinationSelected(name, coordinate)

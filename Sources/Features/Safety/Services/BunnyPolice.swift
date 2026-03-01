@@ -99,22 +99,25 @@ class BunnyPolice: ObservableObject {
         speedSampleTimer?.invalidate()
         speedSampleTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            let speed = self.lastSpeedMPH
-            if speed > 2 {
-                self.speedReadings.append(Float(speed))
-                self.sessionSpeedSum += speed
-                self.sessionSpeedCount += 1
-                if speed > self._sessionTopSpeedMph {
-                    self._sessionTopSpeedMph = speed
+            
+            DispatchQueue.main.async {
+                let speed = self.lastSpeedMPH
+                if speed > 2 {
+                    self.speedReadings.append(Float(speed))
+                    self.sessionSpeedSum += speed
+                    self.sessionSpeedCount += 1
+                    if speed > self._sessionTopSpeedMph {
+                        self._sessionTopSpeedMph = speed
+                    }
                 }
-            }
-            // Safety net: track slowdown even when proximity check hasn't fired
-            if let entry = self.activeZoneEntry,
-               entry.enteredDangerZone,
-               let camera = self.nearestCamera,
-               self.currentZone == .danger,
-               speed <= Double(camera.speed_limit_mph) {
-                self.activeZoneEntry?.hasSlowedToLimit = true
+                // Safety net: track slowdown even when proximity check hasn't fired
+                if let entry = self.activeZoneEntry,
+                   entry.enteredDangerZone,
+                   let camera = self.nearestCamera,
+                   self.currentZone == .danger,
+                   speed <= Double(camera.speed_limit_mph) {
+                    self.activeZoneEntry?.hasSlowedToLimit = true
+                }
             }
         }
     }

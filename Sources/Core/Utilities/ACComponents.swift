@@ -121,7 +121,7 @@ struct RoutineToken: View {
                     
                     // Content
                     if let route = route {
-                        if category == .partyMember, let contactId = route.contactIdentifier {
+                        if category == .partyMember, let _ = route.contactIdentifier {
                             // Contact Photo placeholder (Ideally would fetch from CNContact)
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()

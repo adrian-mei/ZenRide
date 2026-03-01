@@ -280,6 +280,39 @@ class SavedRoutesStore: ObservableObject {
         save()
     }
 
+    func saveAndAssignToRoutine(name: String, coordinate: CLLocationCoordinate2D, category: RoutineCategory, index: Int) {
+        // Clear existing slot if any
+        for i in 0..<routes.count {
+            if routes[i].category == category && routes[i].slotIndex == index {
+                routes[i].category = nil
+                routes[i].slotIndex = nil
+            }
+        }
+
+        if let idx = findExistingIndex(near: coordinate, name: name) {
+            routes[idx].category = category
+            routes[idx].slotIndex = index
+            routes[idx].isPinned = true
+        } else {
+            let route = SavedRoute(
+                destinationName: name,
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude,
+                useCount: 0,
+                lastUsedDate: Date(),
+                typicalDepartureHours: [],
+                averageDurationSeconds: 0,
+                visitHistory: []
+            )
+            route.category = category
+            route.slotIndex = index
+            route.isPinned = true
+            context.insert(route)
+            routes.insert(route, at: 0)
+        }
+        save()
+    }
+    
     func assignToRoutine(id: UUID, category: RoutineCategory, index: Int, contactId: String? = nil, customIcon: String? = nil) {
         // Clear existing slot if any
         for i in 0..<routes.count {
