@@ -18,6 +18,36 @@ struct Character: Identifiable, Codable, Equatable {
     ]
 }
 
+// MARK: - Zen Mode
+
+enum ZenMode: String, Codable, CaseIterable {
+    case standard = "standard"
+    case family = "family"
+    case newDriver = "newDriver"
+    case motorcycle = "motorcycle"
+    case singleDude = "singleDude"
+    
+    var icon: String {
+        switch self {
+        case .standard: return "leaf.fill"
+        case .family: return "figure.2.and.child.holdinghands"
+        case .newDriver: return "book.fill"
+        case .motorcycle: return "motorcycle"
+        case .singleDude: return "person.fill.viewfinder"
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .standard: return "Zen Mode"
+        case .family: return "Family Mode"
+        case .newDriver: return "New Driver"
+        case .motorcycle: return "Moto Mode"
+        case .singleDude: return "Single Dude"
+        }
+    }
+}
+
 // MARK: - Player Store
 
 @MainActor
@@ -28,9 +58,11 @@ class PlayerStore: ObservableObject {
     @Published var showLevelUpToast: Bool = false
     @Published var newlyUnlockedCharacters: [Character] = []
     @Published var newlyEarnedAchievement: Achievement? = nil
+    @Published var currentMode: ZenMode = .standard
 
     private let xpKey = UserDefaultsKeys.playerXP
     private let charKey = UserDefaultsKeys.playerCharacter
+    private let modeKey = "ZenRide_CurrentMode"
 
     init() {
         load()
@@ -105,11 +137,16 @@ class PlayerStore: ObservableObject {
     private func save() {
         UserDefaults.standard.set(totalXP, forKey: xpKey)
         UserDefaults.standard.set(selectedCharacterId, forKey: charKey)
+        UserDefaults.standard.set(currentMode.rawValue, forKey: modeKey)
     }
 
     private func load() {
         totalXP = UserDefaults.standard.integer(forKey: xpKey)
         selectedCharacterId = UserDefaults.standard.string(forKey: charKey) ?? "camper_fox"
+        if let modeStr = UserDefaults.standard.string(forKey: modeKey),
+           let mode = ZenMode(rawValue: modeStr) {
+            currentMode = mode
+        }
         calculateLevel()
     }
 }

@@ -100,7 +100,6 @@ struct MapHomeView: View {
                         )
                     }
                     .padding(.trailing, 16)
-                    // Positioned above the default 0.35 sheet detent so buttons remain visible
                     .padding(.bottom, geo.size.height * 0.38)
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -228,7 +227,7 @@ struct MapHomeView: View {
                     .padding(.horizontal)
                     .padding(.bottom, geo.size.height * 0.15 + 20)
                 }
-                } // GeometryReader
+                }
                 .zIndex(60)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -293,7 +292,6 @@ struct MapHomeView: View {
         }
     }
 }
-
 
 // MARK: - Home Bottom Sheet
 
@@ -420,6 +418,10 @@ struct HomeBottomSheet: View {
                 .padding(.horizontal)
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isSearchFocused)
 
+                // Mode Selector
+                ModeSelector()
+                    .padding(.bottom, 8)
+
                 // Content: search results or idle
                 if !searcher.searchQuery.isEmpty {
                     searchResultsContent
@@ -430,7 +432,6 @@ struct HomeBottomSheet: View {
             }
         }
         .background(Theme.Colors.acCream)
-        // .preferredColorScheme(.dark) // Remove dark mode preference
         .scrollDismissesKeyboard(.interactively)
         .onAppear { refreshNearbyParking() }
         .onChange(of: isSearchFocused) { _, focused in
@@ -512,16 +513,15 @@ struct HomeBottomSheet: View {
                 }
                 .buttonStyle(ACButtonStyle(variant: .largePrimary))
 
-                // Map a New Story Button
+                // Discover New Button (Old Search)
                 Button {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    questBuilderPreloaded = []
-                    activeSheet = .questBuilder
+                    isSearchFocused = true
                 } label: {
                     VStack(spacing: 8) {
-                        Image(systemName: "map.fill")
+                        Image(systemName: "magnifyingglass")
                             .font(.system(size: 24, weight: .bold))
-                        Text("Map a New Story")
+                        Text("Discover New")
                             .font(.system(size: 14, weight: .black, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
@@ -533,6 +533,20 @@ struct HomeBottomSheet: View {
             .padding(.bottom, 8)
             .padding(.top, 4)
 
+            // Adventure Board (The 15 Slots + Super Intelligence)
+            AdventureBoardView(
+                onSelect: { route in
+                    let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
+                    routeTo(item: MKMapItem(placemark: MKPlacemark(coordinate: coord)))
+                },
+                onAssign: { category, idx in
+                    activeSheet = .questBuilder 
+                }
+            )
+
+            // FashodaMap: Daily Quests inject here!
+            QuestDashboardView()
+            
             // Recent Memories
             if !memoryStore.memories.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
@@ -558,120 +572,6 @@ struct HomeBottomSheet: View {
                     }
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
-
-            // FashodaMap: Daily Quests inject here!
-            QuestDashboardView()
-            
-            // Pinned/Bookmarked Routes
-            let pinned = savedRoutes.pinnedRoutes
-            if !pinned.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Bookmarked")
-                            .font(Theme.Typography.headline)
-                            .foregroundColor(Theme.Colors.acTextDark)
-                        Image(systemName: "bookmark.fill")
-                            .foregroundColor(Theme.Colors.acCoral)
-                            .font(.caption.bold())
-                    }
-                    .padding(.horizontal)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(pinned) { route in
-                                let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
-                                BookmarkRouteCard(route: route, isLoading: loadingRouteId == route.id) {
-                                    guard loadingRouteId == nil else { return }
-                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                    let origin = locationProvider.currentLocation?.coordinate
-                                        ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
-                                    if let offline = route.offlineRoute {
-                                        routingService.loadOfflineRoute(offline)
-                                        onDestinationSelected(route.destinationName, coord)
-                                    } else {
-                                        loadingRouteId = route.id
-                                        Task {
-                                            await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras)
-                                            loadingRouteId = nil
-                                            onDestinationSelected(route.destinationName, coord)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 6)
-                    }
-                }
-            }
-                
-            // Places
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Places")
-                        .font(Theme.Typography.headline)
-                        .foregroundColor(Theme.Colors.acTextDark)
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(Theme.Colors.acWood)
-                        .font(.caption.bold())
-                }
-                .padding(.horizontal)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        placeChip(icon: "fuelpump.fill", color: Theme.Colors.acCoral, title: "Gas Station", query: "Gas Stations")
-                        placeChip(icon: "cup.and.saucer.fill", color: Theme.Colors.acGold, title: "Coffee", query: "Coffee")
-                        placeChip(icon: "parkingsign.circle.fill", color: Theme.Colors.acSky, title: "Parking", query: "Parking")
-                        placeChip(icon: "wrench.and.screwdriver.fill", color: Theme.Colors.acWood, title: "Mechanic", query: "Motorcycle Repair")
-                    }
-                    .padding(.horizontal)
-                }
-            }
-
-            // Recents
-            let recents = savedRoutes.topRecent(limit: 3)
-            if !recents.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Recents")
-                            .font(Theme.Typography.headline)
-                            .foregroundColor(Theme.Colors.acTextDark)
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(Theme.Colors.acWood)
-                            .font(.caption.bold())
-                    }
-                    .padding(.horizontal)
-
-                    VStack(spacing: 0) {
-                        ForEach(Array(recents.enumerated()), id: \.element.id) { index, route in
-                            let coord = CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude)
-                            RecentRow(
-                                icon: route.offlineRoute != nil ? "arrow.down.circle.fill" : "arrow.turn.up.right",
-                                title: route.destinationName,
-                                subtitle: relativeDate(route.lastUsedDate)
-                            ) {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                let origin = locationProvider.currentLocation?.coordinate
-                                    ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
-                                
-                                if let offline = route.offlineRoute {
-                                    routingService.loadOfflineRoute(offline)
-                                } else {
-                                    Task { await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: cameraStore.cameras) }
-                                }
-                                onDestinationSelected(route.destinationName, coord)
-                            }
-                            if index < recents.count - 1 {
-                                ACSectionDivider(leadingInset: 50)
-                            }
-                        }
-                    }
-                    .background(Theme.Colors.acField)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.Colors.acBorder, lineWidth: 2))
-                    .padding(.horizontal)
-                }
             }
 
             // Guides
@@ -813,20 +713,6 @@ struct HomeBottomSheet: View {
         }
     }
 
-    // MARK: - Helpers
-
-    @ViewBuilder
-    private func placeChip(icon: String, color: Color, title: String, query: String) -> some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            searcher.searchQuery = query
-            isSearchFocused = true
-        } label: {
-            PlaceIcon(icon: icon, color: color, title: title)
-        }
-        .buttonStyle(.plain)
-    }
-
     private func routeTo(item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate else { return }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -869,6 +755,42 @@ struct HomeBottomSheet: View {
         let f = DateFormatter()
         f.dateFormat = "MMM d, h:mm a"
         return f.string(from: Date())
+    }
+}
+
+// MARK: - Mode Selector
+
+struct ModeSelector: View {
+    @EnvironmentObject var playerStore: PlayerStore
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(ZenMode.allCases, id: \.self) { mode in
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            playerStore.currentMode = mode
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: mode.icon)
+                                .font(.system(size: 14, weight: .bold))
+                            Text(mode.displayName)
+                                .font(Theme.Typography.button)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(playerStore.currentMode == mode ? Theme.Colors.acLeaf : Theme.Colors.acField)
+                        .foregroundColor(playerStore.currentMode == mode ? .white : Theme.Colors.acTextDark)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                        .shadow(color: Theme.Colors.acBorder.opacity(0.3), radius: 0, x: 0, y: 3)
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
     }
 }
 

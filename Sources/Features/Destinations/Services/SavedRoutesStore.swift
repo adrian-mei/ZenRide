@@ -2,6 +2,53 @@ import Foundation
 import CoreLocation
 import SwiftData
 
+public enum RoutineCategory: String, Codable, CaseIterable {
+    case home = "home"
+    case work = "work"
+    case gym = "gym"
+    case partyMember = "party"
+    case holySpot = "holy"
+    case dayCare = "daycare"
+    case school = "school"
+    case afterSchool = "afterschool"
+    case dateSpot = "datespot"
+    
+    var icon: String {
+        switch self {
+        case .home: return "house.fill"
+        case .work: return "briefcase.fill"
+        case .gym: return "dumbbell.fill"
+        case .partyMember: return "person.2.fill"
+        case .holySpot: return "leaf.fill"
+        case .dayCare: return "teddybear.fill"
+        case .school: return "figure.and.child.holdinghands"
+        case .afterSchool: return "soccerball"
+        case .dateSpot: return "heart.fill"
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .home: return "Home"
+        case .work: return "Work"
+        case .gym: return "Gym"
+        case .partyMember: return "Party Member"
+        case .holySpot: return "Holy Spot"
+        case .dayCare: return "Day Care"
+        case .school: return "School"
+        case .afterSchool: return "Afterschool"
+        case .dateSpot: return "Date Spot"
+        }
+    }
+}
+
+public struct VisitRecord: Codable {
+    public let date: Date
+    public let hour: Int
+    public let weekday: Int // 1-7
+    public let month: Int // 1-12
+}
+
 @Model
 final class SavedRoute {
     @Attribute(.unique) var id: UUID = UUID()
@@ -13,6 +60,15 @@ final class SavedRoute {
     var typicalDepartureHours: [Int]   // capped at 50
     var averageDurationSeconds: Int
     var isPinned: Bool
+    
+    // Routine Slotting
+    var category: RoutineCategory?
+    var slotIndex: Int? // 0, 1, 2
+    var contactIdentifier: String? // For party members
+    var customIcon: String? // For holy spots
+    
+    // History for intelligence
+    var visitHistory: [VisitRecord] = []
     
     @Attribute(.externalStorage) var offlineRouteData: Data?
 
@@ -39,7 +95,7 @@ final class SavedRoute {
         }
     }
 
-    init(id: UUID = UUID(), destinationName: String, latitude: Double, longitude: Double, useCount: Int, lastUsedDate: Date, typicalDepartureHours: [Int], averageDurationSeconds: Int, isPinned: Bool = false, offlineRoute: TomTomRoute? = nil) {
+    init(id: UUID = UUID(), destinationName: String, latitude: Double, longitude: Double, useCount: Int, lastUsedDate: Date, typicalDepartureHours: [Int], averageDurationSeconds: Int, isPinned: Bool = false, offlineRoute: TomTomRoute? = nil, category: RoutineCategory? = nil, slotIndex: Int? = nil, contactIdentifier: String? = nil, customIcon: String? = nil, visitHistory: [VisitRecord] = []) {
         self.id = id
         self.destinationName = destinationName
         self.latitude = latitude
@@ -49,6 +105,11 @@ final class SavedRoute {
         self.typicalDepartureHours = typicalDepartureHours
         self.averageDurationSeconds = averageDurationSeconds
         self.isPinned = isPinned
+        self.category = category
+        self.slotIndex = slotIndex
+        self.contactIdentifier = contactIdentifier
+        self.customIcon = customIcon
+        self.visitHistory = visitHistory
         if let offlineRoute = offlineRoute {
             do {
                 self.offlineRouteData = try JSONEncoder().encode(offlineRoute)
@@ -185,12 +246,20 @@ class SavedRoutesStore: ObservableObject {
 
     func recordVisit(destinationName: String, coordinate: CLLocationCoordinate2D,
                      durationSeconds: Int, departureTime: Date) {
-        let hour = Calendar.current.component(.hour, from: departureTime)
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: departureTime)
+        let weekday = calendar.component(.weekday, from: departureTime)
+        let month = calendar.component(.month, from: departureTime)
+        
+        let record = VisitRecord(date: departureTime, hour: hour, weekday: weekday, month: month)
+        
         if let idx = findExistingIndex(near: coordinate, name: destinationName) {
             routes[idx].useCount += 1
             routes[idx].lastUsedDate = departureTime
             routes[idx].typicalDepartureHours.append(hour)
             routes[idx].typicalDepartureHours = Array(routes[idx].typicalDepartureHours.suffix(50))
+            routes[idx].visitHistory.append(record)
+            
             let prev = routes[idx].averageDurationSeconds
             let count = routes[idx].useCount
             routes[idx].averageDurationSeconds = (prev * (count - 1) + durationSeconds) / count
@@ -202,12 +271,36 @@ class SavedRoutesStore: ObservableObject {
                 useCount: 1,
                 lastUsedDate: departureTime,
                 typicalDepartureHours: [hour],
-                averageDurationSeconds: durationSeconds
+                averageDurationSeconds: durationSeconds,
+                visitHistory: [record]
             )
             context.insert(route)
             routes.insert(route, at: 0)
         }
         save()
+    }
+
+    func assignToRoutine(id: UUID, category: RoutineCategory, index: Int, contactId: String? = nil, customIcon: String? = nil) {
+        // Clear existing slot if any
+        for i in 0..<routes.count {
+            if routes[i].category == category && routes[i].slotIndex == index {
+                routes[i].category = nil
+                routes[i].slotIndex = nil
+            }
+        }
+        
+        if let idx = routes.firstIndex(where: { $0.id == id }) {
+            routes[idx].category = category
+            routes[idx].slotIndex = index
+            routes[idx].isPinned = true
+            routes[idx].contactIdentifier = contactId
+            routes[idx].customIcon = customIcon
+            save()
+        }
+    }
+    
+    func routeForSlot(category: RoutineCategory, index: Int) -> SavedRoute? {
+        routes.first { $0.category == category && $0.slotIndex == index }
     }
 
     // MARK: - Queries
