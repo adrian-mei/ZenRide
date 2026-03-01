@@ -296,8 +296,16 @@ struct MapHomeView: View {
 // MARK: - Home Bottom Sheet
 
 private enum BottomSheetChild: Identifiable {
-    case destinationSearch, campCruise
-    var id: Self { self }
+    case destinationSearch(RoutineCategory?), campCruise
+    
+    var id: String {
+        switch self {
+        case .destinationSearch(let category):
+            return "search-\(category?.rawValue ?? "none")"
+        case .campCruise:
+            return "cruise"
+        }
+    }
 }
 
 struct HomeBottomSheet: View {
@@ -440,11 +448,10 @@ struct HomeBottomSheet: View {
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
         .sheet(item: $activeSheet) { child in
             switch child {
-            case .destinationSearch:
-                DestinationSearchView(onDestinationSelected: { name, coordinate in
+            case .destinationSearch(let category):
+                DestinationSearchView(category: category) { name, coordinate in
                     onDestinationSelected(name, coordinate)
-                })
-
+                }
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             case .campCruise:
@@ -535,7 +542,7 @@ struct HomeBottomSheet: View {
                     routeTo(item: MKMapItem(placemark: MKPlacemark(coordinate: coord)))
                 },
                 onAssign: { category, idx in
-                    activeSheet = .destinationSearch
+                    activeSheet = .destinationSearch(category)
                 }
             )
 
@@ -751,6 +758,7 @@ struct HomeBottomSheet: View {
 }
 
 // MARK: - Mode Selector
+
 
 struct ModeSelector: View {
     @EnvironmentObject var playerStore: PlayerStore
