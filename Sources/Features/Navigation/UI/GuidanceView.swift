@@ -15,68 +15,69 @@ struct GuidanceView: View {
                 let instruction = routingService.instructions[currentInstructionIndex]
                 
                 VStack(spacing: 0) {
-                    HStack(spacing: 16) {
-                        VStack(spacing: 6) {
+                    HStack(spacing: 12) {
+                        VStack(spacing: 4) {
                             Image(systemName: instruction.turnType.icon)
-                                .font(.system(size: 48, weight: .heavy))
+                                .font(.system(size: 32, weight: .heavy))
                                 .foregroundColor(Theme.Colors.acLeaf)
                                 .scaleEffect(isApproachingTurn ? 1.1 : 1.0)
                                 .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isApproachingTurn)
-                                .frame(width: 80)
+                                .frame(width: 50)
                             
                             Text(formatDistance(instruction: instruction))
-                                .font(Theme.Typography.headline)
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .contentTransition(.numericText())
                         }
                         
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(instruction.text)
-                                .font(Theme.Typography.headline)
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .lineLimit(2)
-                                .minimumScaleFactor(0.8)
+                                .minimumScaleFactor(0.7)
                         }
                         Spacer(minLength: 0)
                     }
-                    .padding(.top, 16)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 20)
+                    .padding(.top, 12)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 14)
                     
                     // Next Instruction preview
                     if currentInstructionIndex + 1 < routingService.instructions.count {
                         let nextInst = routingService.instructions[currentInstructionIndex + 1]
                         if nextInst.turnType != .arrive {
                             ACSectionDivider(leadingInset: 0)
-                            HStack(spacing: 12) {
+                            HStack(spacing: 8) {
                                 Text("THEN")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.system(size: 10, weight: .black, design: .rounded))
                                     .foregroundColor(Theme.Colors.acTextMuted)
                                 
                                 Image(systemName: nextInst.turnType.icon)
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(Theme.Colors.acTextDark)
                                 
                                 Text(nextInst.text)
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(Theme.Colors.acTextDark)
                                     .lineLimit(1)
                                 
                                 Spacer()
                             }
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                             .background(Theme.Colors.acField)
                         }
                     }
                 }
                 .background(Theme.Colors.acCream)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .stroke(Theme.Colors.acBorder, lineWidth: 2)
                 )
                 .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 6)
+                .frame(maxWidth: 260) // Limits width in the corner
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 // Navigation Logic
