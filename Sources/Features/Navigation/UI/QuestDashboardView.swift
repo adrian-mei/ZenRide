@@ -47,7 +47,7 @@ struct QuestDashboardView: View {
                 .background(Theme.Colors.acField)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                
+
                 Button {
                     preloadedExperienceTitle = ""
                     preloadedExperienceWaypoints = []
@@ -74,6 +74,8 @@ struct QuestDashboardView: View {
             if questStore.quests.isEmpty {
                 emptyState
             } else {
+                // Fixed height + scrollClipDisabled so shadows are not clipped at the edge
+                // scrollTargetBehavior ensures snappy card-by-card paging
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
                         ForEach(questStore.quests) { quest in
@@ -91,9 +93,9 @@ struct QuestDashboardView: View {
                     }
                     .scrollTargetLayout()
                     .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 8) // breathing room for shadows
                 }
-                .frame(height: 224)
+                .frame(height: 224) // explicit height = card 200 + vertical padding 24
                 .scrollTargetBehavior(.viewAligned)
                 .scrollClipDisabled()
             }
@@ -183,6 +185,8 @@ struct QuestDashboardView: View {
     }
 }
 
+// MARK: - Quest Card
+
 struct QuestCard: View {
     let quest: DailyQuest
     let onStart: () -> Void
@@ -192,6 +196,7 @@ struct QuestCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Top row: icon + stop count + delete
             HStack(alignment: .top) {
                 ZStack {
                     Circle()
@@ -201,24 +206,30 @@ struct QuestCard: View {
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(Theme.Colors.acLeaf)
                 }
+
                 Spacer()
+
                 VStack(alignment: .trailing, spacing: 6) {
                     ACBadge(
                         text: "\(quest.waypoints.count) stops",
                         textColor: Theme.Colors.acWood,
                         backgroundColor: Theme.Colors.acWood.opacity(0.12)
                     )
+
                     Text("+\(quest.waypoints.count * 25) XP")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundColor(Theme.Colors.acLeaf)
                 }
             }
+
+            // Title + route summary
             VStack(alignment: .leading, spacing: 4) {
                 Text(quest.title)
                     .font(Theme.Typography.title)
                     .foregroundColor(Theme.Colors.acTextDark)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+
                 if let first = quest.waypoints.first, let last = quest.waypoints.last, first.id != last.id {
                     HStack(spacing: 5) {
                         Image(systemName: "mappin.circle.fill")
@@ -231,7 +242,10 @@ struct QuestCard: View {
                     }
                 }
             }
+
             Spacer(minLength: 0)
+
+            // Action row
             HStack(spacing: 8) {
                 Button(action: onStart) {
                     HStack(spacing: 6) {
@@ -243,6 +257,7 @@ struct QuestCard: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(ACButtonStyle(variant: .primary))
+
                 Button {
                     showDeleteConfirm = true
                 } label: {
