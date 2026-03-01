@@ -78,6 +78,7 @@ struct MapHomeView: View {
                             label: is3DMap ? "Switch to 2D map" : "Switch to 3D map",
                             isActive: is3DMap,
                             action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 is3DMap.toggle()
                                 NotificationCenter.default.post(name: AppNotification.toggle3DMap, object: is3DMap)
                             }
@@ -86,6 +87,7 @@ struct MapHomeView: View {
                             icon: vehicleStore.selectedVehicleMode.icon,
                             label: "Open vehicle garage",
                             action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 activeSheet = .garage
                             }
                         )
@@ -94,6 +96,7 @@ struct MapHomeView: View {
                             label: isTracking ? "Location tracking active" : "Center map on my location",
                             isActive: isTracking,
                             action: {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 isTracking = true
                                 NotificationCenter.default.post(name: AppNotification.recenterMap, object: nil)
                             }
@@ -121,7 +124,7 @@ struct MapHomeView: View {
             if playerStore.showLevelUpToast {
                 VStack {
                     LevelUpToast(level: playerStore.currentLevel, characters: playerStore.newlyUnlockedCharacters) {
-                        withAnimation(.spring()) {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                             playerStore.showLevelUpToast = false
                         }
                     }
@@ -191,6 +194,7 @@ struct MapHomeView: View {
                             }
                             
                             Button("Start Route") {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 if questWaypoints.count >= 2 {
                                     let quest = DailyQuest(title: "Custom Route", waypoints: questWaypoints)
                                     routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
@@ -480,6 +484,8 @@ struct HomeBottomSheet: View {
                     Text("Level \(playerStore.currentLevel)")
                         .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.acTextDark)
+                        .contentTransition(.numericText())
+                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: playerStore.currentLevel)
                     
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -487,6 +493,7 @@ struct HomeBottomSheet: View {
                             Capsule()
                                 .fill(Theme.Colors.acLeaf)
                                 .frame(width: geo.size.width * playerStore.currentLevelProgress())
+                                .animation(.spring(response: 0.5, dampingFraction: 0.75), value: playerStore.currentLevelProgress())
                         }
                     }
                     .frame(height: 8)
@@ -497,6 +504,8 @@ struct HomeBottomSheet: View {
                 Text("\(playerStore.totalXP) XP")
                     .font(Theme.Typography.button)
                     .foregroundColor(Theme.Colors.acLeaf)
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: playerStore.totalXP)
             }
             .padding(.horizontal)
             
@@ -983,9 +992,12 @@ private struct MoodSelectionButton: View {
     let label: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
-        Button(action: action) {
+        Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            action()
+        } label: {
             VStack(spacing: 6) {
                 Text(emoji)
                     .font(.system(size: 28))
