@@ -13,47 +13,62 @@ struct ExperiencesCatalogView: View {
                 Theme.Colors.acField.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 20) {
-                        Text("Curated Journeys")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(Theme.Colors.acWood)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-                            .padding(.top, 10)
-                        
-                        Text("Explore hand-picked routes to see the best of the city.")
-                            .font(Theme.Typography.body)
-                            .foregroundColor(Theme.Colors.acTextMuted)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-                            .padding(.bottom, 10)
+                    VStack(spacing: 24) {
+                        headerSection
                         
                         if store.experiences.isEmpty {
                             ProgressView()
-                                .padding(.top, 50)
+                                .padding(.top, 100)
                         } else {
-                            ForEach(store.experiences) { exp in
-                                ExperienceCard(summary: exp) {
-                                    if let route = store.loadExperience(filename: exp.filename) {
-                                        onSelectExperience(route)
-                                        dismiss()
+                            LazyVStack(spacing: 20) {
+                                ForEach(store.experiences) { exp in
+                                    ExperienceCard(summary: exp) {
+                                        if let route = store.loadExperience(filename: exp.filename) {
+                                            onSelectExperience(route)
+                                            dismiss()
+                                        }
                                     }
                                 }
                             }
+                            .padding(.horizontal)
                         }
                     }
-                    .padding(.bottom, 30)
+                    .padding(.bottom, 40)
                 }
             }
-            .navigationTitle("Experiences")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                ToolbarItem(placement: .principal) {
+                    Text("Experiences")
+                        .font(.system(size: 20, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acWood)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(Theme.Colors.acWood.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+    
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Curated Journeys")
+                .font(.system(size: 32, weight: .black, design: .rounded))
+                .foregroundColor(Theme.Colors.acWood)
+            
+            Text("Hand-picked routes through the best spots in San Francisco. One tap to start your adventure.")
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextMuted)
+                .lineSpacing(4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+        .padding(.top, 20)
     }
 }
 
@@ -61,58 +76,87 @@ struct ExperienceCard: View {
     let summary: ExperienceSummary
     let action: () -> Void
     
+    @State private var isPressed = false
+    
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
-                // Placeholder for an image if needed
-                Rectangle()
-                    .fill(Theme.Colors.acSky.opacity(0.3))
-                    .frame(height: 140)
-                    .overlay(
-                        AsyncImage(url: URL(string: summary.thumbnailUrl ?? "")) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                            case .success(let image):
-                                image.resizable().aspectRatio(contentMode: .fill)
-                            case .failure:
-                                Image(systemName: "photo.fill").foregroundColor(.white)
-                            @unknown default:
-                                EmptyView()
+                // Hero Image
+                ZStack(alignment: .topTrailing) {
+                    Rectangle()
+                        .fill(Theme.Colors.acSky.opacity(0.15))
+                        .frame(height: 180)
+                        .overlay(
+                            AsyncImage(url: URL(string: summary.thumbnailUrl ?? "")) { phase in
+                                switch phase {
+                                case .empty:
+                                    ZStack {
+                                        Theme.Colors.acField
+                                        ProgressView().tint(Theme.Colors.acWood)
+                                    }
+                                case .success(let image):
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                case .failure:
+                                    Image(systemName: "photo.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(Theme.Colors.acBorder)
+                                @unknown default:
+                                    EmptyView()
+                                }
                             }
-                        }
-                    )
-                    .clipped()
+                        )
+                        .clipped()
+                    
+                    // Duration Badge
+                    Text("\(summary.durationMinutes) min")
+                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Theme.Colors.acWood)
+                        .clipShape(Capsule())
+                        .padding(12)
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                }
                 
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(summary.title)
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(Theme.Colors.acTextDark)
-                        Spacer()
-                        Text("\(summary.durationMinutes) min")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Theme.Colors.acWood)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Theme.Colors.acWood.opacity(0.15))
-                            .clipShape(Capsule())
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(summary.title)
+                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextDark)
                     
                     Text(summary.subtitle)
-                        .font(Theme.Typography.body)
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
+                        .lineSpacing(2)
+                    
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Text("EXPLORE")
+                                .font(.system(size: 12, weight: .black, design: .rounded))
+                            Image(systemName: "arrow.right.circle.fill")
+                        }
+                        .foregroundColor(Theme.Colors.acLeaf)
+                        .padding(.top, 4)
+                    }
                 }
-                .padding(16)
+                .padding(20)
             }
             .background(Theme.Colors.acCream)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 1))
-            .shadow(color: Theme.Colors.acTextDark.opacity(0.05), radius: 6, x: 0, y: 3)
-            .padding(.horizontal)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Theme.Colors.acBorder, lineWidth: 2)
+            )
+            .shadow(color: Theme.Colors.acTextDark.opacity(0.08), radius: 12, x: 0, y: 8)
+            .scaleEffect(isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }

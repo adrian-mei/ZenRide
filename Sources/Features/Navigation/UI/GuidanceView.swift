@@ -2,8 +2,8 @@ import SwiftUI
 
 struct GuidanceView: View {
     @EnvironmentObject var routingService: RoutingService
-    @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
+    
     @State private var currentInstructionIndex: Int = 0
     @State private var isApproachingTurn = false
     private let haptic500 = UINotificationFeedbackGenerator()
@@ -15,69 +15,16 @@ struct GuidanceView: View {
                 let instruction = routingService.instructions[currentInstructionIndex]
                 
                 VStack(spacing: 0) {
-                    HStack(spacing: 12) {
-                        VStack(spacing: 4) {
-                            Image(systemName: instruction.turnType.icon)
-                                .font(.system(size: 28, weight: .heavy))
-                                .foregroundColor(Theme.Colors.acLeaf)
-                                .scaleEffect(isApproachingTurn ? 1.1 : 1.0)
-                                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isApproachingTurn)
-                                .frame(width: 44)
-                            
-                            Text(formatDistance(instruction: instruction))
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundColor(Theme.Colors.acTextDark)
-                                .contentTransition(.numericText())
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(instruction.text)
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundColor(Theme.Colors.acTextDark)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.7)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.top, 12)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 14)
-                    .background(Theme.Colors.acCream)
-                    
-                    // Next Instruction preview
-                    if currentInstructionIndex + 1 < routingService.instructions.count {
-                        let nextInst = routingService.instructions[currentInstructionIndex + 1]
-                        if nextInst.turnType != .arrive {
-                            ACSectionDivider(leadingInset: 0)
-                            HStack(spacing: 8) {
-                                Text("THEN")
-                                    .font(.system(size: 10, weight: .black, design: .rounded))
-                                    .foregroundColor(Theme.Colors.acTextMuted)
-                                
-                                Image(systemName: nextInst.turnType.icon)
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Theme.Colors.acTextDark)
-                                
-                                Text(nextInst.text)
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(Theme.Colors.acTextDark)
-                                    .lineLimit(1)
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Theme.Colors.acField)
-                        }
-                    }
+                    mainGuidanceRow(instruction: instruction)
+                    nextInstructionRow
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(Theme.Colors.acBorder, lineWidth: 2)
                 )
-                .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 6)
-                .frame(maxWidth: 240) // Limits width in the corner
+                .shadow(color: Theme.Colors.acTextDark.opacity(0.1), radius: 10, x: 0, y: 6)
+                .frame(maxWidth: 280)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 // Navigation Logic
@@ -102,12 +49,84 @@ struct GuidanceView: View {
             }
         }
     }
+    
+    @ViewBuilder
+    private func mainGuidanceRow(instruction: NavigationInstruction) -> some View {
+        HStack(spacing: 16) {
+            // Instruction Icon & Distance
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.Colors.acLeaf.opacity(isApproachingTurn ? 0.2 : 0.1))
+                        .frame(width: 54, height: 54)
+                    
+                    Image(systemName: instruction.turnType.icon)
+                        .font(.system(size: 32, weight: .black))
+                        .foregroundColor(Theme.Colors.acLeaf)
+                        .scaleEffect(isApproachingTurn ? 1.15 : 1.0)
+                }
+                
+                Text(formatDistance(instruction: instruction))
+                    .font(.system(size: 16, weight: .black, design: .rounded))
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .contentTransition(.numericText())
+            }
+            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isApproachingTurn)
+            
+            // Instruction Text
+            VStack(alignment: .leading, spacing: 4) {
+                Text(instruction.text)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 20)
+        .background(Theme.Colors.acCream)
+    }
+    
+    @ViewBuilder
+    private var nextInstructionRow: some View {
+        if currentInstructionIndex + 1 < routingService.instructions.count {
+            let nextInst = routingService.instructions[currentInstructionIndex + 1]
+            if nextInst.turnType != .arrive {
+                VStack(spacing: 0) {
+                    ACSectionDivider(leadingInset: 0)
+                    HStack(spacing: 10) {
+                        Text("THEN")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                            .kerning(0.5)
+                        
+                        Image(systemName: nextInst.turnType.icon)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Theme.Colors.acTextDark.opacity(0.7))
+                        
+                        Text(nextInst.text)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundColor(Theme.Colors.acTextDark.opacity(0.7))
+                            .lineLimit(1)
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Theme.Colors.acField)
+                }
+            }
+        }
+    }
 
     private func updateProgress(traveled: Double, instruction: NavigationInstruction) {
         let distToTurn = Double(instruction.routeOffsetInMeters) - traveled
         
         let distToTurnFt = distToTurn * 3.28084
-        if distToTurnFt > 0 && distToTurnFt < 300 {
+        if distToTurnFt > 0 && distToTurnFt < 350 {
             if !isApproachingTurn { isApproachingTurn = true }
         } else {
             if isApproachingTurn { isApproachingTurn = false }
@@ -126,7 +145,7 @@ struct GuidanceView: View {
             }
         }
 
-        if distToTurn <= 10 { // 10 meters tolerance to snap to next
+        if distToTurn <= 12 { // Increased tolerance slightly for smoother transitions
             if currentInstructionIndex < routingService.instructions.count - 1 {
                 routingService.currentInstructionIndex += 1
                 if instruction.turnType == .arrive {
@@ -144,7 +163,7 @@ struct GuidanceView: View {
         let distMeters = Double(instruction.routeOffsetInMeters) - traveled
         let distFeet = max(0, distMeters * 3.28084)
         
-        if distFeet > 1000 { // Approx 0.2 miles
+        if distFeet > 1320 { // More than 0.25 miles
             let distMiles = distFeet / 5280.0
             return String(format: "%.1f mi", distMiles)
         } else {

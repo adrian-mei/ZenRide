@@ -91,6 +91,10 @@ struct NavigationBottomPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if let quest = routingService.activeQuest {
+                questProgressRibbon(quest: quest)
+            }
+            
             if isCruiseMode {
                 cruiseModeContent
             } else if isArriving {
@@ -164,6 +168,67 @@ struct NavigationBottomPanel: View {
                 arrivingPulse = false
             }
         }
+    }
+
+    // MARK: - Quest Progress
+    
+    @ViewBuilder
+    private func questProgressRibbon(quest: DailyQuest) -> some View {
+        VStack(spacing: 6) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(quest.title.uppercased())
+                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .kerning(1.0)
+                }
+                .foregroundColor(Theme.Colors.acWood.opacity(0.6))
+                
+                Spacer()
+                
+                Text("STOP \(routingService.currentStopNumber) OF \(routingService.totalStopsInQuest)")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .foregroundColor(Theme.Colors.acLeaf)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Theme.Colors.acLeaf.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 16)
+            
+            // Progress Bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Theme.Colors.acBorder.opacity(0.3))
+                        .frame(height: 4)
+                    
+                    let total = Double(routingService.totalStopsInQuest)
+                    let current = Double(routingService.currentStopNumber)
+                    let legProgress = routeProgress / total
+                    let overallProgress = (max(0, current - 1) / total) + legProgress
+                    
+                    Capsule()
+                        .fill(Theme.Colors.acLeaf)
+                        .frame(width: geo.size.width * min(1.0, overallProgress), height: 4)
+                }
+            }
+            .frame(height: 4)
+            .padding(.horizontal, 16)
+            
+            if !routingService.currentStopName.isEmpty {
+                Text("Next: \(routingService.currentStopName)")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(.vertical, 12)
+        .background(Theme.Colors.acField.opacity(0.5))
+        ACSectionDivider(leadingInset: 0)
     }
 
     // MARK: - Cruise Mode

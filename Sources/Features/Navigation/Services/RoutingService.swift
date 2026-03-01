@@ -217,6 +217,18 @@ class RoutingService: ObservableObject {
     /// Set to the waypoint count of the most recently completed quest; reset to 0 after XP is awarded.
     @Published var completedQuestWaypointCount: Int = 0
 
+    var currentStopName: String {
+        guard let quest = activeQuest, currentLegIndex >= -1 && currentLegIndex < quest.waypoints.count else { return "" }
+        if currentLegIndex == -1 { return quest.waypoints[0].name }
+        return quest.waypoints[min(currentLegIndex + 1, quest.waypoints.count - 1)].name
+    }
+    
+    var totalStopsInQuest: Int { activeQuest?.waypoints.count ?? 0 }
+    var currentStopNumber: Int {
+        if currentLegIndex == -1 { return 0 }
+        return currentLegIndex + 1
+    }
+
     // MARK: - Vehicle Mode
 
     @Published var vehicleMode: VehicleMode = .motorcycle {
