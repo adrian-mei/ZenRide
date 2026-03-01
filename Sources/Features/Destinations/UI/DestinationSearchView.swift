@@ -525,11 +525,13 @@ struct SavedRouteRow: View {
                     Text(title)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.Colors.acTextDark)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(subtitle)
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundStyle(Theme.Colors.acWood)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -568,12 +570,15 @@ struct SearchResultRow: View {
                         Text(item.name ?? "Unknown")
                             .font(.system(size: 17, weight: .bold, design: .rounded))
                             .foregroundStyle(Theme.Colors.acTextDark)
-                            .lineLimit(1)
-                        HStack(spacing: 6) {
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(alignment: .top, spacing: 6) {
                             Text(item.placemark.zenFormattedAddress)
                                 .font(.system(size: 14, design: .rounded))
                                 .foregroundStyle(Theme.Colors.acWood)
-                                .lineLimit(1)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            
                             if let dist = distanceString {
                                 Text(dist)
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
@@ -582,6 +587,7 @@ struct SearchResultRow: View {
                                     .padding(.vertical, 2)
                                     .background(Theme.Colors.acSky.opacity(0.18))
                                     .clipShape(Capsule())
+                                    .layoutPriority(1)
                             }
                         }
                     }

@@ -585,30 +585,9 @@ struct HomeBottomSheet: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
 
-            // Guides
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Your Guides")
-                        .font(Theme.Typography.headline)
-                        .foregroundColor(Theme.Colors.acTextDark)
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(Theme.Colors.acWood)
-                        .font(.caption.bold())
-                }
-                .padding(.horizontal)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        GuideCard(title: "Bay Area Twisties", count: 12, icon: "mountain.2.fill", bgColor: Theme.Colors.acMint)
-                        GuideCard(title: "Favorites", count: 5, icon: "star.fill", bgColor: Theme.Colors.acSky)
-                    }
-                    .padding(.horizontal)
-                }
-            }
-
             // Actions
-            VStack(spacing: 12) {
-                ActionButton(icon: "square.and.arrow.up", title: "Share My Location", color: Theme.Colors.acSky) {
+            HStack(alignment: .top, spacing: 16) {
+                SquareActionButton(icon: "square.and.arrow.up", title: "Share\nLocation", color: Theme.Colors.acSky) {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     guard let loc = locationProvider.currentLocation else { return }
                     let lat = loc.coordinate.latitude
@@ -617,14 +596,14 @@ struct HomeBottomSheet: View {
                     let vc = UIActivityViewController(activityItems: [text], applicationActivities: nil)
                     UIApplication.shared.firstKeyWindow?.rootViewController?.present(vc, animated: true)
                 }
-                ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location", color: Theme.Colors.acCoral) {
+                SquareActionButton(icon: "mappin.and.ellipse", title: "Mark\nLocation", color: Theme.Colors.acCoral) {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     guard let loc = locationProvider.currentLocation else { return }
                     let coord = loc.coordinate
                     let name = "Marked \(markedLocationTimestamp())"
                     savedRoutes.savePlace(name: name, coordinate: coord)
                 }
-                ActionButton(icon: "exclamationmark.bubble", title: "Report an Issue", color: Theme.Colors.acGold) {
+                SquareActionButton(icon: "exclamationmark.bubble", title: "Report\nIssue", color: Theme.Colors.acGold) {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let url = URL(string: "https://github.com/anthropics/claude-code/issues") {
                         UIApplication.shared.open(url)
@@ -676,19 +655,19 @@ struct HomeBottomSheet: View {
                     HStack(spacing: 0) {
                         SearchResultRow(
                             item: item,
-                            isSaved: justSavedIndex == idx,
+                            isSaved: savedRoutes.isPlaceSaved(name: item.name ?? "", coordinate: item.placemark.coordinate),
                             distanceString: distanceString
                         ) {
                             routeTo(item: item)
                         } onSave: {
                             guard let coord = item.placemark.location?.coordinate else { return }
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                justSavedIndex = idx
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                                withAnimation { justSavedIndex = nil }
+                            if savedRoutes.isPlaceSaved(name: item.name ?? "", coordinate: coord) {
+                                if let savedId = savedRoutes.findExistingId(near: coord, name: item.name ?? "") {
+                                    savedRoutes.togglePin(id: savedId)
+                                }
+                            } else {
+                                savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
                             }
                         }
 
@@ -1201,7 +1180,7 @@ private struct BookmarkRouteCard: View {
     }
 }
 
-struct ActionButton: View {
+struct SquareActionButton: View {
     let icon: String
     let title: String
     var color: Color = Theme.Colors.acWood
@@ -1209,29 +1188,27 @@ struct ActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            VStack(spacing: 8) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(color.opacity(0.15))
-                        .frame(width: 38, height: 38)
+                    Color.clear
+                        .aspectRatio(1, contentMode: .fit)
+                        .background(Theme.Colors.acField)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
+                        .shadow(color: Theme.Colors.acBorder.opacity(0.7), radius: 0, x: 0, y: 4)
+                    
                     Image(systemName: icon)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 24, weight: .semibold))
                         .foregroundStyle(color)
                 }
+                
                 Text(title)
-                    .font(Theme.Typography.body)
+                    .font(Theme.Typography.caption)
                     .foregroundColor(Theme.Colors.acTextDark)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.Colors.acBorder)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 13)
-            .background(Theme.Colors.acField)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
-            .shadow(color: Theme.Colors.acBorder.opacity(0.7), radius: 0, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }

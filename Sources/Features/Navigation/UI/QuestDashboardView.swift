@@ -2,12 +2,11 @@ import SwiftUI
 import CoreLocation
 
 struct QuestDashboardView: View {
-    @EnvironmentObject var questStore: QuestStore
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var locationProvider: LocationProvider
+    
+    @StateObject private var experiencesStore = ExperiencesStore()
 
-    @State private var showingSearch = false
-    @State private var showingCatalog = false
     @State private var selectedExperience: ExperienceRoute?
     @State private var showingExperienceAction = false
     @State private var preloadedExperienceWaypoints: [QuestWaypoint] = []
@@ -19,77 +18,36 @@ struct QuestDashboardView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("ROUTE BOOK")
+                    Text("EXPERIENCES")
                         .font(.system(size: 14, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acWood)
                         .kerning(1.5)
-                    if !questStore.quests.isEmpty {
-                        Text("\(questStore.quests.count) saved route\(questStore.quests.count == 1 ? "" : "s")")
+                    if !experiencesStore.experiences.isEmpty {
+                        Text("\(experiencesStore.experiences.count) curated route\(experiencesStore.experiences.count == 1 ? "" : "s")")
                             .font(.system(size: 11, weight: .medium, design: .rounded))
                             .foregroundColor(Theme.Colors.acTextMuted)
                     }
                 }
                 Spacer()
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    showingCatalog = true
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(Theme.Colors.acWood)
-                        Text("Experiences")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(Theme.Colors.acWood)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(ACPillButtonStyle())
-                .background(Theme.Colors.acField)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
-
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    showingSearch = true
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(Theme.Colors.acTextDark)
-                        Text("New")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(Theme.Colors.acTextDark)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(ACPillButtonStyle())
-                .background(Theme.Colors.acField)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
             }
             .padding(.horizontal)
 
-            if questStore.quests.isEmpty {
-                emptyState
+            if experiencesStore.experiences.isEmpty {
+                ProgressView()
+                    .padding()
+                    .frame(maxWidth: .infinity)
             } else {
                 // Fixed height + scrollClipDisabled so shadows are not clipped at the edge
                 // scrollTargetBehavior ensures snappy card-by-card paging
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
-                        ForEach(questStore.quests) { quest in
-                            QuestCard(quest: quest,
-                                      onStart: {
-                                routingService.startQuest(quest,
-                                                           currentLocation: locationProvider.currentLocation?.coordinate)
-                            },
-                                      onDelete: {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    questStore.removeQuest(id: quest.id)
+                        ForEach(experiencesStore.experiences) { exp in
+                            ExperienceDashboardCard(summary: exp) {
+                                if let route = experiencesStore.loadExperience(filename: exp.filename) {
+                                    selectedExperience = route
+                                    showingExperienceAction = true
                                 }
-                            })
+                            }
                             .transition(.scale(scale: 0.85).combined(with: .opacity))
                         }
                     }
@@ -97,23 +55,9 @@ struct QuestDashboardView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 8) // breathing room for shadows
                 }
-                .frame(height: 224) // explicit height = card 200 + vertical padding 24
+                .frame(height: 240) // slightly taller for the image
                 .scrollTargetBehavior(.viewAligned)
                 .scrollClipDisabled()
-            }
-        }
-        .sheet(isPresented: $showingSearch) {
-            DestinationSearchView { name, coordinate in
-                let wp = QuestWaypoint(name: name, coordinate: coordinate)
-                let quest = DailyQuest(title: name, waypoints: [wp])
-                questStore.addQuest(quest)
-                routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
-            }
-        }
-        .sheet(isPresented: $showingCatalog) {
-            ExperiencesCatalogView { route in
-                selectedExperience = route
-                showingExperienceAction = true
             }
         }
         .confirmationDialog(
@@ -156,143 +100,99 @@ struct QuestDashboardView: View {
         let quest = DailyQuest(title: route.title, waypoints: waypoints, icon: "star.fill")
         routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
     }
-
-    private var emptyState: some View {
-        Button {
-            showingSearch = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.Colors.acLeaf.opacity(0.12))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(Theme.Colors.acLeaf)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Find your first spot")
-                        .font(Theme.Typography.headline)
-                        .foregroundColor(Theme.Colors.acTextDark)
-                    Text("Tap to search for a destination")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundColor(Theme.Colors.acTextMuted)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Theme.Colors.acTextMuted)
-            }
-            .padding(.horizontal)
-        }
-        .buttonStyle(.plain)
-    }
 }
 
-// MARK: - Quest Card
+// MARK: - Experience Dashboard Card
 
-struct QuestCard: View {
-    let quest: DailyQuest
-    let onStart: () -> Void
-    let onDelete: () -> Void
-
-    @State private var showDeleteConfirm = false
-
+struct ExperienceDashboardCard: View {
+    let summary: ExperienceSummary
+    let action: () -> Void
+    
+    @State private var isPressed = false
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Top row: icon + stop count + delete
-            HStack(alignment: .top) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.Colors.acLeaf.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: quest.icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(Theme.Colors.acLeaf)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Hero Image
+                ZStack(alignment: .topTrailing) {
+                    Rectangle()
+                        .fill(Theme.Colors.acSky.opacity(0.15))
+                        .frame(height: 120)
+                        .overlay(
+                            AsyncImage(url: URL(string: summary.thumbnailUrl ?? "")) { phase in
+                                switch phase {
+                                case .empty:
+                                    ZStack {
+                                        Theme.Colors.acField
+                                        ProgressView().tint(Theme.Colors.acWood)
+                                    }
+                                case .success(let image):
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                case .failure:
+                                    Image(systemName: "photo.fill")
+                                        .font(.system(size: 30))
+                                        .foregroundColor(Theme.Colors.acBorder)
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        )
+                        .clipped()
+                    
+                    // Duration Badge
+                    Text("\(summary.durationMinutes) min")
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Theme.Colors.acWood)
+                        .clipShape(Capsule())
+                        .padding(8)
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                 }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 6) {
-                    ACBadge(
-                        text: "\(quest.waypoints.count) stops",
-                        textColor: Theme.Colors.acWood,
-                        backgroundColor: Theme.Colors.acWood.opacity(0.12)
-                    )
-
-                    Text("+\(quest.waypoints.count * 25) XP")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(summary.title)
+                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextDark)
+                        .lineLimit(1)
+                    
+                    Text(summary.subtitle)
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .lineSpacing(2)
+                    
+                    Spacer(minLength: 0)
+                    
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Text("EXPLORE")
+                                .font(.system(size: 11, weight: .black, design: .rounded))
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.system(size: 12))
+                        }
                         .foregroundColor(Theme.Colors.acLeaf)
-                }
-            }
-
-            // Title + route summary
-            VStack(alignment: .leading, spacing: 4) {
-                Text(quest.title)
-                    .font(Theme.Typography.title)
-                    .foregroundColor(Theme.Colors.acTextDark)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                if let first = quest.waypoints.first, let last = quest.waypoints.last, first.id != last.id {
-                    HStack(spacing: 5) {
-                        Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 11))
-                            .foregroundColor(Theme.Colors.acTextMuted)
-                        Text("\(first.name) → \(last.name)")
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundColor(Theme.Colors.acTextMuted)
-                            .lineLimit(1)
                     }
                 }
+                .padding(14)
             }
-
-            Spacer(minLength: 0)
-
-            // Action row
-            HStack(spacing: 8) {
-                Button(action: onStart) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("Start")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(ACButtonStyle(variant: .primary))
-
-                Button {
-                    showDeleteConfirm = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(Theme.Colors.acCoral)
-                        .frame(width: 40, height: 40)
-                        .background(Theme.Colors.acCoral.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Colors.acCoral.opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .confirmationDialog("Delete \"\(quest.title)\"?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-                    Button("Delete Route", role: .destructive, action: onDelete)
-                    Button("Cancel", role: .cancel) {}
-                }
-            }
+            .frame(width: 252, height: 216)
+            .background(Theme.Colors.acCream)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Theme.Colors.acBorder, lineWidth: 2)
+            )
+            .shadow(color: Theme.Colors.acTextDark.opacity(0.08), radius: 8, x: 0, y: 4)
+            .scaleEffect(isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
         }
-        .frame(width: 252, height: 200)
-        .acCardStyle(padding: 16, interactive: false)
+        .buttonStyle(PlainButtonStyle())
+        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
+            isPressed = pressing
+        }, perform: {})
     }
 }
-
-// MARK: - Pill press-state button style
-
-private struct ACPillButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .animation(.spring(response: 0.15, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
