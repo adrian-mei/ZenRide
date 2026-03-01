@@ -80,6 +80,36 @@ enum VehicleType: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - Vehicle Template
+
+struct VehicleTemplate: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let make: String
+    let model: String
+    let type: VehicleType
+    let unlockLevel: Int
+    
+    // Stats
+    let speedStat: Double
+    let handlingStat: Double
+    let safetyStat: Double
+    
+    // Default appearance
+    let colorHex: String
+    
+    static let all: [VehicleTemplate] = [
+        VehicleTemplate(id: "classic_sedan", name: "Classic Sedan", make: "Standard", model: "Sedan", type: .car, unlockLevel: 1, speedStat: 6.0, handlingStat: 5.0, safetyStat: 9.0, colorHex: "3A86FF"),
+        VehicleTemplate(id: "street_bike", name: "Street Bike", make: "Zen", model: "Cruiser", type: .bicycle, unlockLevel: 1, speedStat: 2.0, handlingStat: 10.0, safetyStat: 2.0, colorHex: "FF006E"),
+        VehicleTemplate(id: "trail_blazer", name: "Trail Blazer", make: "Zen", model: "MTB", type: .mountainBike, unlockLevel: 3, speedStat: 3.0, handlingStat: 9.0, safetyStat: 4.0, colorHex: "8338EC"),
+        VehicleTemplate(id: "eco_glide", name: "Eco Glide", make: "Future", model: "EV", type: .electricCar, unlockLevel: 5, speedStat: 7.0, handlingStat: 8.0, safetyStat: 8.0, colorHex: "38B000"),
+        VehicleTemplate(id: "scooter_pro", name: "Scooter Pro", make: "Zen", model: "Kick", type: .scooter, unlockLevel: 8, speedStat: 4.0, handlingStat: 9.0, safetyStat: 3.0, colorHex: "FFBE0B"),
+        VehicleTemplate(id: "sport_racer", name: "Sport Racer", make: "Velocity", model: "S1", type: .sportsCar, unlockLevel: 12, speedStat: 10.0, handlingStat: 9.0, safetyStat: 3.0, colorHex: "FF0000"),
+        VehicleTemplate(id: "heavy_duty", name: "Heavy Duty", make: "Tough", model: "Truck", type: .truck, unlockLevel: 15, speedStat: 5.0, handlingStat: 3.0, safetyStat: 10.0, colorHex: "5C677D"),
+        VehicleTemplate(id: "moto_ninja", name: "Moto Ninja", make: "Speed", model: "Ninja", type: .motorcycle, unlockLevel: 20, speedStat: 9.0, handlingStat: 8.0, safetyStat: 2.0, colorHex: "000000")
+    ]
+}
+
 // MARK: - Vehicle
 
 struct Vehicle: Codable, Identifiable {

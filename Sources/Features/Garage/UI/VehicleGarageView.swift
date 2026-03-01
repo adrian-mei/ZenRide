@@ -11,7 +11,9 @@ struct VehicleGarageView: View {
     @State private var selectedPage: UUID? = nil
     @State private var showAddVehicle = false
     @State private var editingVehicle: Vehicle? = nil
-    @State private var selectedTab: Int = 0 // 0 = Garage, 1 = Campers
+    @State private var showStatsSheet = false
+    @State private var showScrapbookSheet = false
+    @State private var showServiceSheet = false
 
     var body: some View {
         ZStack {
@@ -21,47 +23,20 @@ struct VehicleGarageView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack {
-                    Text(selectedTab == 0 ? "MY GARAGE" : "MY CAMPERS")
+                    Text("MY GARAGE")
                         .font(Theme.Typography.title)
                         .foregroundColor(Theme.Colors.acTextDark)
 
                     Spacer()
-
-                    if selectedTab == 0 {
-                        Button {
-                            showAddVehicle = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 14, weight: .bold))
-                                Text("Add")
-                                    .font(.system(size: 14, weight: .bold))
-                            }
-                        }
-                        .buttonStyle(ACButtonStyle(variant: .secondary))
-                        .frame(height: 36)
-                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 24)
-                .padding(.bottom, 8)
-                
-                Picker("", selection: $selectedTab) {
-                    Text("Vehicles").tag(0)
-                    Text("Characters").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 24)
                 .padding(.bottom, 16)
 
-                if selectedTab == 0 {
-                    if vehicleStore.vehicles.isEmpty {
-                        emptyState
-                    } else {
-                        garageContent
-                    }
+                if vehicleStore.vehicles.isEmpty {
+                    emptyState
                 } else {
-                    CharacterSelectionView()
+                    garageContent
                 }
             }
         }
@@ -113,22 +88,34 @@ struct VehicleGarageView: View {
     // MARK: - Garage Content
 
     private var garageContent: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 24) {
-                // Vehicle Carousel
-                TabView(selection: $selectedPage) {
-                    ForEach(vehicleStore.vehicles) { vehicle in
-                        VehicleCard(vehicle: vehicle, isDefault: vehicleStore.selectedVehicleId == vehicle.id)
-                            .tag(Optional(vehicle.id))
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 8)
-                    }
+        VStack(spacing: 0) {
+            // Vehicle Carousel
+            TabView(selection: $selectedPage) {
+                ForEach(vehicleStore.vehicles) { vehicle in
+                    VehicleCard(vehicle: vehicle, isDefault: vehicleStore.selectedVehicleId == vehicle.id)
+                        .tag(Optional(vehicle.id))
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
+                        .padding(.bottom, 32)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .always))
-                .frame(height: 240)
+                
+                // Add New Card at the end
+                AddVehicleCard {
+                    showAddVehicle = true
+                }
+                .tag(Optional<UUID>.none)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .frame(height: 380)
 
-                // Action buttons for selected vehicle
-                if let vehicle = currentVehicle {
+            Spacer()
+            
+            // Action buttons for selected vehicle
+            if let vehicle = currentVehicle, selectedPage != nil {
+                VStack(spacing: 16) {
                     HStack(spacing: 12) {
                         Button {
                             if vehicleStore.selectedVehicleId != vehicle.id {
@@ -155,120 +142,110 @@ struct VehicleGarageView: View {
                         }
                         .buttonStyle(ACButtonStyle(variant: .secondary))
                     }
-                    .padding(.horizontal, 24)
-
-                    // Stats
-                    VehicleStatsSection(vehicle: vehicle, driveStore: driveStore)
-                        .padding(.horizontal, 24)
-
-                    // Photo Timeline
-                    PhotoTimelineSection(vehicle: vehicle) { updated in
-                        vehicleStore.updateVehicle(updated)
+                    
+                    HStack(spacing: 12) {
+                        Button {
+                            showStatsSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chart.bar.fill")
+                                Text("Stats")
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(ACButtonStyle(variant: .secondary))
+                        
+                        Button {
+                            showScrapbookSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "photo.fill.on.rectangle.fill")
+                                Text("Scrapbook")
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(ACButtonStyle(variant: .secondary))
+                        
+                        Button {
+                            showServiceSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "wrench.and.screwdriver.fill")
+                                Text("Service")
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(ACButtonStyle(variant: .secondary))
                     }
-                    .padding(.horizontal, 24)
-
-                    // Maintenance Log
-                    MaintenanceLogSection(vehicle: vehicle, currentMileage: vehicle.odometerMiles + driveStore.totalDistanceMiles) { updated in
-                        vehicleStore.updateVehicle(updated)
-                    }
-                    .padding(.horizontal, 24)
                 }
-
-                Spacer(minLength: 40)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
             }
-            .padding(.bottom, 24)
+        }
+        .sheet(isPresented: $showStatsSheet) {
+            if let v = currentVehicle {
+                NavigationStack {
+                    ScrollView {
+                        VehicleStatsSection(vehicle: v, driveStore: driveStore)
+                            .padding(24)
+                    }
+                    .background(Theme.Colors.acField.ignoresSafeArea())
+                    .navigationTitle("Stats")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showStatsSheet = false }
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
+            }
+        }
+        .sheet(isPresented: $showScrapbookSheet) {
+            if let v = currentVehicle {
+                NavigationStack {
+                    ScrollView {
+                        PhotoTimelineSection(vehicle: v) { updated in
+                            vehicleStore.updateVehicle(updated)
+                        }
+                        .padding(24)
+                    }
+                    .background(Theme.Colors.acField.ignoresSafeArea())
+                    .navigationTitle("Scrapbook")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showScrapbookSheet = false }
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showServiceSheet) {
+            if let v = currentVehicle {
+                NavigationStack {
+                    ScrollView {
+                        MaintenanceLogSection(vehicle: v, currentMileage: v.odometerMiles + driveStore.totalDistanceMiles) { updated in
+                            vehicleStore.updateVehicle(updated)
+                        }
+                        .padding(24)
+                    }
+                    .background(Theme.Colors.acField.ignoresSafeArea())
+                    .navigationTitle("Service Log")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showServiceSheet = false }
+                        }
+                    }
+                }
+            }
         }
     }
 
     private var currentVehicle: Vehicle? {
         vehicleStore.vehicles.first(where: { $0.id == selectedPage })
             ?? vehicleStore.vehicles.first
-    }
-}
-
-// MARK: - Character Selection View
-
-struct CharacterSelectionView: View {
-    @EnvironmentObject var playerStore: PlayerStore
-    
-    let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
-    ]
-    
-    var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(Character.all) { character in
-                    let isUnlocked = character.unlockLevel <= playerStore.currentLevel
-                    let isSelected = playerStore.selectedCharacterId == character.id
-                    
-                    Button {
-                        if isUnlocked {
-                            playerStore.selectCharacter(character)
-                        }
-                    } label: {
-                        VStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(isUnlocked ? Color(hex: character.colorHex) : Theme.Colors.acBorder.opacity(0.3))
-                                    .frame(width: 80, height: 80)
-                                    .overlay(Circle().stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.2), lineWidth: isSelected ? 4 : 2))
-
-                                if isUnlocked {
-                                    Image(systemName: character.icon)
-                                        .font(.system(size: 36, weight: .bold))
-                                        .foregroundColor(.white)
-                                } else {
-                                    Image(systemName: "lock.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(Theme.Colors.acTextMuted)
-                                }
-                            }
-
-                            VStack(spacing: 4) {
-                                Text(isUnlocked ? character.name : "Locked")
-                                    .font(Theme.Typography.headline)
-                                    .foregroundColor(isUnlocked ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
-
-                                if isSelected {
-                                    ACBadge(text: "ACTIVE")
-                                } else if !isUnlocked {
-                                    Text("Level \(character.unlockLevel)")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(Theme.Colors.acWood)
-                                } else {
-                                    Text("Tap to Select")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(Theme.Colors.acTextMuted)
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 24)
-                        .background(Theme.Colors.acCream)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .contentShape(RoundedRectangle(cornerRadius: 20))
-                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.4), lineWidth: 2))
-                        .opacity(isUnlocked ? 1.0 : 0.6)
-                        .shadow(color: isSelected ? Theme.Colors.acLeaf.opacity(0.2) : .clear, radius: 8, y: 4)
-                        .bunnyPaw()
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!isUnlocked)
-                    .accessibilityLabel(isUnlocked ? character.name : "\(character.name), locked")
-                    .accessibilityHint(
-                        isSelected ? "Currently active" :
-                        isUnlocked ? "Double tap to select" :
-                        "Unlocks at level \(character.unlockLevel)"
-                    )
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 40)
-        }
     }
 }
 
@@ -313,17 +290,52 @@ private struct VehicleCard: View {
             ACSectionDivider(leadingInset: 0)
 
             // Stats Bars
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 ACStatBar(label: "Speed", value: vehicle.speedStat, color: Theme.Colors.acSky)
                 ACStatBar(label: "Handling", value: vehicle.handlingStat, color: Theme.Colors.acGold)
                 ACStatBar(label: "Safety", value: vehicle.safetyStat, color: Theme.Colors.acCoral)
             }
             .padding(.top, 4)
+            
+            Spacer(minLength: 0)
         }
-        .acCardStyle(padding: 20, interactive: false)
+        .acCardStyle(padding: 24, interactive: false)
+        .frame(maxHeight: .infinity)
     }
 }
 
+
+
+private struct AddVehicleCard: View {
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.Colors.acLeaf.opacity(0.15))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "plus")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(Theme.Colors.acLeaf)
+                }
+                
+                Text("Add New Vehicle")
+                    .font(Theme.Typography.title)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    
+                Text("Unlock a new ride for your adventures")
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextMuted)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .acCardStyle(padding: 24, interactive: true)
+        }
+        .buttonStyle(.plain)
+    }
+}
 
 // MARK: - Stats Section
 
