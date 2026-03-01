@@ -454,8 +454,6 @@ struct HomeBottomSheet: View {
         }
     }
 
-    // MARK: - Sub-Views
-
     private var idleContent: some View {
         VStack(alignment: .leading, spacing: 24) {
             
@@ -600,7 +598,7 @@ struct HomeBottomSheet: View {
                     let lng = loc.coordinate.longitude
                     let text = "My location: https://maps.apple.com/?ll=\(lat),\(lng)"
                     let vc = UIActivityViewController(activityItems: [text], applicationActivities: nil)
-                    UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first { $0.isKeyWindow }?.rootViewController?.present(vc, animated: true)
+                    UIApplication.shared.firstKeyWindow?.rootViewController?.present(vc, animated: true)
                 }
                 ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location", color: Theme.Colors.acCoral) {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -1215,5 +1213,14 @@ struct ActionButton: View {
             .shadow(color: Theme.Colors.acBorder.opacity(0.7), radius: 0, x: 0, y: 4)
         }
         .buttonStyle(.plain)
+    }
+}
+
+extension UIApplication {
+    var firstKeyWindow: UIWindow? {
+        connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }
     }
 }
