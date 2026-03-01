@@ -7,6 +7,7 @@ enum UserDefaultsKeys {
     static let playerCharacter        = "PlayerStore_Character_v1"
     static let vehicleStoreV1         = "VehicleStore_v1"
     static let vehicleStoreSelected   = "VehicleStore_v1_selected"
+    static let vehicleTemplateSelected = "VehicleStore_v1_template"
     static let rideJournal            = "RideJournalEntries"
     static let savedRoutes            = "SavedRoutes"
     static let recentSearches         = "RecentSearches_v1"

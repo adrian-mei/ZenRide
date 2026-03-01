@@ -158,9 +158,11 @@ struct MaintenanceRecord: Codable, Identifiable {
 class VehicleStore: ObservableObject {
     @Published var vehicles: [Vehicle] = []
     @Published var selectedVehicleId: UUID?
+    @Published var selectedTemplateId: String = "classic_sedan"
 
     private let storeKey = UserDefaultsKeys.vehicleStoreV1
     private let selectedKey = UserDefaultsKeys.vehicleStoreSelected
+    private let templateKey = UserDefaultsKeys.vehicleTemplateSelected
 
     init() { load() }
 
@@ -171,7 +173,17 @@ class VehicleStore: ObservableObject {
     }
 
     var selectedVehicleMode: VehicleMode {
-        selectedVehicle?.type.vehicleMode ?? .motorcycle
+        (VehicleTemplate.all.first { $0.id == selectedTemplateId } ?? VehicleTemplate.all[0])
+            .type.vehicleMode
+    }
+
+    // MARK: - Template Selection
+
+    func setTemplate(id: String) {
+        guard VehicleTemplate.all.contains(where: { $0.id == id }) else { return }
+        selectedTemplateId = id
+        UserDefaults.standard.set(id, forKey: templateKey)
+        Log.info("VehicleStore", "Selected template '\(id)'")
     }
 
     // MARK: - CRUD
@@ -221,6 +233,11 @@ class VehicleStore: ObservableObject {
     }
 
     private func load() {
+        if let saved = UserDefaults.standard.string(forKey: templateKey),
+           VehicleTemplate.all.contains(where: { $0.id == saved }) {
+            selectedTemplateId = saved
+        }
+
         if let data = UserDefaults.standard.data(forKey: storeKey) {
             do {
                 vehicles = try JSONDecoder().decode([Vehicle].self, from: data)
