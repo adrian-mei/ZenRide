@@ -1,0 +1,186 @@
+{
+  "id": "exp-sf-49-mile",
+  "title": "The Historic 49-Mile Scenic Drive",
+  "subtitle": "The ultimate tour of San Francisco",
+  "description": "Originally created in 1938 for the Golden Gate International Exposition, this historic route takes you through the city's most iconic neighborhoods, from the majestic City Hall to the heights of Twin Peaks and the shores of the Pacific.",
+  "durationMinutes": 240,
+  "city": "San Francisco",
+  "region": "CA",
+  "stops": [
+    {
+      "id": "stop-city-hall",
+      "order": 1,
+      "name": "San Francisco City Hall",
+      "latitude": 37.7792,
+      "longitude": -122.4192,
+      "description": "The historic starting and ending point of the drive. This architectural masterpiece serves as the seat of government for the City and County of San Francisco.",
+      "imageUrls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Sfcityhall.jpeg/800px-Sfcityhall.jpeg"],
+      "isSkippable": false,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-japantown",
+      "order": 2,
+      "name": "Japantown (Peace Pagoda)",
+      "latitude": 37.7853,
+      "longitude": -122.4299,
+      "description": "Pass through one of only three remaining Japantowns in the US, featuring the iconic five-tiered Peace Pagoda in the Japan Center.",
+      "imageUrls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/San_Francisco_Japantown_Peace_Pagoda.jpg/800px-San_Francisco_Japantown_Peace_Pagoda.jpg"],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-union-square",
+      "order": 3,
+      "name": "Union Square",
+      "latitude": 37.7879,
+      "longitude": -122.4074,
+      "description": "The vibrant heart of the city's shopping and theater district, named for the pro-Union rallies held here during the Civil War.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-chinatown",
+      "order": 4,
+      "name": "Chinatown (Dragon Gate)",
+      "latitude": 37.7907,
+      "longitude": -122.4056,
+      "description": "Enter the oldest Chinatown in North America through the ornate Dragon Gate at Grant Avenue and Bush Street.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-grace-cathedral",
+      "order": 5,
+      "name": "Nob Hill (Grace Cathedral)",
+      "latitude": 37.7919,
+      "longitude": -122.4126,
+      "description": "Ascend the heights of Nob Hill to see this grand Episcopal cathedral, famous for its Ghiberti-inspired 'Gates of Paradise' and labyrinths.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-coit-tower",
+      "order": 6,
+      "name": "Coit Tower (Telegraph Hill)",
+      "latitude": 37.8024,
+      "longitude": -122.4058,
+      "description": "A 210-foot tower offering panoramic views of the city and bay, featuring WPA-era murals that depict life in 1930s California.",
+      "imageUrls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Coit_Tower_SF.jpg/800px-Coit_Tower_SF.jpg"],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-fishermans-wharf",
+      "order": 7,
+      "name": "Fisherman's Wharf",
+      "latitude": 37.8083,
+      "longitude": -122.4101,
+      "description": "Drive along the waterfront of this world-famous district, passing Pier 39, historic ships, and plenty of fresh seafood stands.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-palace-fine-arts",
+      "order": 8,
+      "name": "Palace of Fine Arts",
+      "latitude": 37.8019,
+      "longitude": -122.4486,
+      "description": "The most prominent remaining structure from the 1915 Panama–Pacific International Exposition, featuring a stunning Greco-Roman rotunda.",
+      "imageUrls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Palace_of_Fine_Arts_SF_CA.jpg/800px-Palace_of_Fine_Arts_SF_CA.jpg"],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-fort-point",
+      "order": 9,
+      "name": "Fort Point",
+      "latitude": 37.8106,
+      "longitude": -122.4770,
+      "description": "Located directly under the Golden Gate Bridge, this Civil War-era fort offers some of the most dramatic views of the bridge's architecture.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-legion-honor",
+      "order": 10,
+      "name": "Legion of Honor",
+      "latitude": 37.7844,
+      "longitude": -122.5009,
+      "description": "Located in Lincoln Park, this museum is a beautiful replica of the Palais de la Légion d'Honneur in Paris and houses a world-class art collection.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-cliff-house",
+      "order": 11,
+      "name": "Cliff House & Ocean Beach",
+      "latitude": 37.7784,
+      "longitude": -122.5140,
+      "description": "Take in the views of the Pacific Ocean and Seal Rocks from this historic site perched on the cliffs above Ocean Beach.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-gg-park",
+      "order": 12,
+      "name": "Golden Gate Park (Music Concourse)",
+      "latitude": 37.7699,
+      "longitude": -122.4660,
+      "description": "Wind through the city's largest park, passing the de Young Museum, California Academy of Sciences, and the Japanese Tea Garden.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-twin-peaks",
+      "order": 13,
+      "name": "Twin Peaks",
+      "latitude": 37.7544,
+      "longitude": -122.4468,
+      "description": "Ascend to these two iconic hills for the most famous 360-degree unobstructed views of the entire San Francisco Bay Area.",
+      "imageUrls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Road_to_Twin_Peaks.JPG/800px-Road_to_Twin_Peaks.JPG"],
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-castro",
+      "order": 14,
+      "name": "The Castro",
+      "latitude": 37.7608,
+      "longitude": -122.4350,
+      "description": "Descend into one of the most prominent LGBTQ+ neighborhoods in the world, known for its historic theater and colorful atmosphere.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-mission-dolores",
+      "order": 15,
+      "name": "Mission San Francisco de Asís",
+      "latitude": 37.7643,
+      "longitude": -122.4267,
+      "description": "Commonly known as Mission Dolores, this is the oldest surviving structure in San Francisco, founded in 1776.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-oracle-park",
+      "order": 16,
+      "name": "Oracle Park",
+      "latitude": 37.7785,
+      "longitude": -122.3892,
+      "description": "Pass by the home of the San Francisco Giants, widely considered one of the most beautiful ballparks in the country.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-ferry-building",
+      "order": 17,
+      "name": "Ferry Building",
+      "latitude": 37.7954,
+      "longitude": -122.3936,
+      "description": "The grand terminal for ferries across the bay, now a premier food hall showcasing the best of Northern California's culinary scene.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    }
+  ]
+}

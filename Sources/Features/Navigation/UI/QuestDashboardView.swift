@@ -8,6 +8,8 @@ struct QuestDashboardView: View {
 
     @State private var showingBuilder = false
     @State private var showingCatalog = false
+    @State private var selectedExperience: ExperienceRoute?
+    @State private var showingExperienceAction = false
     @State private var preloadedExperienceWaypoints: [QuestWaypoint] = []
     @State private var preloadedExperienceTitle: String = ""
 
@@ -72,8 +74,6 @@ struct QuestDashboardView: View {
             if questStore.quests.isEmpty {
                 emptyState
             } else {
-                // Fixed height + scrollClipDisabled so shadows are not clipped at the edge
-                // scrollTargetBehavior ensures snappy card-by-card paging
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
                         ForEach(questStore.quests) { quest in
@@ -91,9 +91,9 @@ struct QuestDashboardView: View {
                     }
                     .scrollTargetLayout()
                     .padding(.horizontal)
-                    .padding(.vertical, 8) // breathing room for shadows
+                    .padding(.vertical, 8)
                 }
-                .frame(height: 224) // explicit height = card 200 + vertical padding 24
+                .frame(height: 224)
                 .scrollTargetBehavior(.viewAligned)
                 .scrollClipDisabled()
             }
@@ -106,17 +106,49 @@ struct QuestDashboardView: View {
         }
         .sheet(isPresented: $showingCatalog) {
             ExperiencesCatalogView { route in
-                preloadedExperienceTitle = route.title
-                preloadedExperienceWaypoints = route.stops.map { stop in
-                    QuestWaypoint(
-                        name: stop.name,
-                        coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude),
-                        icon: "star.circle.fill"
-                    )
-                }
-                showingBuilder = true
+                selectedExperience = route
+                showingExperienceAction = true
             }
         }
+        .confirmationDialog(
+            selectedExperience?.title ?? "Experience",
+            isPresented: $showingExperienceAction,
+            titleVisibility: .visible
+        ) {
+            Button("Start Adventure Now") {
+                if let route = selectedExperience {
+                    startExperienceImmediately(route)
+                }
+            }
+            Button("Customize Route") {
+                if let route = selectedExperience {
+                    preloadedExperienceTitle = route.title
+                    preloadedExperienceWaypoints = route.stops.map { stop in
+                        QuestWaypoint(
+                            name: stop.name,
+                            coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude),
+                            icon: "star.circle.fill"
+                        )
+                    }
+                    showingBuilder = true
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(selectedExperience?.subtitle ?? "")
+        }
+    }
+
+    private func startExperienceImmediately(_ route: ExperienceRoute) {
+        let waypoints = route.stops.map { stop in
+            QuestWaypoint(
+                name: stop.name,
+                coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude),
+                icon: "star.circle.fill"
+            )
+        }
+        let quest = DailyQuest(title: route.title, waypoints: waypoints, icon: "star.fill")
+        routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
     }
 
     private var emptyState: some View {
@@ -151,8 +183,6 @@ struct QuestDashboardView: View {
     }
 }
 
-// MARK: - Quest Card
-
 struct QuestCard: View {
     let quest: DailyQuest
     let onStart: () -> Void
@@ -162,7 +192,6 @@ struct QuestCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Top row: icon + stop count + delete
             HStack(alignment: .top) {
                 ZStack {
                     Circle()
@@ -172,30 +201,24 @@ struct QuestCard: View {
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(Theme.Colors.acLeaf)
                 }
-
                 Spacer()
-
                 VStack(alignment: .trailing, spacing: 6) {
                     ACBadge(
                         text: "\(quest.waypoints.count) stops",
                         textColor: Theme.Colors.acWood,
                         backgroundColor: Theme.Colors.acWood.opacity(0.12)
                     )
-
                     Text("+\(quest.waypoints.count * 25) XP")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundColor(Theme.Colors.acLeaf)
                 }
             }
-
-            // Title + route summary
             VStack(alignment: .leading, spacing: 4) {
                 Text(quest.title)
                     .font(Theme.Typography.title)
                     .foregroundColor(Theme.Colors.acTextDark)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-
                 if let first = quest.waypoints.first, let last = quest.waypoints.last, first.id != last.id {
                     HStack(spacing: 5) {
                         Image(systemName: "mappin.circle.fill")
@@ -208,10 +231,7 @@ struct QuestCard: View {
                     }
                 }
             }
-
             Spacer(minLength: 0)
-
-            // Action row
             HStack(spacing: 8) {
                 Button(action: onStart) {
                     HStack(spacing: 6) {
@@ -223,7 +243,6 @@ struct QuestCard: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(ACButtonStyle(variant: .primary))
-
                 Button {
                     showDeleteConfirm = true
                 } label: {

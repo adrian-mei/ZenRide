@@ -5,17 +5,35 @@ import MapKit
 /// Extension to handle multi-leg Quests
 extension RoutingService {
     
-    /// Starts routing a Daily Quest by loading the first leg
+    /// Starts routing a Daily Quest by loading the first leg.
+    /// If currentLocation is provided and is not near the first waypoint, it routes to the first waypoint first.
     func startQuest(_ quest: DailyQuest, currentLocation: CLLocationCoordinate2D?) {
-        guard quest.waypoints.count > 1 else { return }
+        guard !quest.waypoints.isEmpty else { return }
         
-        // We will store the full quest state in a new property (which we'll add to the main class)
         self.activeQuest = quest
+        
+        if let current = currentLocation {
+            let firstWaypoint = quest.waypoints[0].coordinate
+            // If we are more than 100 meters from the first stop, route to it first
+            if current.distance(to: firstWaypoint) > 100 {
+                self.currentLegIndex = -1 // Special index meaning "Heading to Start"
+                SpeechService.shared.speak("Starting adventure: \(quest.title). First, let's head to \(quest.waypoints[0].name).")
+                self.routeToNextLeg(from: current, to: firstWaypoint)
+                return
+            }
+        }
+        
+        // Otherwise, start from the first waypoint to the second
         self.currentLegIndex = 0
+        guard quest.waypoints.count > 1 else {
+            SpeechService.shared.speak("You have arrived at \(quest.waypoints[0].name).")
+            return
+        }
         
         let startCoord = currentLocation ?? quest.waypoints[0].coordinate
         let destinationCoord = quest.waypoints[1].coordinate
         
+        SpeechService.shared.speak("Starting adventure: \(quest.title). Heading to \(quest.waypoints[1].name).")
         self.routeToNextLeg(from: startCoord, to: destinationCoord)
     }
     
@@ -23,18 +41,23 @@ extension RoutingService {
     func advanceToNextLeg(currentLocation: CLLocationCoordinate2D) -> Bool {
         guard let quest = activeQuest else { return false }
         
-        currentLegIndex += 1
+        // If we were heading to the start (index -1), we just arrived at index 0
+        if currentLegIndex == -1 {
+            currentLegIndex = 0
+        } else {
+            currentLegIndex += 1
+        }
         
         // Check if we reached the final destination
         if currentLegIndex >= quest.waypoints.count - 1 {
             self.completedQuestWaypointCount = quest.waypoints.count
             self.activeQuest = nil
-            SpeechService.shared.speak("You have arrived at your final destination. Quest complete!")
+            SpeechService.shared.speak("You have arrived at your final destination. Adventure complete!")
             return false // Finished entirely
         }
         
         let nextDestination = quest.waypoints[currentLegIndex + 1].coordinate
-        SpeechService.shared.speak("Arrived at \(quest.waypoints[currentLegIndex].name). Next stop is \(quest.waypoints[currentLegIndex + 1].name). Route is ready when you are.")
+        SpeechService.shared.speak("Arrived at \(quest.waypoints[currentLegIndex].name). Next stop is \(quest.waypoints[currentLegIndex + 1].name).")
         
         routeToNextLeg(from: currentLocation, to: nextDestination)
         

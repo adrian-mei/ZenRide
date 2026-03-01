@@ -3,6 +3,22 @@
   "version": "1.0",
   "experiences": [
     {
+      "id": "exp-sf-49-mile",
+      "title": "The Historic 49-Mile Scenic Drive",
+      "subtitle": "The ultimate tour of San Francisco",
+      "durationMinutes": 240,
+      "thumbnailUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Sfcityhall.jpeg/800px-Sfcityhall.jpeg",
+      "filename": "sf_49_mile.json"
+    },
+    {
+      "id": "exp-sf-mission-murals",
+      "title": "Mission District Mural Walk",
+      "subtitle": "A journey through San Francisco's street art",
+      "durationMinutes": 90,
+      "thumbnailUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Balmy_Alley_murals_2011.jpg/800px-Balmy_Alley_murals_2011.jpg",
+      "filename": "sf_mission_murals.json"
+    },
+    {
       "id": "exp-sf-northern-coast",
       "title": "The Northern Waterfront & Presidio Loop",
       "subtitle": "Classic views, ocean breeze, and military history",

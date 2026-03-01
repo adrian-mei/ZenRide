@@ -1,0 +1,61 @@
+{
+  "id": "exp-sf-mission-murals",
+  "title": "Mission District Mural Walk",
+  "subtitle": "A journey through San Francisco's street art",
+  "description": "Explore the vibrant cultural heart of San Francisco through its murals. This walk takes you through famous alleys and past major landmarks, showcasing works that tell stories of community, social justice, and local history.",
+  "durationMinutes": 90,
+  "city": "San Francisco",
+  "region": "CA",
+  "stops": [
+    {
+      "id": "stop-clarion-alley",
+      "order": 1,
+      "name": "Clarion Alley",
+      "latitude": 37.7630,
+      "longitude": -122.4217,
+      "description": "A community-based mural project between Mission and Valencia Streets, famous for its diverse and often politically charged art.",
+      "isSkippable": false,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-womens-building",
+      "order": 2,
+      "name": "The Women's Building (MaestraPeace)",
+      "latitude": 37.7616,
+      "longitude": -122.4227,
+      "description": "View the 'MaestraPeace' mural, one of the city's largest and most famous murals, celebrating the contributions of women throughout history.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-24th-st-murals",
+      "order": 3,
+      "name": "24th Street Murals",
+      "latitude": 37.7523,
+      "longitude": -122.4180,
+      "description": "The cultural corridor of the Mission, featuring numerous murals including those at the 24th Street Mini Park.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-balmy-alley",
+      "order": 4,
+      "name": "Balmy Alley",
+      "latitude": 37.7516,
+      "longitude": -122.4124,
+      "description": "The oldest mural alley in the Mission, where art began in the 1980s as a powerful response to political issues in Central America.",
+      "isSkippable": false,
+      "canNavigateDirectly": true
+    },
+    {
+      "id": "stop-precita-eyes",
+      "order": 5,
+      "name": "Precita Eyes Muralists",
+      "latitude": 37.7523,
+      "longitude": -122.4121,
+      "description": "Visit the headquarters of the community arts organization that has been instrumental in the creation and preservation of Mission murals.",
+      "isSkippable": true,
+      "canNavigateDirectly": true
+    }
+  ]
+}
