@@ -87,8 +87,9 @@ public struct ACCardModifier: ViewModifier {
     var isInteractive: Bool = false
     @State private var isPressed: Bool = false
 
+    @ViewBuilder
     public func body(content: Content) -> some View {
-        content
+        let base = content
             .padding(padding)
             .background(Theme.Colors.acCream)
             // Wood border
@@ -101,21 +102,24 @@ public struct ACCardModifier: ViewModifier {
             .shadow(color: Theme.Colors.acBorder, radius: 0, x: 0, y: isPressed ? 0 : 6)
             // Slight vertical shift to complete the physical press illusion
             .offset(y: isPressed ? 6 : 0)
-            .simultaneousGesture(
+
+        if isInteractive {
+            base.simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in
-                        guard isInteractive else { return }
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             isPressed = true
                         }
                     }
                     .onEnded { _ in
-                        guard isInteractive else { return }
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             isPressed = false
                         }
                     }
             )
+        } else {
+            base
+        }
     }
 }
 

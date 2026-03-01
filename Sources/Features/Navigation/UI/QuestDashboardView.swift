@@ -243,6 +243,6 @@ struct QuestCard: View {
             }
         }
         .frame(width: 252, height: 200)
-        .acCardStyle(padding: 16, interactive: true)
+        .acCardStyle(padding: 16, interactive: false)
     }
 }
