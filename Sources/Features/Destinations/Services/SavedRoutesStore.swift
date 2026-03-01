@@ -77,8 +77,8 @@ class SavedRoutesStore: ObservableObject {
     @Published var routes: [SavedRoute] = []
     @Published var recentSearches: [RecentSearch] = []
     
-    private let key = "SavedRoutes"
-    private let recentSearchesKey = "RecentSearches_v1"
+    private let key = UserDefaultsKeys.savedRoutes
+    private let recentSearchesKey = UserDefaultsKeys.recentSearches
     private let defaults: UserDefaults = .standard
     private let context: ModelContext
 

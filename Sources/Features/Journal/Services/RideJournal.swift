@@ -45,7 +45,7 @@ class RideJournal: ObservableObject {
             }
         }
         totalSaved = saved
-        totalDistanceMiles = Double(meters) / 1609.34
+        totalDistanceMiles = Double(meters) / Constants.metersPerMile
     }
 
     init() {
@@ -71,14 +71,14 @@ class RideJournal: ObservableObject {
     private func save() {
         do {
             let data = try JSONEncoder().encode(entries)
-            UserDefaults.standard.set(data, forKey: "RideJournalEntries")
+            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.rideJournal)
         } catch {
             Log.error("RideJournal", "Failed to encode entries: \(error)")
         }
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: "RideJournalEntries") else { return }
+        guard let data = UserDefaults.standard.data(forKey: UserDefaultsKeys.rideJournal) else { return }
         do {
             entries = try JSONDecoder().decode([RideEntry].self, from: data)
         } catch {

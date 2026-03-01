@@ -8,6 +8,7 @@ struct RideView: View {
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var multiplayerService: MultiplayerService
+    @EnvironmentObject var memoryStore: MemoryStore
 
     let initialDestinationName: String
     var onStop: (RideContext?, PendingDriveSession?) -> Void
@@ -24,6 +25,7 @@ struct RideView: View {
     @State private var cruiseLastLocation: CLLocation? = nil
     @State private var showCruiseSearch = false
     @State private var celebrationStopName: String? = nil
+    @State private var flashTriggered = false
 
     init(initialDestinationName: String, onStop: @escaping (RideContext?, PendingDriveSession?) -> Void) {
         self.initialDestinationName = initialDestinationName
@@ -57,6 +59,9 @@ struct RideView: View {
             }
 
             mainUIChrome
+            
+            ACSnapshotEffect(isTriggered: $flashTriggered)
+                .zIndex(300)
         }
         .onAppear(perform: handleOnAppear)
         .sheet(isPresented: Binding(
@@ -154,6 +159,29 @@ struct RideView: View {
 
     private var controlsColumn: some View {
         VStack(alignment: .trailing, spacing: 12) {
+            // Memory Capture Button (Pictures with our eyes)
+            Button {
+                flashTriggered = true
+                let loc = locationProvider.currentLocation?.coordinate ?? Constants.sfCenter
+                let name = destinationName.isEmpty ? "Unknown Spot" : destinationName
+                memoryStore.capture(at: loc, name: name)
+            } label: {
+                VStack(spacing: 2) {
+                    Image(systemName: "eye.fill")
+                        .font(.system(size: 20, weight: .black))
+                    Text("MEMORIZE")
+                        .font(Theme.Typography.label)
+                }
+                .frame(width: 64, height: 64)
+                .foregroundColor(.white)
+                .background(Theme.Colors.acGold)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2.5))
+                .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 5)
+            }
+            .padding(.bottom, 8)
+            .acWobble(isPressed: flashTriggered)
+
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
@@ -183,7 +211,7 @@ struct RideView: View {
 
                 Button {
                     isTracking = true
-                    NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
+                    NotificationCenter.default.post(name: AppNotification.recenterMap, object: nil)
                 } label: {
                     Image(systemName: isTracking ? "location.fill" : "location")
                         .font(.system(size: 20, weight: .bold))
@@ -287,7 +315,7 @@ struct RideView: View {
             if let last = cruiseLastLocation {
                 let deltaMeters = loc.distance(from: last)
                 if deltaMeters < 800 {
-                    cruiseOdometerMiles += deltaMeters / 1609.34
+                    cruiseOdometerMiles += deltaMeters / Constants.metersPerMile
                 }
             }
             cruiseLastLocation = loc
@@ -342,7 +370,7 @@ struct RideView: View {
     private func buildPendingSession(context: RideContext?) -> PendingDriveSession? {
         guard let ctx = context, let startTime = navigationStartTime else { return nil }
         let actualDuration = Int(Date().timeIntervalSince(startTime))
-        let distanceMiles = Double(ctx.routeDistanceMeters) / 1609.34
+        let distanceMiles = Double(ctx.routeDistanceMeters) / Constants.metersPerMile
         return PendingDriveSession(
             speedReadings: bunnyPolice.speedReadings,
             cameraZoneEvents: bunnyPolice.cameraZoneEvents,

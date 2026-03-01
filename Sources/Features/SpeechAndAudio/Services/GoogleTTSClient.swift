@@ -19,7 +19,11 @@ final class GoogleTTSClient: NSObject, AVAudioPlayerDelegate {
         cacheDirectory = urls[0].appendingPathComponent("TTSCache")
         
         if !fileManager.fileExists(atPath: cacheDirectory.path) {
-            try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            do {
+                try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            } catch {
+                Log.error("GoogleTTS", "Failed to create cache directory: \(error)")
+            }
         }
         super.init()
     }

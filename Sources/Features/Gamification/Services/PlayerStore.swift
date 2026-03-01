@@ -29,8 +29,8 @@ class PlayerStore: ObservableObject {
     @Published var newlyUnlockedCharacters: [Character] = []
     @Published var newlyEarnedAchievement: Achievement? = nil
 
-    private let xpKey = "PlayerStore_TotalXP_v1"
-    private let charKey = "PlayerStore_Character_v1"
+    private let xpKey = UserDefaultsKeys.playerXP
+    private let charKey = UserDefaultsKeys.playerCharacter
 
     init() {
         load()

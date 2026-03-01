@@ -140,8 +140,8 @@ struct ProfileView: View {
             .alert("Sign Out", isPresented: $showSignOutAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Reset App Data", role: .destructive) {
-                    UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
-                    UserDefaults.standard.removeObject(forKey: "FashodaMap_Quests_v2")
+                    UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+                    UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.questsV2)
                     UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                     dismiss()
                 }

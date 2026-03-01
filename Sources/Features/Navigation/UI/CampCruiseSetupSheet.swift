@@ -236,7 +236,7 @@ struct CampCruiseSetupSheet: View {
         } else {
             destName = "Free Cruise"
             destCoord = locationProvider.currentLocation?.coordinate
-                ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+                ?? Constants.sfCenter
         }
 
         if saveOffline && !waypoints.isEmpty {
@@ -346,7 +346,7 @@ private struct CruiseStopPickerSheet: View {
                         let userLoc = locationProvider.currentLocation
                         let dist: String? = {
                             guard let userLoc, let placeLoc = item.placemark.location else { return nil }
-                            let miles = userLoc.distance(from: placeLoc) / 1609.34
+                            let miles = userLoc.distance(from: placeLoc) / Constants.metersPerMile
                             return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
                         }()
                         SearchResultRow(item: item, isSaved: false, distanceString: dist) {

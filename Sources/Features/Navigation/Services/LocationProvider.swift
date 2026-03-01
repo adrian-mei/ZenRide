@@ -60,7 +60,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         let speedMPS = max(0, location.speed)
         DispatchQueue.main.async {
             self.currentLocation = location
-            self.currentSpeedMPH = speedMPS * 2.23694
+            self.currentSpeedMPH = speedMPS * Constants.mpsToMph
         }
     }
     
@@ -96,7 +96,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
             guard let currentCoord = self.currentSimulationCoord else { return }
             
             // Apply speed multiplier
-            let targetSpeedMPS = (targetSpeedMPH / 2.23694) * self.simulationSpeedMultiplier
+            let targetSpeedMPS = (targetSpeedMPH / Constants.mpsToMph) * self.simulationSpeedMultiplier
             let distancePerTick = targetSpeedMPS * tickInterval
             
             // Reached destination logic
@@ -175,7 +175,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         let speedMPS = max(0, location.speed)
         DispatchQueue.main.async {
             self.currentLocation = location
-            self.currentSpeedMPH = speedMPS * 2.23694
+            self.currentSpeedMPH = speedMPS * Constants.mpsToMph
         }
     }
     

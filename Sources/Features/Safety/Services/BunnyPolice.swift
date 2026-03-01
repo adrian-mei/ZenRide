@@ -7,6 +7,7 @@ enum ZoneStatus {
     case danger
 }
 
+@MainActor
 class BunnyPolice: ObservableObject {
     private let speech = SpeechService.shared
     
@@ -144,8 +145,8 @@ class BunnyPolice: ObservableObject {
         // Fast approximate distance pre-filter
         let lat = location.coordinate.latitude
         let lng = location.coordinate.longitude
-        let latDegreeInMeters = 111320.0
-        let lngDegreeInMeters = 111320.0 * cos(lat * .pi / 180.0)
+        let latDegreeInMeters = Constants.metersPerDegree
+        let lngDegreeInMeters = Constants.metersPerDegree * cos(lat * .pi / 180.0)
         
         for camera in cameras {
             let dLat = (camera.lat - lat) * latDegreeInMeters
@@ -155,7 +156,7 @@ class BunnyPolice: ObservableObject {
             // 4,000,000 m^2 is 2000 meters squared. Skip real check if far away.
             if approxDistMetersSq < 4_000_000 {
                 let camLoc = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
-                let distance = location.coordinate.distance(to: camLoc) * 3.28084 // meters → feet
+                let distance = location.coordinate.distance(to: camLoc) * Constants.metersToFeet // meters → feet
                 if distance < closestDist {
                     closestDist = distance
                     closestCam = camera
@@ -165,13 +166,11 @@ class BunnyPolice: ObservableObject {
         
         guard let nearest = closestCam else { return }
         
-        DispatchQueue.main.async {
-            // Only update if something visually or logically changed to avoid rapid SwiftUI invalidations
-            if self.nearestCamera?.id != nearest.id || abs(self.distanceToNearestFT - closestDist) > 5.0 {
-                self.nearestCamera = nearest
-                self.distanceToNearestFT = closestDist
-                self.updateZone(distance: closestDist, camera: nearest, speedNow: speedMPH)
-            }
+        // Only update if something visually or logically changed to avoid rapid SwiftUI invalidations
+        if nearestCamera?.id != nearest.id || abs(distanceToNearestFT - closestDist) > 5.0 {
+            nearestCamera = nearest
+            distanceToNearestFT = closestDist
+            updateZone(distance: closestDist, camera: nearest, speedNow: speedMPH)
         }
     }
     
@@ -261,9 +260,7 @@ class BunnyPolice: ObservableObject {
         }
         dangerCooldowns[camera.id] = now
         
-        DispatchQueue.main.async {
-            self.zenScore = max(0, self.zenScore - 5)
-        }
+        zenScore = max(0, zenScore - 5)
         
         if !isMuted { speech.speak("Slow down! Camera ahead.") }
     }
@@ -286,9 +283,7 @@ class BunnyPolice: ObservableObject {
         }
         exitCooldowns[camera.id] = now
         
-        DispatchQueue.main.async {
-            self.camerasPassedThisRide += 1
-        }
+        camerasPassedThisRide += 1
         
         let speech = "You've safely passed the camera zone. The road is yours again. Ride safe!"
         speak(speech)

@@ -18,12 +18,7 @@ struct GuidanceView: View {
                     mainGuidanceRow(instruction: instruction)
                     nextInstructionRow
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Theme.Colors.acBorder, lineWidth: 2)
-                )
-                .shadow(color: Theme.Colors.acTextDark.opacity(0.1), radius: 10, x: 0, y: 6)
+                .acCardStyle(padding: 0, interactive: false, hasTexture: true)
                 .frame(maxWidth: 280)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -125,7 +120,7 @@ struct GuidanceView: View {
     private func updateProgress(traveled: Double, instruction: NavigationInstruction) {
         let distToTurn = Double(instruction.routeOffsetInMeters) - traveled
         
-        let distToTurnFt = distToTurn * 3.28084
+        let distToTurnFt = distToTurn * Constants.metersToFeet
         if distToTurnFt > 0 && distToTurnFt < 350 {
             if !isApproachingTurn { isApproachingTurn = true }
         } else {
@@ -161,7 +156,7 @@ struct GuidanceView: View {
             : routingService.distanceTraveledMeters
         
         let distMeters = Double(instruction.routeOffsetInMeters) - traveled
-        let distFeet = max(0, distMeters * 3.28084)
+        let distFeet = max(0, distMeters * Constants.metersToFeet)
         
         if distFeet > 1320 { // More than 0.25 miles
             let distMiles = distFeet / 5280.0

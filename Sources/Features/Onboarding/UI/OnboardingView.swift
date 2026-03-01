@@ -12,7 +12,7 @@ struct OnboardingView: View {
 
             TabView(selection: $currentStep) {
                 WelcomeStep(onNext: {
-                    UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                    UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)
                     onComplete()
                 })
                 .tag(0)

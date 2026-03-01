@@ -79,7 +79,7 @@ class CameraStore: ObservableObject {
         guard !hasGeneratedMocks else { return }
         
         // If we are in SF, don't generate mocks, rely on real data
-        let sfLoc = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        let sfLoc = Constants.sfCenter
         let distanceToSF = location.distance(to: sfLoc)
         if distanceToSF < 50000 { // within ~50km of SF
             return
@@ -89,7 +89,7 @@ class CameraStore: ObservableObject {
         var mockCameras: [SpeedCamera] = []
         
         // Generate 30 random cameras within a ~5km radius of the user
-        let radiusDeg = 5000.0 / 111320.0
+        let radiusDeg = 5000.0 / Constants.metersPerDegree
         
         for i in 1...30 {
             let randLatOffset = Double.random(in: -radiusDeg...radiusDeg)
@@ -100,7 +100,7 @@ class CameraStore: ObservableObject {
                 street: "Local Patrol \(i)",
                 from_cross_street: "Intersection \(i)",
                 to_cross_street: nil,
-                speed_limit_mph: [25, 30, 35, 45].randomElement()!,
+                speed_limit_mph: [25, 30, 35, 45].randomElement() ?? 25,
                 lat: location.latitude + randLatOffset,
                 lng: location.longitude + randLngOffset
             )

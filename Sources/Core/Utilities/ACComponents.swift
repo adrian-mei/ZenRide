@@ -22,6 +22,74 @@ struct ACSectionHeader: View {
     }
 }
 
+// MARK: - ACDialogueBox
+
+/// Animal Crossing style dialogue box with a "beaked" pointer and chunky border.
+struct ACDialogueBox<Content: View>: View {
+    let content: Content
+    var speakerName: String? = nil
+    var speakerColor: Color = Theme.Colors.acLeaf
+
+    init(speakerName: String? = nil, speakerColor: Color = Theme.Colors.acLeaf, @ViewBuilder content: () -> Content) {
+        self.speakerName = speakerName
+        self.speakerColor = speakerColor
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: -12) {
+            if let name = speakerName {
+                Text(name.uppercased())
+                    .font(Theme.Typography.label)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(speakerColor)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
+                    .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 3)
+                    .padding(.leading, 20)
+                    .zIndex(1)
+            }
+
+            content
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    ZStack {
+                        Theme.Colors.acCream
+                        ACTextureOverlay()
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 3))
+                .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 6)
+        }
+    }
+}
+
+// MARK: - ACSnapshotEffect
+
+/// Full-screen white flash with a camera shutter sound (simulated by haptics).
+struct ACSnapshotEffect: View {
+    @Binding var isTriggered: Bool
+    
+    var body: some View {
+        Color.white
+            .opacity(isTriggered ? 1.0 : 0.0)
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 0.1), value: isTriggered)
+            .onChange(of: isTriggered) { _, newValue in
+                if newValue {
+                    // Quick flash out
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        isTriggered = false
+                    }
+                }
+            }
+    }
+}
+
 // MARK: - View Extension
 
 extension View {

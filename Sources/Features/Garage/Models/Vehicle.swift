@@ -159,8 +159,8 @@ class VehicleStore: ObservableObject {
     @Published var vehicles: [Vehicle] = []
     @Published var selectedVehicleId: UUID?
 
-    private let storeKey = "VehicleStore_v1"
-    private let selectedKey = "VehicleStore_v1_selected"
+    private let storeKey = UserDefaultsKeys.vehicleStoreV1
+    private let selectedKey = UserDefaultsKeys.vehicleStoreSelected
 
     init() { load() }
 

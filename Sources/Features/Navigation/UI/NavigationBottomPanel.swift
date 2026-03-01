@@ -53,7 +53,7 @@ struct NavigationBottomPanel: View {
     var distanceValue: String {
         remainingDistanceMeters < 1609
             ? "\(Int(remainingDistanceMeters))"
-            : String(format: "%.1f", remainingDistanceMeters / 1609.34)
+            : String(format: "%.1f", remainingDistanceMeters / Constants.metersPerMile)
     }
 
     var distanceUnit: String {

@@ -59,7 +59,7 @@ struct QuestProgressView: View {
                     .stroke(Theme.Colors.acBorder, lineWidth: 1.5)
             )
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-            .frame(width: 300)
+            .frame(maxWidth: 340)
             .padding(.leading, 16)
         }
     }

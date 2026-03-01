@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// FashodaMap (Animal Crossing / Camp) Theme Engine
 /// Ports the exact CSS palette from the `fashoda` web app ecosystem.
@@ -82,32 +83,56 @@ public extension Color {
 
 // MARK: - Modifiers (ACCard)
 
+public struct ACTextureOverlay: View {
+    public var body: some View {
+        GeometryReader { geo in
+            Path { path in
+                let step: CGFloat = 12
+                for x in stride(from: 0, through: geo.size.width, by: step) {
+                    for y in stride(from: 0, through: geo.size.height, by: step) {
+                        path.addEllipse(in: CGRect(x: x, y: y, width: 1.5, height: 1.5))
+                    }
+                }
+            }
+            .fill(Theme.Colors.acBorder.opacity(0.15))
+        }
+    }
+}
+
 public struct ACCardModifier: ViewModifier {
     var padding: CGFloat = 16
     var isInteractive: Bool = false
+    var hasTexture: Bool = true
     @State private var isPressed: Bool = false
 
     @ViewBuilder
     public func body(content: Content) -> some View {
         let base = content
             .padding(padding)
-            .background(Theme.Colors.acCream)
+            .background(
+                ZStack {
+                    Theme.Colors.acCream
+                    if hasTexture {
+                        ACTextureOverlay()
+                    }
+                }
+            )
             // Wood border
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(Theme.Colors.acBorder.opacity(0.8), lineWidth: 2)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Theme.Colors.acBorder.opacity(0.8), lineWidth: 2.5)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             // 3D Drop Shadow effect that "presses" down
-            .shadow(color: Theme.Colors.acBorder, radius: 0, x: 0, y: isPressed ? 0 : 6)
+            .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: isPressed ? 0 : 8)
             // Slight vertical shift to complete the physical press illusion
-            .offset(y: isPressed ? 6 : 0)
+            .offset(y: isPressed ? 8 : 0)
 
         if isInteractive {
             base.simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
                             isPressed = true
                         }
                     }
@@ -124,9 +149,16 @@ public struct ACCardModifier: ViewModifier {
 }
 
 extension View {
-    /// Applies the Animal Crossing card style (cream bg, wood border, chunky shadow)
-    func acCardStyle(padding: CGFloat = 16, interactive: Bool = false) -> some View {
-        self.modifier(ACCardModifier(padding: padding, isInteractive: interactive))
+    /// Applies the Animal Crossing card style (textured cream bg, wood border, chunky 8pt shadow)
+    func acCardStyle(padding: CGFloat = 16, interactive: Bool = false, hasTexture: Bool = true) -> some View {
+        self.modifier(ACCardModifier(padding: padding, isInteractive: interactive, hasTexture: hasTexture))
+    }
+    
+    /// Bouncy, slightly rotating spring animation for that squishy AC feel.
+    func acWobble(isPressed: Bool) -> some View {
+        self.scaleEffect(isPressed ? 0.94 : 1.0)
+            .rotationEffect(.degrees(isPressed ? -2 : 0))
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
     }
 }
 
@@ -136,15 +168,15 @@ public struct ACButtonStyle: ButtonStyle {
     public enum Variant {
         case primary // Green
         case secondary // Field / Cream
-        case largePrimary // Green, cornerRadius 24, label provides own layout
-        case largeSecondary // Field/tan, cornerRadius 24, label provides own layout
+        case largePrimary // Green, cornerRadius 28, label provides own layout
+        case largeSecondary // Field/tan, cornerRadius 28, label provides own layout
     }
 
     var variant: Variant
 
     public func makeBody(configuration: Configuration) -> some View {
-        let liftY: CGFloat = configuration.isPressed ? 0 : 4
-        let radius: CGFloat = isLarge ? 24 : 20
+        let liftY: CGFloat = configuration.isPressed ? 0 : 6
+        let radius: CGFloat = isLarge ? 28 : 22
 
         ZStack {
             // Bottom depth slab (stationary — creates the chunky 3D base)
@@ -156,11 +188,11 @@ public struct ACButtonStyle: ButtonStyle {
                 .fill(backgroundColor(isPressed: configuration.isPressed))
                 .overlay(
                     RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1.5)
                 )
                 .offset(y: -liftY)
         }
-        .frame(minHeight: isLarge ? nil : 52) // standard: 48pt face + 4pt slab
+        .frame(minHeight: isLarge ? nil : 56) // standard: 50pt face + 6pt slab
         .overlay(
             Group {
                 if isLarge {
@@ -175,8 +207,9 @@ public struct ACButtonStyle: ButtonStyle {
                 }
             }
         )
-        .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-        .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+        .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+        .rotationEffect(.degrees(configuration.isPressed ? -1 : 0))
+        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
     }
 
     private var isLarge: Bool {

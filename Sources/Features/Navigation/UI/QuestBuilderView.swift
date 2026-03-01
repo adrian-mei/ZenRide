@@ -230,7 +230,7 @@ struct QuestBuilderView: View {
         let firstStopName = allWaypoints.first?.name ?? questName
         let firstStopCoord = allWaypoints.first?.coordinate
             ?? startCoord
-            ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+            ?? Constants.sfCenter
 
         dismiss()
         onStartTrip?(firstStopName, firstStopCoord)
@@ -339,7 +339,7 @@ private struct AddStopSheet: View {
                                     let userLoc = locationProvider.currentLocation
                                     let distanceString: String? = {
                                         guard let userLoc, let placeLoc = item.placemark.location else { return nil }
-                                        let miles = userLoc.distance(from: placeLoc) / 1609.34
+                                        let miles = userLoc.distance(from: placeLoc) / Constants.metersPerMile
                                         return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
                                     }()
                                     SearchResultRow(

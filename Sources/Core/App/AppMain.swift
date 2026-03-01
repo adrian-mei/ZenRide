@@ -18,6 +18,7 @@ struct FashodaMapApp: App {
     @StateObject private var vehicleStore = VehicleStore()
     @StateObject private var questStore = QuestStore()
     @StateObject private var playerStore = PlayerStore()
+    @StateObject private var memoryStore = MemoryStore()
 
     var body: some Scene {
         WindowGroup {
@@ -34,6 +35,7 @@ struct FashodaMapApp: App {
                 .environmentObject(vehicleStore)
                 .environmentObject(questStore)
                 .environmentObject(playerStore)
+                .environmentObject(memoryStore)
                 .onAppear {
                     bunnyPolice.cameras = cameraStore.cameras
                 }
@@ -46,5 +48,4 @@ enum AppState {
     case onboarding
     case garage
     case riding
-    case windDown
 }

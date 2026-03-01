@@ -315,6 +315,7 @@ struct HomeBottomSheet: View {
     @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var parkingStore: ParkingStore
     @EnvironmentObject var playerStore: PlayerStore
+    @EnvironmentObject var memoryStore: MemoryStore
 
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
@@ -498,37 +499,66 @@ struct HomeBottomSheet: View {
             
             // Actions
             HStack(spacing: 12) {
-                // Camp & Cruise Button
+                // Wander & Discover Button
                 Button(action: { activeSheet = .campCruise }) {
-                    HStack(spacing: 8) {
+                    VStack(spacing: 8) {
                         Image(systemName: "tent.fill")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Camp & Cruise")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.system(size: 24, weight: .bold))
+                        Text("Wander & Discover")
+                            .font(.system(size: 14, weight: .black, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                 }
-                .buttonStyle(ACButtonStyle(variant: .primary))
+                .buttonStyle(ACButtonStyle(variant: .largePrimary))
 
-                // Plan a Trip Button
+                // Map a New Story Button
                 Button {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     questBuilderPreloaded = []
                     activeSheet = .questBuilder
                 } label: {
-                    HStack(spacing: 8) {
+                    VStack(spacing: 8) {
                         Image(systemName: "map.fill")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Plan a Trip")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.system(size: 24, weight: .bold))
+                        Text("Map a New Story")
+                            .font(.system(size: 14, weight: .black, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                 }
-                .buttonStyle(ACButtonStyle(variant: .secondary))
+                .buttonStyle(ACButtonStyle(variant: .largeSecondary))
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
             .padding(.top, 4)
+
+            // Recent Memories
+            if !memoryStore.memories.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Recent Memories")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(Theme.Colors.acTextDark)
+                        Image(systemName: "eye.fill")
+                            .foregroundColor(Theme.Colors.acGold)
+                            .font(.caption.bold())
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(memoryStore.memories.prefix(5)) { memory in
+                                MemoryPolaroidCard(memory: memory)
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    }
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
 
             // FashodaMap: Daily Quests inject here!
             QuestDashboardView()
@@ -842,6 +872,220 @@ struct HomeBottomSheet: View {
     }
 }
 
+// MARK: - MemoryPolaroidCard
+
+struct MemoryPolaroidCard: View {
+    let memory: Memory
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // "Photo" area
+            ZStack {
+                Theme.Colors.acSky.opacity(0.3)
+                VStack(spacing: 8) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.system(size: 30))
+                        .foregroundColor(Theme.Colors.acTextDark.opacity(0.5))
+                    Text(memory.locationName)
+                        .font(Theme.Typography.caption)
+                        .foregroundColor(Theme.Colors.acTextDark)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                }
+            }
+            .frame(width: 140, height: 120)
+            .background(Color.white.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .padding(10)
+            .background(Color.white)
+            .rotationEffect(.degrees(Double.random(in: -2...2)))
+
+            // Caption area
+            Text(memory.thought)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(Theme.Colors.acTextDark)
+                .italic()
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .frame(width: 160)
+                .background(Color.white)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 4)
+        .acCardStyle(padding: 0, interactive: true, hasTexture: false)
+    }
+}
+
+// MARK: - Post-Ride Toast
+
+private struct PostRideToast: View {
+    let info: PostRideInfo
+
+    var body: some View {
+        ACDialogueBox(speakerName: "Trip Summary", speakerColor: Theme.Colors.acLeaf) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("What an adventure!")
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading) {
+                        Text("DISTANCE")
+                            .font(Theme.Typography.label)
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                        Text(String(format: "%.1f mi", info.distanceMiles))
+                            .font(Theme.Typography.body)
+                            .bold()
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("EXPERIENCE")
+                            .font(Theme.Typography.label)
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                        Text("+\(info.xpEarned) XP")
+                            .font(Theme.Typography.body)
+                            .foregroundColor(Theme.Colors.acLeaf)
+                            .bold()
+                    }
+                    
+                    if info.zenScore > 0 {
+                        VStack(alignment: .leading) {
+                            Text("ZEN")
+                                .font(Theme.Typography.label)
+                                .foregroundColor(Theme.Colors.acTextMuted)
+                            Text("\(info.zenScore)")
+                                .font(Theme.Typography.body)
+                                .bold()
+                        }
+                    }
+                }
+                
+                if info.moneySaved > 0 {
+                    Text("Saved $\(Int(info.moneySaved)) by being mindful!")
+                        .font(Theme.Typography.caption)
+                        .foregroundColor(Theme.Colors.acWood)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 50)
+    }
+}
+
+// MARK: - Level Up Toast
+
+private struct LevelUpToast: View {
+    let level: Int
+    let characters: [Character]
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Theme.Colors.acGold.opacity(0.2))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Theme.Colors.acGold)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("LEVEL UP!")
+                    .font(Theme.Typography.button)
+                    .foregroundColor(Theme.Colors.acGold)
+                    .kerning(1)
+                Text("You reached Level \(level)")
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                
+                if !characters.isEmpty {
+                    Text("Unlocked \(characters.map { $0.name }.joined(separator: ", "))!")
+                        .font(Theme.Typography.body)
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .foregroundColor(Theme.Colors.acTextMuted)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Theme.Colors.acCream)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acGold, lineWidth: 2))
+        .shadow(color: Theme.Colors.acGold.opacity(0.4), radius: 0, x: 0, y: 5)
+        .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - MoodSelectionCard
+
+struct MoodSelectionCard: View {
+    var onSelect: (String) -> Void
+    var onDismiss: () -> Void
+    
+    @State private var selectedMood: String? = nil
+
+    var body: some View {
+        ACDialogueBox(speakerName: "Daily Log", speakerColor: Theme.Colors.acGold) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("How did that trip feel?")
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                
+                HStack(spacing: 10) {
+                    MoodSelectionButton(emoji: "☀️", label: "Sunny", isSelected: selectedMood == "Sunny") { selectedMood = "Sunny" }
+                    MoodSelectionButton(emoji: "🌧️", label: "Moody", isSelected: selectedMood == "Moody") { selectedMood = "Moody" }
+                    MoodSelectionButton(emoji: "🎵", label: "Singing", isSelected: selectedMood == "Singing") { selectedMood = "Singing" }
+                    MoodSelectionButton(emoji: "☕️", label: "Cozy", isSelected: selectedMood == "Cozy") { selectedMood = "Cozy" }
+                }
+                
+                Button("Save to Journal") {
+                    onSelect(selectedMood ?? "Cozy")
+                }
+                .buttonStyle(ACButtonStyle(variant: .primary))
+                .padding(.top, 8)
+            }
+        }
+        .padding()
+    }
+}
+
+private struct MoodSelectionButton: View {
+    let emoji: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Text(emoji)
+                    .font(.system(size: 28))
+                Text(label)
+                    .font(Theme.Typography.label)
+                    .foregroundColor(isSelected ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(isSelected ? Theme.Colors.acLeaf.opacity(0.15) : Theme.Colors.acField)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - UIApplication helper
 
 private extension UIApplication {
@@ -1069,205 +1313,5 @@ struct ActionButton: View {
             .shadow(color: Theme.Colors.acBorder.opacity(0.7), radius: 0, x: 0, y: 4)
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Post-Ride Toast
-
-private struct PostRideToast: View {
-    let info: PostRideInfo
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Theme.Colors.acLeaf.opacity(0.2))
-                    .frame(width: 36, height: 36)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(Theme.Colors.acLeaf)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("MISSION COMPLETE")
-                    .font(Theme.Typography.button)
-                    .foregroundColor(Theme.Colors.acLeaf)
-                    .kerning(1)
-                HStack(spacing: 8) {
-                    Text(String(format: "%.1f mi", info.distanceMiles))
-                        .font(Theme.Typography.body)
-                        .foregroundColor(Theme.Colors.acTextDark)
-                    
-                    if info.xpEarned > 0 {
-                        Text("· +\(info.xpEarned) XP")
-                            .font(Theme.Typography.body)
-                            .foregroundColor(Theme.Colors.acLeaf)
-                            .bold()
-                    }
-                    
-                    if info.zenScore > 0 {
-                        Text("· ZEN \(info.zenScore)")
-                            .font(Theme.Typography.body)
-                            .foregroundColor(Theme.Colors.acTextMuted)
-                    }
-                    if info.moneySaved > 0 {
-                        Text("· +$\(Int(info.moneySaved))")
-                            .font(Theme.Typography.body)
-                            .foregroundColor(Theme.Colors.acWood)
-                    }
-                }
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Theme.Colors.acCream)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
-        .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 5)
-        .padding(.horizontal, 16)
-        .padding(.top, 50)
-    }
-}
-
-// MARK: - Level Up Toast
-
-private struct LevelUpToast: View {
-    let level: Int
-    let characters: [Character]
-    let onDismiss: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Theme.Colors.acGold.opacity(0.2))
-                    .frame(width: 44, height: 44)
-                Image(systemName: "star.fill")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(Theme.Colors.acGold)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("LEVEL UP!")
-                    .font(Theme.Typography.button)
-                    .foregroundColor(Theme.Colors.acGold)
-                    .kerning(1)
-                Text("You reached Level \(level)")
-                    .font(Theme.Typography.headline)
-                    .foregroundColor(Theme.Colors.acTextDark)
-                
-                if !characters.isEmpty {
-                    Text("Unlocked \(characters.map { $0.name }.joined(separator: ", "))!")
-                        .font(Theme.Typography.body)
-                        .foregroundColor(Theme.Colors.acTextMuted)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer()
-
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .foregroundColor(Theme.Colors.acTextMuted)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Theme.Colors.acCream)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acGold, lineWidth: 2))
-        .shadow(color: Theme.Colors.acGold.opacity(0.4), radius: 0, x: 0, y: 5)
-        .padding(.horizontal, 16)
-        .padding(.top, 50)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                onDismiss()
-            }
-        }
-    }
-}
-
-// MARK: - Mood Selection Card
-
-struct MoodSelectionCard: View {
-    let onSelect: (String) -> Void
-    let onDismiss: () -> Void
-
-    private let moods: [(emoji: String, label: String, color: Color)] = [
-        ("😌", "Peaceful", Theme.Colors.acSky),
-        ("🏕️", "Adventurous", Theme.Colors.acCoral),
-        ("🥱", "Tiring", Theme.Colors.acWood)
-    ]
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                Capsule()
-                    .fill(Theme.Colors.acBorder)
-                    .frame(width: 48, height: 6)
-                    .padding(.top, 12)
-
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(Theme.Colors.acWood.opacity(0.2))
-                            .frame(width: 48, height: 48)
-                            .overlay(Circle().stroke(Theme.Colors.acWood, lineWidth: 2))
-                        Text("🦉")
-                            .font(.system(size: 26))
-                    }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("BUNNY DEBRIEF")
-                            .font(Theme.Typography.button)
-                            .foregroundColor(Theme.Colors.acWood)
-                            .kerning(1.5)
-                        Text("How was the mission?")
-                            .font(Theme.Typography.title)
-                            .foregroundColor(Theme.Colors.acTextDark)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-
-                HStack(spacing: 16) {
-                    ForEach(moods, id: \.label) { mood in
-                        Button {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            onSelect(mood.label)
-                        } label: {
-                            VStack(spacing: 8) {
-                                Text(mood.emoji)
-                                    .font(.system(size: 32))
-                                Text(mood.label.uppercased())
-                                    .font(Theme.Typography.button)
-                                    .foregroundColor(Theme.Colors.acTextDark)
-                                    .kerning(0.5)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(mood.color.opacity(0.3))
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(mood.color, lineWidth: 2))
-                            .shadow(color: mood.color.opacity(0.5), radius: 0, x: 0, y: 4)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 24)
-
-                Button {
-                    onDismiss()
-                } label: {
-                    Text("Skip for now")
-                        .font(Theme.Typography.body)
-                        .foregroundColor(Theme.Colors.acTextMuted)
-                }
-                .padding(.bottom, 20)
-            }
-        }
-        .background(Theme.Colors.acCream.ignoresSafeArea())
     }
 }

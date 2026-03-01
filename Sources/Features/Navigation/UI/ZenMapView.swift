@@ -528,10 +528,13 @@ struct ZenMapView: UIViewRepresentable {
                 let req = MKLocalSearch.Request()
                 req.naturalLanguageQuery = q
                 req.region = region
-                if let res = try? await MKLocalSearch(request: req).start() {
+                do {
+                    let res = try await MKLocalSearch(request: req).start()
                     for item in res.mapItems {
                         newAnns.append(POIAnnotation(coordinate: item.placemark.coordinate, title: item.name, subtitle: q, type: t, mapItem: item))
                     }
+                } catch {
+                    Log.error("ZenMap", "POI search failed for '\(q)': \(error)")
                 }
             }
             await MainActor.run {

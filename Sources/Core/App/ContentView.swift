@@ -5,7 +5,7 @@ import Combine
 
 struct ContentView: View {
     @State private var appState: AppState = {
-        guard UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") else { return .onboarding }
+        guard UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasCompletedOnboarding) else { return .onboarding }
         return .garage
     }()
 
@@ -135,40 +135,6 @@ struct ContentView: View {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { appState = .garage }
                 })
 
-            // WindDown kept for backward compatibility but not used in primary flow
-            case .windDown:
-                WindDownView(
-                    ticketsAvoided: bunnyPolice.camerasPassedThisRide,
-                    zenScore: bunnyPolice.zenScore,
-                    rideContext: lastRideContext,
-                    cameraZoneEvents: pendingSession?.cameraZoneEvents ?? []
-                ) { mood in
-                    journal.addEntry(mood: mood, ticketsAvoided: bunnyPolice.camerasPassedThisRide, context: lastRideContext)
-
-                    if let pending = pendingSession {
-                        let session = pending.toSession(mood: mood)
-                        driveStore.appendSession(
-                            originCoord: pending.originCoord,
-                            destCoord: pending.destCoord,
-                            destinationName: pending.destinationName,
-                            session: session
-                        )
-                    }
-
-                    if let ctx = lastRideContext {
-                        savedRoutes.recordVisit(
-                            destinationName: ctx.destinationName,
-                            coordinate: ctx.destinationCoordinate,
-                            durationSeconds: ctx.routeDurationSeconds,
-                            departureTime: ctx.departureTime
-                        )
-                    }
-
-                    bunnyPolice.resetRideStats()
-                    lastRideContext = nil
-                    pendingSession = nil
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) { appState = .garage }
-                }
             }
         }
         // Sync vehicleMode whenever selected vehicle changes

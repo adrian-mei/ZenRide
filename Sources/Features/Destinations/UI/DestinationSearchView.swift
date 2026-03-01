@@ -21,7 +21,7 @@ class DestinationSearcher: ObservableObject {
         }
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = cleanQuery
-        let center = location ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        let center = location ?? Constants.sfCenter
         request.region = MKCoordinateRegion(
             center: center,
             span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.5)
