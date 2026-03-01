@@ -90,125 +90,120 @@ struct RideView: View {
     }
 
     private var mainUIChrome: some View {
-        VStack(spacing: 12) {
-            if routeState == .navigating {
-                if routingService.activeQuest != nil {
-                    QuestProgressView()
-                }
-                if uiVisible {
+        ZStack {
+            if routeState == .navigating && uiVisible {
+                // Top Left: Guidance / Quests
+                VStack(alignment: .leading, spacing: 12) {
+                    if routingService.activeQuest != nil {
+                        QuestProgressView()
+                    }
                     turnByTurnHUD
+                    Spacer()
                 }
-            }
+                .padding(.top, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Top Right: Controls
+                VStack(alignment: .trailing) {
+                    controlsColumn
+                    Spacer()
+                }
+                .padding(.top, 16)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                
+                // Bottom Left: Speedometer
+                VStack {
+                    Spacer()
+                    HStack {
+                        DigitalDashSpeedometer()
+                            .scaleEffect(0.65)
+                            .frame(width: 90, height: 90) // scaled down from 140
+                            .padding(.leading, 12)
+                            .padding(.bottom, 24)
+                        Spacer()
+                    }
+                }
 
-            if routeState == .navigating && uiVisible {
-                controlsRow
-            }
-
-            Spacer()
-
-            if routeState == .navigating && uiVisible {
-                NavigationBottomPanel(
-                    onEnd: { endRide() },
-                    onSetDestination: { showCruiseSearch = true },
-                    departureTime: departureTime,
-                    cruiseOdometerMiles: cruiseOdometerMiles
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                // Bottom Center: Minimal Navigation Panel
+                VStack {
+                    Spacer()
+                    NavigationBottomPanel(
+                        onEnd: { endRide() },
+                        onSetDestination: { showCruiseSearch = true },
+                        departureTime: departureTime,
+                        cruiseOdometerMiles: cruiseOdometerMiles
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
         .zIndex(5)
     }
 
     private var turnByTurnHUD: some View {
-        VStack(spacing: 8) {
-            GuidanceView()
-                .padding(.top, 16)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            
-            if showTapHint {
-                Text("Tap map to toggle controls")
-                    .font(Theme.Typography.button)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Theme.Colors.acWood.opacity(0.9))
-                    .foregroundColor(Theme.Colors.acCream)
-                    .clipShape(Capsule())
-                    .transition(.opacity)
-            }
-        }
+        GuidanceView()
+            .transition(.move(edge: .leading).combined(with: .opacity))
     }
 
-    private var controlsRow: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 16) {
-                DigitalDashSpeedometer()
-                    .transition(.scale.combined(with: .opacity))
+    private var controlsColumn: some View {
+        VStack(alignment: .trailing, spacing: 12) {
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
+                }
+            } label: {
+                Image(systemName: mapMode == .turnByTurn ? "map.fill" : "location.north.fill")
+                    .font(.system(size: 20, weight: .bold))
+                    .frame(width: 48, height: 48)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .background(Theme.Colors.acCream)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                    .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
             }
-            .padding(.leading, 16)
-            .padding(.top, 16)
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 12) {
+            .accessibilityLabel(mapMode == .turnByTurn ? "Show Route Overview" : "Return to Turn-by-Turn")
+            
+            VStack(spacing: 0) {
                 Button {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
-                    }
+                    bunnyPolice.isMuted.toggle()
                 } label: {
-                    Image(systemName: mapMode == .turnByTurn ? "map.fill" : "location.north.fill")
+                    Image(systemName: bunnyPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .font(.system(size: 20, weight: .bold))
-                        .frame(width: 56, height: 56)
+                        .frame(width: 48, height: 48)
+                        .foregroundColor(bunnyPolice.isMuted ? Theme.Colors.acCoral : Theme.Colors.acTextDark)
+                }
+                .accessibilityLabel(bunnyPolice.isMuted ? "Unmute alerts" : "Mute alerts")
+
+                Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
+
+                Button {
+                    isTracking = true
+                    NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
+                } label: {
+                    Image(systemName: isTracking ? "location.fill" : "location")
+                        .font(.system(size: 20, weight: .bold))
+                        .frame(width: 48, height: 48)
                         .foregroundColor(Theme.Colors.acTextDark)
-                        .background(Theme.Colors.acCream)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                        .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
                 }
-                .accessibilityLabel(mapMode == .turnByTurn ? "Show Route Overview" : "Return to Turn-by-Turn")
-                
-                VStack(spacing: 0) {
-                    Button {
-                        bunnyPolice.isMuted.toggle()
-                    } label: {
-                        Image(systemName: bunnyPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .frame(width: 56, height: 56)
-                            .foregroundColor(bunnyPolice.isMuted ? Theme.Colors.acCoral : Theme.Colors.acTextDark)
-                    }
-                    .accessibilityLabel(bunnyPolice.isMuted ? "Unmute alerts" : "Mute alerts")
+                .accessibilityLabel("Recenter map on your location")
 
-                    Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
+                Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
 
-                    Button {
-                        isTracking = true
-                        NotificationCenter.default.post(name: NSNotification.Name("RecenterMap"), object: nil)
-                    } label: {
-                        Image(systemName: isTracking ? "location.fill" : "location")
-                            .font(.system(size: 22, weight: .bold))
-                            .frame(width: 56, height: 56)
-                            .foregroundColor(Theme.Colors.acTextDark)
-                    }
-                    .accessibilityLabel("Recenter map on your location")
-
-                    Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
-
-                    Button { reportHazard() } label: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 26, weight: .black))
-                            .frame(width: 56, height: 56)
-                            .foregroundColor(Theme.Colors.acGold)
-                    }
-                    .accessibilityLabel("Report Hazard")
+                Button { reportHazard() } label: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 22, weight: .black))
+                        .frame(width: 48, height: 48)
+                        .foregroundColor(Theme.Colors.acGold)
                 }
-                .frame(width: 56)
-                .background(Theme.Colors.acCream)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
-                .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
+                .accessibilityLabel("Report Hazard")
             }
-            .padding(.trailing, 16)
-            .padding(.top, 16)
+            .frame(width: 48)
+            .background(Theme.Colors.acCream)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
+            .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
         }
+        .padding(.trailing, 16)
         .transition(.opacity)
     }
 
