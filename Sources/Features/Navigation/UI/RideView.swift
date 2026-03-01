@@ -23,6 +23,7 @@ struct RideView: View {
     @State private var cruiseOdometerMiles: Double = 0
     @State private var cruiseLastLocation: CLLocation? = nil
     @State private var showCruiseSearch = false
+    @State private var celebrationStopName: String? = nil
 
     init(initialDestinationName: String, onStop: @escaping (RideContext?, PendingDriveSession?) -> Void) {
         self.initialDestinationName = initialDestinationName
@@ -44,6 +45,15 @@ struct RideView: View {
             if routeState == .navigating && routingService.showReroutePrompt {
                 ReroutePromptOverlay()
                     .zIndex(101)
+            }
+
+            if let stopName = celebrationStopName {
+                QuestCelebrationOverlay(
+                    stopName: stopName,
+                    isFinal: routingService.activeQuest == nil,
+                    onDismiss: { celebrationStopName = nil }
+                )
+                .zIndex(200)
             }
 
             mainUIChrome
@@ -68,9 +78,6 @@ struct RideView: View {
                     routeState = .reviewing
                 }
             }
-        }
-        .onChange(of: locationProvider.currentSpeedMPH) { _, _ in
-            // Speed-based auto-hide disabled per user request
         }
         .onChange(of: routeState) { _, newValue in handleRouteStateChange(newValue) }
         .onChange(of: locationProvider.currentLocation) { _, newValue in handleLocationChange(newValue) }
@@ -108,7 +115,7 @@ struct RideView: View {
                     controlsColumn
                     Spacer()
                 }
-                .padding(.top, 70) // Push down slightly to align well beneath the battery icon area
+                .padding(.top, 70)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 
                 // Bottom Left: Speedometer
@@ -117,14 +124,14 @@ struct RideView: View {
                     HStack {
                         DigitalDashSpeedometer()
                             .scaleEffect(0.55)
-                            .frame(width: 80, height: 80) // Scaled down more to not overlap the panel
+                            .frame(width: 80, height: 80)
                             .padding(.leading, 8)
-                            .padding(.bottom, 110) // Push up so it sits distinctly above the bottom panel
+                            .padding(.bottom, 110)
                         Spacer()
                     }
                 }
 
-                // Bottom Center: Minimal Navigation Panel
+                // Bottom Center: Navigation Panel
                 VStack {
                     Spacer()
                     NavigationBottomPanel(
@@ -161,7 +168,6 @@ struct RideView: View {
                     .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
                     .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
             }
-            .accessibilityLabel(mapMode == .turnByTurn ? "Show Route Overview" : "Return to Turn-by-Turn")
             
             VStack(spacing: 0) {
                 Button {
@@ -172,7 +178,6 @@ struct RideView: View {
                         .frame(width: 48, height: 48)
                         .foregroundColor(bunnyPolice.isMuted ? Theme.Colors.acCoral : Theme.Colors.acTextDark)
                 }
-                .accessibilityLabel(bunnyPolice.isMuted ? "Unmute alerts" : "Mute alerts")
 
                 Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
 
@@ -185,7 +190,6 @@ struct RideView: View {
                         .frame(width: 48, height: 48)
                         .foregroundColor(Theme.Colors.acTextDark)
                 }
-                .accessibilityLabel("Recenter map on your location")
 
                 Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
 
@@ -195,7 +199,6 @@ struct RideView: View {
                         .frame(width: 48, height: 48)
                         .foregroundColor(Theme.Colors.acGold)
                 }
-                .accessibilityLabel("Report Hazard")
             }
             .frame(width: 48)
             .background(Theme.Colors.acCream)
@@ -280,11 +283,9 @@ struct RideView: View {
             route: routingService.activeRoute,
             etaSeconds: routingService.routeTimeSeconds
         )
-        // Accumulate odometer in cruise mode (no active route)
         if routingService.activeRoute.isEmpty {
             if let last = cruiseLastLocation {
                 let deltaMeters = loc.distance(from: last)
-                // Cap wild GPS jumps (> 800m between updates means bad reading)
                 if deltaMeters < 800 {
                     cruiseOdometerMiles += deltaMeters / 1609.34
                 }
@@ -296,23 +297,27 @@ struct RideView: View {
     private func handleSimulationCompletion(_ completed: Bool) {
         guard completed && routeState == .navigating else { return }
         
-        if routingService.activeQuest != nil {
+        if let quest = routingService.activeQuest {
+            let reachedStopName = quest.waypoints[routingService.currentStopNumber].name
+            celebrationStopName = reachedStopName
+            
             if let loc = locationProvider.currentLocation?.coordinate {
                 let advanced = routingService.advanceToNextLeg(currentLocation: loc)
                 if advanced {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                        if !routingService.activeRoute.isEmpty {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+                        if !routingService.activeRoute.isEmpty && celebrationStopName == nil {
                             locationProvider.simulateDrive(along: routingService.activeRoute)
                         }
                     }
                 } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
                         endRide()
                     }
                 }
             }
         } else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+            celebrationStopName = destinationName
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
                 if routeState == .navigating {
                     endRide()
                 }
@@ -380,16 +385,13 @@ struct RideView: View {
     
     private func prefetchTTS(for destinationName: String) {
         var prefetchTexts = [String]()
-        
         let dest = destinationName.isEmpty ? "your destination" : destinationName
         prefetchTexts.append("Route to \(dest) is ready. Let's have a wonderful trip together!")
         prefetchTexts.append("You have arrived at your final destination. Route complete!")
-        
         for instruction in routingService.instructions {
             prefetchTexts.append("In 500 feet, \(instruction.text)")
             prefetchTexts.append(instruction.text)
         }
-        
         if let quest = routingService.activeQuest {
             for i in 0..<(quest.waypoints.count - 1) {
                 let current = quest.waypoints[i].name
@@ -397,14 +399,6 @@ struct RideView: View {
                 prefetchTexts.append("Arrived at \(current). Next stop is \(next). Route is ready when you are.")
             }
         }
-        
         SpeechService.shared.prefetch(texts: prefetchTexts)
     }
-}
-
-/// Returns true when a sheet dismissal should reset navigation state back to search.
-/// Extracted for testability: the sheet binding `set` closure calls this to avoid
-/// overwriting `.navigating` when the sheet is dismissed by a Simulate/Drive tap.
-func shouldResetOnSheetDismiss(routeState: RouteState) -> Bool {
-    routeState != .navigating
 }

@@ -56,15 +56,35 @@ struct ExperiencesCatalogView: View {
     }
     
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Curated Journeys")
-                .font(.system(size: 32, weight: .black, design: .rounded))
-                .foregroundColor(Theme.Colors.acWood)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Curated Journeys")
+                        .font(.system(size: 32, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acWood)
+                    
+                    Text("Select a journey to start exploring.")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                }
+                Spacer()
+                Image(systemName: "tent.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(Theme.Colors.acWood.opacity(0.2))
+                    .rotationEffect(.degrees(-15))
+            }
             
-            Text("Hand-picked routes through the best spots in San Francisco. One tap to start your adventure.")
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-                .lineSpacing(4)
+            HStack(spacing: 8) {
+                Label("Verified Spots", systemImage: "checkmark.seal.fill")
+                Text("•")
+                Label("Scenic Routes", systemImage: "sparkles")
+            }
+            .font(.system(size: 12, weight: .black, design: .rounded))
+            .foregroundColor(Theme.Colors.acLeaf)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Theme.Colors.acLeaf.opacity(0.1))
+            .clipShape(Capsule())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)

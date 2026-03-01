@@ -406,12 +406,16 @@ struct ZenMapView: UIViewRepresentable {
         coordinator.lastRouteState = routeState
 
         // Waypoints
-        let questCacheKey = routingService.activeQuest?.id.uuidString ?? "no_quest"
+        let questCacheKey = "\(routingService.activeQuest?.id.uuidString ?? "no_quest")_\(routingService.currentLegIndex)"
         if coordinator.lastQuestCacheKey != questCacheKey {
             coordinator.lastQuestCacheKey = questCacheKey
             uiView.removeAnnotations(uiView.annotations.filter { $0 is QuestWaypointAnnotation })
             if let quest = routingService.activeQuest {
-                uiView.addAnnotations(quest.waypoints.map { QuestWaypointAnnotation(waypoint: $0) })
+                var anns: [QuestWaypointAnnotation] = []
+                for i in 0..<quest.waypoints.count {
+                    anns.append(QuestWaypointAnnotation(waypoint: quest.waypoints[i], index: i))
+                }
+                uiView.addAnnotations(anns)
             }
         }
 
@@ -571,7 +575,24 @@ struct ZenMapView: UIViewRepresentable {
                 let id = "QuestWP"
                 var v = mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView
                 if v == nil { v = MKMarkerAnnotationView(annotation: wp, reuseIdentifier: id); v?.canShowCallout = true }
-                v?.glyphImage = UIImage(systemName: wp.wp.icon); v?.markerTintColor = UIColor(red: 0.83, green: 0.71, blue: 0.51, alpha: 1.0); v?.displayPriority = .required
+                else { v?.annotation = wp }
+                
+                let isPast = wp.index <= parent.routingService.currentLegIndex
+                let isTarget = wp.index == parent.routingService.currentLegIndex + 1
+                
+                v?.glyphImage = UIImage(systemName: isPast ? "checkmark" : wp.wp.icon)
+                v?.glyphTintColor = .white
+                
+                if isPast {
+                    v?.markerTintColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0) // Leaf
+                    v?.displayPriority = .defaultLow
+                } else if isTarget {
+                    v?.markerTintColor = .systemOrange
+                    v?.displayPriority = .required
+                } else {
+                    v?.markerTintColor = UIColor(red: 0.83, green: 0.71, blue: 0.51, alpha: 1.0) // Wood
+                    v?.displayPriority = .defaultHigh
+                }
                 return v
             }
             if let cam = annotation as? CameraAnnotation {
@@ -615,8 +636,20 @@ class SimulatedCarAnnotation: NSObject, MKAnnotation {
     init(coordinate: CLLocationCoordinate2D, vehicleType: VehicleType) { self.coordinate = coordinate; self.vehicleType = vehicleType; super.init() }
 }
 class QuestWaypointAnnotation: NSObject, MKAnnotation {
-    let id: UUID; let coordinate: CLLocationCoordinate2D; let title: String?; let wp: QuestWaypoint
-    init(waypoint: QuestWaypoint) { self.id = waypoint.id; self.wp = waypoint; self.coordinate = waypoint.coordinate; self.title = waypoint.name; super.init() }
+    let id: UUID
+    let coordinate: CLLocationCoordinate2D
+    let title: String?
+    let wp: QuestWaypoint
+    let index: Int
+
+    init(waypoint: QuestWaypoint, index: Int) {
+        self.id = waypoint.id
+        self.wp = waypoint
+        self.index = index
+        self.coordinate = waypoint.coordinate
+        self.title = waypoint.name
+        super.init()
+    }
 }
 class CameraAnnotation: NSObject, MKAnnotation {
     let id: String; let coordinate: CLLocationCoordinate2D; let title: String?; let subtitle: String?
