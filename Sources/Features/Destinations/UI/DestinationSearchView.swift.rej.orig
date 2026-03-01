@@ -1,0 +1,54 @@
+@@ -10,24 +10,48 @@
+ 
+     private var activeSearch: MKLocalSearch?
+ 
+-    func search(for query: String, near location: CLLocationCoordinate2D? = nil) {
++    func search(for query: String, near location: CLLocationCoordinate2D? = nil, recentSearches: [RecentSearch] = []) {
+         activeSearch?.cancel()
+-        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
++        let cleanQuery = query.trimmingCharacters(in: .whitespaces)
++        guard !cleanQuery.isEmpty else {
+             searchResults = []; isSearching = false; return
+         }
+         let request = MKLocalSearch.Request()
+-        request.naturalLanguageQuery = query
++        request.naturalLanguageQuery = cleanQuery
+         let center = location ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+         request.region = MKCoordinateRegion(
+             center: center,
+             span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+         )
++        
++        // 1. Filter and convert recent searches matching the query
++        let matchedRecents = recentSearches.filter { recent in
++            recent.name.localizedCaseInsensitiveContains(cleanQuery) ||
++            recent.subtitle.localizedCaseInsensitiveContains(cleanQuery)
++        }.map { recent -> MKMapItem in
++            let placemark = MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: recent.latitude, longitude: recent.longitude),
++                                        addressDictionary: ["Street": recent.subtitle])
++            let item = MKMapItem(placemark: placemark)
++            item.name = recent.name
++            return item
++        }
++        
+         activeSearch = MKLocalSearch(request: request)
+         activeSearch?.start { [weak self] response, error in
+             DispatchQueue.main.async {
+                 self?.isSearching = false
+                 guard let response = response, error == nil else {
+-                    Log.error("Search", "MKLocalSearch failed: \(error?.localizedDescription ?? "unknown")")
++                    // If search fails, at least show recents if we have them
++                    if !matchedRecents.isEmpty {
++                        self?.searchResults = matchedRecents
++                    } else {
++                        Log.error("Search", "MKLocalSearch failed: \(error?.localizedDescription ?? "unknown")")
++                    }
+                     return
+                 }
+-                self?.searchResults = response.mapItems
++                
++                // 2. Score and sort network results
++                let sortedNetworkResults = response.mapItems.sorted { item1, item2 in
++                    let name1 = item1.name ?? ""
++                    let name2 = item2.name ?? ""
++                    

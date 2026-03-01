@@ -306,19 +306,3 @@ class SavedRoutesStore: ObservableObject {
         }
     }
 }
-
-extension SavedRoutesStore {
-    func isPlaceSaved(name: String, coordinate: CLLocationCoordinate2D) -> Bool {
-        if let idx = findExistingIndex(near: coordinate, name: name) {
-            return routes[idx].isPinned
-        }
-        return false
-    }
-
-    func findExistingId(near coord: CLLocationCoordinate2D, name: String) -> UUID? {
-        if let idx = findExistingIndex(near: coord, name: name) {
-            return routes[idx].id
-        }
-        return nil
-    }
-}

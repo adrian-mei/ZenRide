@@ -166,7 +166,7 @@ struct SavedRouteRow: View {
                         .lineLimit(1)
                     Text(subtitle)
                         .font(.system(size: 13))
-                        .foregroundStyle(Theme.Colors.acTextMuted)
+                        .foregroundStyle(Theme.Colors.acWood)
                         .lineLimit(1)
                 }
             }
@@ -207,7 +207,7 @@ struct SearchResultRow: View {
                         HStack(spacing: 6) {
                             Text(item.placemark.zenFormattedAddress)
                                 .font(.system(size: 14))
-                                .foregroundStyle(Theme.Colors.acTextMuted)
+                                .foregroundStyle(Theme.Colors.acWood)
                                 .lineLimit(1)
                             if let dist = distanceString {
                                 Text(dist)
@@ -231,13 +231,13 @@ struct SearchResultRow: View {
                 ZStack {
                     Image(systemName: "bookmark.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(Theme.Colors.acCoral)
+                        .foregroundStyle(Theme.Colors.acWood)
                         .scaleEffect(isSaved ? 1 : 0.01)
                         .opacity(isSaved ? 1 : 0)
 
                     Image(systemName: "bookmark")
                         .font(.system(size: 20))
-                        .foregroundStyle(Theme.Colors.acTextMuted)
+                        .foregroundStyle(Theme.Colors.acWood)
                         .scaleEffect(isSaved ? 0.01 : 1)
                         .opacity(isSaved ? 0 : 1)
                 }

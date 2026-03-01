@@ -212,7 +212,7 @@ struct BikePassCard: View {
                     Text(vehicle.name)
                         .font(.title3.bold())
                         .foregroundColor(.white)
-                    Text("\(vehicle.year) \(vehicle.make) \(vehicle.model)")
+                    Text(vehicle.licensePlate.isEmpty ? vehicle.type.displayName : vehicle.licensePlate)
                         .font(.subheadline)
                         .foregroundColor(.white.opacity(0.8))
                 }

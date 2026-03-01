@@ -358,13 +358,7 @@ private struct AddStopSheet: View {
                                     } onSave: {
                                         guard let coord = item.placemark.location?.coordinate else { return }
                                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                        if savedRoutes.isPlaceSaved(name: item.name ?? "", coordinate: coord) {
-                                            if let savedId = savedRoutes.findExistingId(near: coord, name: item.name ?? "") {
-                                                savedRoutes.togglePin(id: savedId)
-                                            }
-                                        } else {
-                                            savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
-                                        }
+                                        savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
                                     }
 
                                     if idx < min(searcher.searchResults.count, 12) - 1 {
