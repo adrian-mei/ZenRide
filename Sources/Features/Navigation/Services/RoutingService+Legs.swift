@@ -88,12 +88,17 @@ extension RoutingService {
                 self.routeProgressIndex = 0
                 
                 // Parse MKRouteSteps into our custom NavigationInstruction format
+                // routeOffsetInMeters is the cumulative distance from route start to each step's
+                // starting point, so GuidanceView can correctly compute distance-to-turn.
+                var cumulativeMeters = 0
                 self.instructions = route.steps.compactMap { step in
                     guard !step.instructions.isEmpty else { return nil }
+                    let offset = cumulativeMeters
+                    cumulativeMeters += Int(step.distance)
                     return NavigationInstruction(
                         text: step.instructions,
                         distanceInMeters: Int(step.distance),
-                        routeOffsetInMeters: 0, // Simplified for now
+                        routeOffsetInMeters: offset,
                         pointIndex: 0,
                         turnType: .straight
                     )

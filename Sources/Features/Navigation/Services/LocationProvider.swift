@@ -66,7 +66,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     // MARK: - Simulation
     
-    func simulateDrive(along route: [CLLocationCoordinate2D]) {
+    func simulateDrive(along route: [CLLocationCoordinate2D], speedMPH: Double = 35) {
         guard route.count > 1 else { return }
         
         locationManager.stopUpdatingLocation()
@@ -85,7 +85,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         self.nextSimulationIndex = 1
         var distanceTraveledMeters: Double = 0
         
-        let targetSpeedMPH: Double = 65
+        let targetSpeedMPH: Double = speedMPH
         
         let tickInterval: TimeInterval = 0.1 // Increase tick rate from 0.5s to 0.1s for 10FPS map updates
         

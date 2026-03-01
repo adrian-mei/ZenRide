@@ -262,7 +262,7 @@ struct RideView: View {
             prefetchTTS(for: destinationName)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 routeState = .navigating
-                locationProvider.simulateDrive(along: routingService.activeRoute)
+                locationProvider.simulateDrive(along: routingService.activeRoute, speedMPH: routingService.vehicleMode.simulationSpeedMPH)
                 uiVisible = true
                 showTapHint = true
             }
@@ -334,7 +334,7 @@ struct RideView: View {
                 if advanced {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
                         if !routingService.activeRoute.isEmpty && celebrationStopName == nil {
-                            locationProvider.simulateDrive(along: routingService.activeRoute)
+                            locationProvider.simulateDrive(along: routingService.activeRoute, speedMPH: routingService.vehicleMode.simulationSpeedMPH)
                         }
                     }
                 } else {

@@ -296,7 +296,7 @@ struct MapHomeView: View {
 // MARK: - Home Bottom Sheet
 
 private enum BottomSheetChild: Identifiable {
-    case questBuilder, campCruise
+    case destinationSearch, campCruise
     var id: Self { self }
 }
 
@@ -440,11 +440,10 @@ struct HomeBottomSheet: View {
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
         .sheet(item: $activeSheet) { child in
             switch child {
-            case .questBuilder:
-                QuestBuilderView(
-                    preloadedWaypoints: questBuilderPreloaded,
-                    onStartTrip: { name, coord in onDestinationSelected(name, coord) }
-                )
+            case .destinationSearch:
+                DestinationSearchView(onDestinationSelected: { name, coord in
+                    onDestinationSelected(name, coord)
+                })
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             case .campCruise:
@@ -452,9 +451,6 @@ struct HomeBottomSheet: View {
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
-        }
-        .onChange(of: activeSheet) { _, sheet in
-            if sheet == nil { questBuilderPreloaded = [] }
         }
     }
 
@@ -540,7 +536,7 @@ struct HomeBottomSheet: View {
                     routeTo(item: MKMapItem(placemark: MKPlacemark(coordinate: coord)))
                 },
                 onAssign: { category, idx in
-                    activeSheet = .questBuilder 
+                    activeSheet = .destinationSearch
                 }
             )
 
@@ -604,7 +600,7 @@ struct HomeBottomSheet: View {
                     let lng = loc.coordinate.longitude
                     let text = "My location: https://maps.apple.com/?ll=\(lat),\(lng)"
                     let vc = UIActivityViewController(activityItems: [text], applicationActivities: nil)
-                    UIApplication.shared.firstKeyWindow?.rootViewController?.present(vc, animated: true)
+                    UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first { $0.isKeyWindow }?.rootViewController?.present(vc, animated: true)
                 }
                 ActionButton(icon: "mappin.and.ellipse", title: "Mark My Location", color: Theme.Colors.acCoral) {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -687,7 +683,6 @@ struct HomeBottomSheet: View {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             let wp = QuestWaypoint(name: item.name ?? "Stop", coordinate: coord, icon: "mappin.circle.fill")
                             questBuilderPreloaded = [wp]
-                            activeSheet = .questBuilder
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 22))
@@ -710,8 +705,6 @@ struct HomeBottomSheet: View {
             .transition(.opacity)
         }
     }
-
-    // MARK: - Helpers
 
     private func routeTo(item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate else { return }
@@ -1003,17 +996,6 @@ private struct MoodSelectionButton: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - UIApplication helper
-
-private extension UIApplication {
-    var firstKeyWindow: UIWindow? {
-        connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first { $0.isKeyWindow }
     }
 }
 

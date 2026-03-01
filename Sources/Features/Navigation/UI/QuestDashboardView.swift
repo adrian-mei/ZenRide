@@ -6,12 +6,13 @@ struct QuestDashboardView: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var locationProvider: LocationProvider
 
-    @State private var showingBuilder = false
+    @State private var showingSearch = false
     @State private var showingCatalog = false
     @State private var selectedExperience: ExperienceRoute?
     @State private var showingExperienceAction = false
     @State private var preloadedExperienceWaypoints: [QuestWaypoint] = []
     @State private var preloadedExperienceTitle: String = ""
+    @State private var showingBuilder = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -49,9 +50,7 @@ struct QuestDashboardView: View {
                 .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
 
                 Button {
-                    preloadedExperienceTitle = ""
-                    preloadedExperienceWaypoints = []
-                    showingBuilder = true
+                    showingSearch = true
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "plus")
@@ -100,11 +99,13 @@ struct QuestDashboardView: View {
                 .scrollClipDisabled()
             }
         }
-        .sheet(isPresented: $showingBuilder) {
-            QuestBuilderView(
-                preloadedWaypoints: preloadedExperienceWaypoints,
-                preloadedTitle: preloadedExperienceTitle
-            )
+        .sheet(isPresented: $showingSearch) {
+            DestinationSearchView { name, coordinate in
+                let wp = QuestWaypoint(name: name, coordinate: coordinate)
+                let quest = DailyQuest(title: name, waypoints: [wp])
+                questStore.addQuest(quest)
+                routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
+            }
         }
         .sheet(isPresented: $showingCatalog) {
             ExperiencesCatalogView { route in
@@ -155,22 +156,22 @@ struct QuestDashboardView: View {
 
     private var emptyState: some View {
         Button {
-            showingBuilder = true
+            showingSearch = true
         } label: {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
                         .fill(Theme.Colors.acLeaf.opacity(0.12))
                         .frame(width: 48, height: 48)
-                    Image(systemName: "map.fill")
+                    Image(systemName: "magnifyingglass")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(Theme.Colors.acLeaf)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Build your first route")
+                    Text("Find your first spot")
                         .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.acTextDark)
-                    Text("Tap to plan a multi-stop adventure")
+                    Text("Tap to search for a destination")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
                 }

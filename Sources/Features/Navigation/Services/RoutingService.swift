@@ -69,6 +69,19 @@ enum VehicleMode: String, CaseIterable {
         }
     }
 
+    var simulationSpeedMPH: Double {
+        switch self {
+        case .car, .electricCar, .suv:          return 35
+        case .sportsCar:                         return 45
+        case .truck:                             return 30
+        case .motorcycle, .scooter:             return 35
+        case .bicycle, .mountainBike:           return 12
+        case .walking:                           return 3
+        case .running:                           return 7
+        case .skateboard:                        return 8
+        }
+    }
+
     /// TomTom specific travel mode string
     var tomTomTravelMode: String {
         switch self {
