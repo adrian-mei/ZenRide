@@ -317,6 +317,7 @@ struct HomeBottomSheet: View {
 
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
+    @State private var searchTask: Task<Void, Never>?
     @State private var justSavedIndex: Int? = nil
     @State private var nearbyParking: [ParkingSpot] = []
     @State private var activeSheet: BottomSheetChild? = nil
@@ -348,11 +349,24 @@ struct HomeBottomSheet: View {
                             .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acTextDark)
                             .onChange(of: searcher.searchQuery) { _, query in
-                                searcher.scheduleSearch(for: query, near: locationProvider.currentLocation?.coordinate)
+                                searchTask?.cancel()
+                                if query.trimmingCharacters(in: .whitespaces).isEmpty {
+                                    searcher.searchResults = []
+                                    searcher.isSearching = false
+                                    return
+                                }
+                                searcher.isSearching = true
+                                searchTask = Task {
+                                    try? await Task.sleep(nanoseconds: 180_000_000)
+                                    guard !Task.isCancelled else { return }
+                                    searcher.search(for: query, near: locationProvider.currentLocation?.coordinate)
+                                }
                             }
                             .onSubmit {
+                                searchTask?.cancel()
                                 let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
                                 guard !q.isEmpty else { return }
+                                searcher.isSearching = true
                                 searcher.search(for: q, near: locationProvider.currentLocation?.coordinate)
                             }
 
@@ -444,7 +458,7 @@ struct HomeBottomSheet: View {
         }
     }
 
-    // MARK: - Idle Content
+    // MARK: - Sub-Views
 
     private var idleContent: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -611,8 +625,6 @@ struct HomeBottomSheet: View {
         }
     }
 
-    // MARK: - Search Results
-
     @ViewBuilder
     private var searchResultsContent: some View {
         if searcher.isSearching {
@@ -698,6 +710,8 @@ struct HomeBottomSheet: View {
             .transition(.opacity)
         }
     }
+
+    // MARK: - Helpers
 
     private func routeTo(item: MKMapItem) {
         guard let coord = item.placemark.location?.coordinate else { return }
@@ -787,7 +801,6 @@ struct MemoryPolaroidCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // "Photo" area
             ZStack {
                 Theme.Colors.acSky.opacity(0.3)
                 VStack(spacing: 8) {
@@ -808,7 +821,6 @@ struct MemoryPolaroidCard: View {
             .background(Color.white)
             .rotationEffect(.degrees(Double.random(in: -2...2)))
 
-            // Caption area
             Text(memory.thought)
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundColor(Theme.Colors.acTextDark)
