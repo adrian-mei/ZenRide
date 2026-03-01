@@ -58,27 +58,15 @@ struct ContentView: View {
                     lastRideContext = context
                     pendingSession = pending
 
-                    // Gamification: Animal Crossing Themed Experience
-                    let durationSeconds = pending?.actualDurationSeconds ?? 0
-                    let avgSpeed = pending?.avgSpeedMph ?? 0
-
-                    var xpEarned = 0
-                    // A "real ride" is at least 10 minutes (600 seconds) and avg speed > 15 mph
-                    if durationSeconds >= 600 && avgSpeed > 15.0 {
-                        // Calculate XP based on distance and speed, minimum 50 XP
-                        xpEarned = max(50, Int((pending?.distanceMiles ?? 0) * 10))
-                    }
-
-                    // Quest bonus: 25 XP per waypoint for completing a multi-stop quest
+                    // Gamification: award XP via PlayerStore
                     let questWaypoints = routingService.completedQuestWaypointCount
-                    if questWaypoints > 0 {
-                        xpEarned += questWaypoints * 25
-                        routingService.completedQuestWaypointCount = 0
-                    }
-
-                    if xpEarned > 0 {
-                        playerStore.addXP(xpEarned)
-                    }
+                    routingService.completedQuestWaypointCount = 0
+                    let xpEarned = playerStore.processRideEnd(
+                        durationSeconds: pending?.actualDurationSeconds ?? 0,
+                        avgSpeed: pending?.avgSpeedMph ?? 0,
+                        distanceMiles: pending?.distanceMiles ?? 0,
+                        questWaypointCount: questWaypoints
+                    )
 
                     // Build toast info from ride stats
                     let distanceMiles = pending?.distanceMiles ?? 0

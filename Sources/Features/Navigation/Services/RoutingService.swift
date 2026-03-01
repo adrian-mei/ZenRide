@@ -190,6 +190,7 @@ struct TomTomPoint: Codable {
     let longitude: Double
 }
 
+@MainActor
 class RoutingService: ObservableObject {
     @Published var availableRoutes: [TomTomRoute] = []
     @Published var selectedRouteIndex: Int = 0
@@ -271,14 +272,12 @@ class RoutingService: ObservableObject {
 
     // MARK: - Offline Route
     func loadOfflineRoute(_ route: TomTomRoute) {
-        Task { @MainActor in
-            self.availableRoutes = [route]
-            self.activeAlternativeRoutes = [route].compactMap { r in
-                r.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
-            }
-            self.selectRoute(at: 0)
-            Log.info("Routing", "Loaded offline route from storage.")
+        availableRoutes = [route]
+        activeAlternativeRoutes = [route].compactMap { r in
+            r.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
         }
+        selectRoute(at: 0)
+        Log.info("Routing", "Loaded offline route from storage.")
     }
 
     // MARK: - Recalculate with stored params (called on preference change)
@@ -320,12 +319,10 @@ class RoutingService: ObservableObject {
                 }
             }
 
-            DispatchQueue.main.async {
-                // Re-check bounds: activeRoute may have changed before this block executes
-                if closestSegmentIndex > self.routeProgressIndex,
-                   closestSegmentIndex < self.activeRoute.count {
-                    self.routeProgressIndex = closestSegmentIndex
-                }
+            // Re-check bounds: activeRoute may have changed since the loop ran
+            if closestSegmentIndex > routeProgressIndex,
+               closestSegmentIndex < activeRoute.count {
+                routeProgressIndex = closestSegmentIndex
             }
         } else {
             guard let lastPoint = activeRoute.last else { return }
@@ -335,12 +332,10 @@ class RoutingService: ObservableObject {
         if minDistance > 100 {
             if !isCalculatingRoute && !showReroutePrompt {
                 Log.info("Routing", "Off route — triggering reroute recalculation")
-                DispatchQueue.main.async {
-                    self.showReroutePrompt = true
-                }
+                showReroutePrompt = true
                 Task {
-                    if let dest = self.lastDestination, let cams = self.lastCameras {
-                        await self.calculateSafeRoute(from: currentCoord, to: dest, avoiding: cams)
+                    if let dest = lastDestination, let cams = lastCameras {
+                        await calculateSafeRoute(from: currentCoord, to: dest, avoiding: cams)
                     }
                 }
             }
@@ -514,25 +509,22 @@ class RoutingService: ObservableObject {
         lastDestination = destination
         lastCameras = cameras
 
-        await MainActor.run { isCalculatingRoute = true }
-        defer { Task { await MainActor.run { self.isCalculatingRoute = false } } }
+        isCalculatingRoute = true
+        defer { isCalculatingRoute = false }
 
         if useMockData {
             do {
                 let data = MockRoutingData.tomTomResponseJSON.data(using: .utf8)!
                 let result = try JSONDecoder().decode(TomTomRouteResponse.self, from: data)
-
-                await MainActor.run {
-                    self.availableRoutes = result.routes
-                    self.activeAlternativeRoutes = result.routes.compactMap { route in
-                        route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
-                    }
-                    let defaultIndex = self.avoidSpeedCameras 
-                        ? (result.routes.firstIndex(where: { $0.isZeroCameras }) ?? 0)
-                        : 0
-                    self.selectRoute(at: defaultIndex)
-                    Log.info("Routing", "Got \(result.routes.count) routes (mock)")
+                availableRoutes = result.routes
+                activeAlternativeRoutes = result.routes.compactMap { route in
+                    route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
                 }
+                let defaultIndex = avoidSpeedCameras
+                    ? (result.routes.firstIndex(where: { $0.isZeroCameras }) ?? 0)
+                    : 0
+                selectRoute(at: defaultIndex)
+                Log.info("Routing", "Got \(result.routes.count) routes (mock)")
             } catch {
                 Log.error("Routing", "Route calculation failed: \(error)")
             }
@@ -586,20 +578,16 @@ class RoutingService: ObservableObject {
                 if !isDuplicate { combined.append(safe) }
             }
 
-            // Swift 6 capture workaround: safely bind the value before hopping to the MainActor
-            let finalCombined = combined
-            await MainActor.run {
-                self.availableRoutes = finalCombined
-                self.activeAlternativeRoutes = finalCombined.compactMap { route in
-                    route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
-                }
-                // Default: camera-free if avoiding cameras, else fastest
-                let defaultIndex = self.avoidSpeedCameras
-                    ? (finalCombined.firstIndex(where: { $0.isSafeRoute }) ?? 0)
-                    : 0
-                self.selectRoute(at: defaultIndex)
-                Log.info("Routing", "Got \(finalCombined.count) routes (tolls:\(self.avoidTolls) hwy:\(self.avoidHighways) cams:\(self.avoidSpeedCameras))")
+            availableRoutes = combined
+            activeAlternativeRoutes = combined.compactMap { route in
+                route.legs.first?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
             }
+            // Default: camera-free if avoiding cameras, else fastest
+            let defaultIndex = avoidSpeedCameras
+                ? (combined.firstIndex(where: { $0.isSafeRoute }) ?? 0)
+                : 0
+            selectRoute(at: defaultIndex)
+            Log.info("Routing", "Got \(combined.count) routes (tolls:\(avoidTolls) hwy:\(avoidHighways) cams:\(avoidSpeedCameras))")
 
         } catch {
             Log.error("Routing", "Route calculation failed: \(error.localizedDescription)")

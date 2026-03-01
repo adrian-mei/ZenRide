@@ -317,7 +317,6 @@ struct HomeBottomSheet: View {
 
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
-    @State private var searchTask: Task<Void, Never>?
     @State private var justSavedIndex: Int? = nil
     @State private var nearbyParking: [ParkingSpot] = []
     @State private var activeSheet: BottomSheetChild? = nil

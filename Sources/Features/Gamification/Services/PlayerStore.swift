@@ -96,6 +96,22 @@ class PlayerStore: ObservableObject {
         return min(1.0, max(0.0, Double(relativeXP) / Double(xpThreshold)))
     }
 
+    /// Calculates and awards XP after a ride completes. Returns the total XP earned.
+    /// A "real ride" requires ≥10 min duration and avg speed >15 mph.
+    func processRideEnd(durationSeconds: Int, avgSpeed: Double, distanceMiles: Double, questWaypointCount: Int) -> Int {
+        var xpEarned = 0
+        if durationSeconds >= 600 && avgSpeed > 15.0 {
+            xpEarned = max(50, Int(distanceMiles * 10))
+        }
+        if questWaypointCount > 0 {
+            xpEarned += questWaypointCount * 25
+        }
+        if xpEarned > 0 {
+            addXP(xpEarned)
+        }
+        return xpEarned
+    }
+
     func addXP(_ amount: Int) {
         let previousLevel = currentLevel
         totalXP += amount

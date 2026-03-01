@@ -10,6 +10,25 @@ class DestinationSearcher: ObservableObject {
 
     private var activeSearch: MKLocalSearch?
     private var searchTask: Task<Void, Never>?
+    private var debounceTask: Task<Void, Never>?
+
+    /// Debounced search — cancels any pending search and waits 200ms before firing.
+    /// Call this from `.onChange`; call `search(for:)` directly from `.onSubmit`.
+    func scheduleSearch(for query: String, near location: CLLocationCoordinate2D? = nil, recentSearches: [RecentSearch] = []) {
+        debounceTask?.cancel()
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            searchResults = []
+            isSearching = false
+            return
+        }
+        isSearching = true
+        debounceTask = Task {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            guard !Task.isCancelled else { return }
+            search(for: trimmed, near: location, recentSearches: recentSearches)
+        }
+    }
 
     func search(for query: String, near location: CLLocationCoordinate2D? = nil, recentSearches: [RecentSearch] = []) {
         activeSearch?.cancel()
