@@ -81,7 +81,7 @@ struct RideView: View {
         ZenMapView(routeState: $routeState, isTracking: $isTracking, mapMode: mapMode, onMapTap: {
             if routeState == .navigating {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    uiVisible.toggle()
+                    uiVisible = true
                     showTapHint = false
                 }
             }
@@ -222,7 +222,7 @@ struct RideView: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 routeState = .navigating
                 locationProvider.isSimulating = false
-                uiVisible = false
+                uiVisible = true
                 showTapHint = true
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
@@ -237,7 +237,7 @@ struct RideView: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 routeState = .navigating
                 locationProvider.simulateDrive(along: routingService.activeRoute)
-                uiVisible = false
+                uiVisible = true
                 showTapHint = true
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
