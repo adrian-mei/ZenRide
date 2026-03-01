@@ -249,7 +249,6 @@ private struct AddStopSheet: View {
 
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
-    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -270,24 +269,11 @@ private struct AddStopSheet: View {
                             .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acTextDark)
                             .onChange(of: searcher.searchQuery) { _, query in
-                                searchTask?.cancel()
-                                guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
-                                    searcher.searchResults = []
-                                    searcher.isSearching = false
-                                    return
-                                }
-                                searcher.isSearching = true
-                                searchTask = Task {
-                                    try? await Task.sleep(nanoseconds: 200_000_000)
-                                    guard !Task.isCancelled else { return }
-                                    searcher.search(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
-                                }
+                                searcher.scheduleSearch(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
                             }
                             .onSubmit {
-                                searchTask?.cancel()
                                 let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
                                 guard !q.isEmpty else { return }
-                                searcher.isSearching = true
                                 searcher.search(for: q, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
                             }
 
