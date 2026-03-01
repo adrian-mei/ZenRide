@@ -17,6 +17,7 @@ xcodegen generate
 echo "🏗️  Building for Simulator..."
 xcodebuild -project "$PROJECT" \
            -scheme "$SCHEME" \
+           -derivedDataPath "./DerivedData" \
            -destination "platform=iOS Simulator,name=$DEVICE_NAME" \
            build
 
@@ -26,13 +27,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 3. Find built app path
-# We use -showBuildSettings to be precise
-APP_PATH=$(xcodebuild -project "$PROJECT" -scheme "$SCHEME" -destination "platform=iOS Simulator,name=$DEVICE_NAME" -showBuildSettings | grep -m 1 "CODESIGNING_FOLDER_PATH" | awk '{print $3}')
-
-if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-    # Fallback to a common location if showBuildSettings fails
-    APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData/FashodaMap-*/Build/Products/Debug-iphonesimulator -name "$SCHEME.app" | head -n 1)
-fi
+APP_PATH=$(find ./DerivedData/Build/Products/Debug-iphonesimulator -name "$SCHEME.app" | head -n 1)
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
     echo "❌ Could not find the built .app folder."
