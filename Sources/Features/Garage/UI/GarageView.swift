@@ -441,9 +441,10 @@ struct HomeBottomSheet: View {
         .sheet(item: $activeSheet) { child in
             switch child {
             case .destinationSearch:
-                DestinationSearchView(onDestinationSelected: { name, coord in
-                    onDestinationSelected(name, coord)
+                DestinationSearchView(onDestinationSelected: { name, coordinate in
+                    onDestinationSelected(name, coordinate)
                 })
+
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             case .campCruise:

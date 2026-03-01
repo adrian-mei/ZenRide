@@ -8,6 +8,8 @@ class DestinationSearcher: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [MKMapItem] = []
     @Published var isSearching = false
+    
+    var category: RoutineCategory? = nil
 
     private var activeSearch: MKLocalSearch?
     private var searchTask: Task<Void, Never>?
@@ -36,11 +38,34 @@ class DestinationSearcher: ObservableObject {
         searchTask?.cancel()
         
         let cleanQuery = query.trimmingCharacters(in: .whitespaces)
-        guard !cleanQuery.isEmpty else {
+        let effectiveQuery = cleanQuery.isEmpty ? (category?.displayName ?? "") : cleanQuery
+        
+        guard !effectiveQuery.isEmpty else {
             searchResults = []; isSearching = false; return
         }
+        
         let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = cleanQuery
+        request.naturalLanguageQuery = effectiveQuery
+        
+        // Apply intelligence based on category
+        if let category = category {
+            switch category {
+            case .home, .work:
+                // User is likely searching for an address, filter out POIs to avoid "Home Depot" etc.
+                request.pointOfInterestFilter = .excludingAll
+            case .gym:
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.fitnessCenter])
+            case .school, .dayCare, .afterSchool:
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.school, .university])
+            case .dateSpot:
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.restaurant, .cafe, .theater, .movieTheater, .museum, .park])
+            case .holySpot:
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.park, .beach, .mountainPass, .nationalPark])
+            default:
+                break
+            }
+        }
+
         let center = location ?? Constants.sfCenter
         request.region = MKCoordinateRegion(
             center: center,
