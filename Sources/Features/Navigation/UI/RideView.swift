@@ -108,7 +108,7 @@ struct RideView: View {
                     controlsColumn
                     Spacer()
                 }
-                .padding(.top, 16)
+                .padding(.top, 70) // Push down slightly to align well beneath the battery icon area
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 
                 // Bottom Left: Speedometer
@@ -116,10 +116,10 @@ struct RideView: View {
                     Spacer()
                     HStack {
                         DigitalDashSpeedometer()
-                            .scaleEffect(0.65)
-                            .frame(width: 90, height: 90) // scaled down from 140
-                            .padding(.leading, 12)
-                            .padding(.bottom, 24)
+                            .scaleEffect(0.55)
+                            .frame(width: 80, height: 80) // Scaled down more to not overlap the panel
+                            .padding(.leading, 8)
+                            .padding(.bottom, 110) // Push up so it sits distinctly above the bottom panel
                         Spacer()
                     }
                 }

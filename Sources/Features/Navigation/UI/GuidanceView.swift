@@ -18,21 +18,21 @@ struct GuidanceView: View {
                     HStack(spacing: 12) {
                         VStack(spacing: 4) {
                             Image(systemName: instruction.turnType.icon)
-                                .font(.system(size: 32, weight: .heavy))
+                                .font(.system(size: 28, weight: .heavy))
                                 .foregroundColor(Theme.Colors.acLeaf)
                                 .scaleEffect(isApproachingTurn ? 1.1 : 1.0)
                                 .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isApproachingTurn)
-                                .frame(width: 50)
+                                .frame(width: 44)
                             
                             Text(formatDistance(instruction: instruction))
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .contentTransition(.numericText())
                         }
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text(instruction.text)
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.7)
@@ -42,6 +42,7 @@ struct GuidanceView: View {
                     .padding(.top, 12)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 14)
+                    .background(Theme.Colors.acCream)
                     
                     // Next Instruction preview
                     if currentInstructionIndex + 1 < routingService.instructions.count {
@@ -70,14 +71,13 @@ struct GuidanceView: View {
                         }
                     }
                 }
-                .background(Theme.Colors.acCream)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .stroke(Theme.Colors.acBorder, lineWidth: 2)
                 )
                 .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 6)
-                .frame(maxWidth: 260) // Limits width in the corner
+                .frame(maxWidth: 240) // Limits width in the corner
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 // Navigation Logic

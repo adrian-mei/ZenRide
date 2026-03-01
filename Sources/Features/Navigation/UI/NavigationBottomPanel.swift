@@ -113,25 +113,25 @@ struct NavigationBottomPanel: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             } else {
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 0) {
                         Text(arrivalTime)
-                            .font(.system(size: 24, weight: .black, design: .rounded))
+                            .font(.system(size: 22, weight: .black, design: .rounded))
                             .foregroundColor(Theme.Colors.acTextDark)
-                        HStack(spacing: 6) {
+                        HStack(spacing: 4) {
                             Text("\(remainingMinutes) min")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextMuted)
                             Text("•")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextMuted)
                             Text("\(distanceValue) \(distanceUnit)")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextMuted)
                         }
                     }
                     
-                    Spacer(minLength: 16)
+                    Spacer(minLength: 12)
                     
                     Button(action: onEnd) {
                         Text("End")
