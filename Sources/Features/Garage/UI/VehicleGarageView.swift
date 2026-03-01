@@ -151,8 +151,40 @@ struct VehicleGarageView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 28)
 
-                    // Select button
+                    // Lock progress hint — only shown for locked vehicles
                     let isLocked = hoveredTemplate.unlockLevel > playerStore.currentLevel
+                    if isLocked {
+                        let levelsNeeded = hoveredTemplate.unlockLevel - playerStore.currentLevel
+                        VStack(spacing: 6) {
+                            HStack {
+                                Text("Your Progress")
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .foregroundColor(Theme.Colors.acTextMuted)
+                                Spacer()
+                                Text("Lv \(playerStore.currentLevel) → \(hoveredTemplate.unlockLevel)")
+                                    .font(.system(size: 11, weight: .black, design: .rounded))
+                                    .foregroundColor(Theme.Colors.acTextMuted)
+                            }
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Theme.Colors.acField)
+                                    Capsule()
+                                        .fill(Theme.Colors.acGold.opacity(0.7))
+                                        .frame(width: geo.size.width * playerStore.currentLevelProgress())
+                                        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: playerStore.currentLevelProgress())
+                                }
+                            }
+                            .frame(height: 8)
+                            Text(levelsNeeded == 1 ? "1 more level to unlock" : "\(levelsNeeded) levels to unlock")
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundColor(Theme.Colors.acTextMuted)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 12)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    }
+
+                    // Select button
                     Button {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         vehicleStore.setTemplate(id: hoveredId)
