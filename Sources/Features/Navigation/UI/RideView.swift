@@ -37,16 +37,18 @@ struct RideView: View {
     var body: some View {
         ZStack(alignment: .top) {
             mapLayer
-            
+
             if routeState == .navigating && (bunnyPolice.currentZone == .approach || bunnyPolice.currentZone == .danger) {
                 AlertOverlayView(camera: bunnyPolice.nearestCamera)
                     .allowsHitTesting(false)
                     .zIndex(100)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             if routeState == .navigating && routingService.showReroutePrompt {
                 ReroutePromptOverlay()
                     .zIndex(101)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
 
             if let stopName = celebrationStopName {
@@ -56,13 +58,17 @@ struct RideView: View {
                     onDismiss: { celebrationStopName = nil }
                 )
                 .zIndex(200)
+                .transition(.scale(scale: 0.85).combined(with: .opacity))
             }
 
             mainUIChrome
-            
+
             ACSnapshotEffect(isTriggered: $flashTriggered)
                 .zIndex(300)
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: bunnyPolice.currentZone)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: routingService.showReroutePrompt)
+        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: celebrationStopName != nil)
         .onAppear(perform: handleOnAppear)
         .sheet(isPresented: Binding(
             get: { routeState == .reviewing },
@@ -161,6 +167,7 @@ struct RideView: View {
         VStack(alignment: .trailing, spacing: 12) {
             // Memory Capture Button (Pictures with our eyes)
             Button {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
                 flashTriggered = true
                 let loc = locationProvider.currentLocation?.coordinate ?? Constants.sfCenter
                 let name = destinationName.isEmpty ? "Unknown Spot" : destinationName
@@ -183,6 +190,7 @@ struct RideView: View {
             .acWobble(isPressed: flashTriggered)
 
             Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
                 }
@@ -199,6 +207,7 @@ struct RideView: View {
             
             VStack(spacing: 0) {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     bunnyPolice.isMuted.toggle()
                 } label: {
                     Image(systemName: bunnyPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -210,6 +219,7 @@ struct RideView: View {
                 Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     isTracking = true
                     NotificationCenter.default.post(name: AppNotification.recenterMap, object: nil)
                 } label: {

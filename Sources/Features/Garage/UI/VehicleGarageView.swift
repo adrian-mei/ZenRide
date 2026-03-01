@@ -32,7 +32,12 @@ struct VehicleGarageView: View {
 
                             Button {
                                 if !isLocked {
-                                    hoveredId = template.id
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
+                                        hoveredId = template.id
+                                    }
+                                    UISelectionFeedbackGenerator().selectionChanged()
+                                } else {
+                                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                                 }
                             } label: {
                                 HStack(spacing: 12) {
@@ -69,6 +74,7 @@ struct VehicleGarageView: View {
                                         Image(systemName: "checkmark.circle.fill")
                                             .font(.system(size: 14))
                                             .foregroundColor(Theme.Colors.acGold)
+                                            .transition(.scale.combined(with: .opacity))
                                     }
                                 }
                                 .padding(.horizontal, 12)
@@ -88,6 +94,7 @@ struct VehicleGarageView: View {
                                             lineWidth: 1.5
                                         )
                                 )
+                                .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
                             }
                             .buttonStyle(.plain)
                             .opacity(isLocked ? 0.5 : 1.0)
@@ -102,7 +109,7 @@ struct VehicleGarageView: View {
                 VStack(spacing: 0) {
                     Spacer()
 
-                    // Pedestal preview
+                    // Pedestal preview — pops in when template changes
                     ZStack {
                         Circle()
                             .fill(Theme.Colors.acField)
@@ -111,18 +118,31 @@ struct VehicleGarageView: View {
                             .font(.system(size: 72, weight: .bold))
                             .foregroundColor(Color(hex: hoveredTemplate.colorHex))
                     }
+                    .id(hoveredId)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.5).combined(with: .opacity),
+                        removal: .scale(scale: 1.4).combined(with: .opacity)
+                    ))
                     .padding(.bottom, 16)
 
+                    // Name slides up/down between templates
                     Text(hoveredTemplate.name)
                         .font(.system(size: 20, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextDark)
+                        .id(hoveredId + "_name")
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .move(edge: .top).combined(with: .opacity)
+                        ))
 
                     Text(hoveredTemplate.type.displayName)
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .padding(.bottom, 20)
+                        .id(hoveredId + "_type")
+                        .transition(.opacity)
 
-                    // Stats
+                    // Stats — bars animate to new values
                     VStack(spacing: 10) {
                         StatRow(label: "Speed",    value: hoveredTemplate.speedStat,    color: Theme.Colors.acSky)
                         StatRow(label: "Handling", value: hoveredTemplate.handlingStat, color: Theme.Colors.acGold)
@@ -134,6 +154,7 @@ struct VehicleGarageView: View {
                     // Select button
                     let isLocked = hoveredTemplate.unlockLevel > playerStore.currentLevel
                     Button {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         vehicleStore.setTemplate(id: hoveredId)
                         dismiss()
                     } label: {
@@ -151,6 +172,7 @@ struct VehicleGarageView: View {
                     }
                     .disabled(isLocked)
                     .padding(.horizontal, 20)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isLocked)
 
                     Spacer()
                 }
@@ -185,6 +207,7 @@ private struct StatRow: View {
                     Capsule()
                         .fill(color)
                         .frame(width: geo.size.width * (value / 10.0))
+                        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: value)
                 }
             }
             .frame(height: 10)
@@ -193,6 +216,8 @@ private struct StatRow: View {
                 .font(.system(size: 11, weight: .black, design: .rounded))
                 .foregroundColor(Theme.Colors.acTextDark)
                 .frame(width: 18, alignment: .trailing)
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: value)
         }
     }
 }

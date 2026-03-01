@@ -60,7 +60,7 @@ class DestinationSearcher: ObservableObject {
             case .dateSpot:
                 request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.restaurant, .cafe, .theater, .movieTheater, .museum, .park])
             case .holySpot:
-                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.park, .beach, .mountainPass, .nationalPark])
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.park, .beach, .nationalPark])
             default:
                 break
             }
@@ -190,9 +190,11 @@ struct DestinationSearchView: View {
     @EnvironmentObject var cameraStore: CameraStore
     @Environment(\.dismiss) private var dismiss
 
+    var category: RoutineCategory?
     var onDestinationSelected: (String, CLLocationCoordinate2D) -> Void
 
-    init(onDestinationSelected: @escaping (String, CLLocationCoordinate2D) -> Void) {
+    init(category: RoutineCategory? = nil, onDestinationSelected: @escaping (String, CLLocationCoordinate2D) -> Void) {
+        self.category = category
         self.onDestinationSelected = onDestinationSelected
     }
 
@@ -240,8 +242,10 @@ struct DestinationSearchView: View {
                                         .foregroundColor(Theme.Colors.acTextMuted)
                                         .frame(width: 36, height: 36)
                                 }
+                                .transition(.scale(scale: 0.6).combined(with: .opacity))
                             }
                         }
+                        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: searcher.searchQuery.isEmpty)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .background(Theme.Colors.acCream)
@@ -264,7 +268,7 @@ struct DestinationSearchView: View {
                     }
                 }
             }
-            .navigationTitle("Find a Spot")
+            .navigationTitle(category != nil ? "Assign \(category!.displayName)" : "Find a Spot")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -272,7 +276,13 @@ struct DestinationSearchView: View {
                         .foregroundColor(Theme.Colors.acWood)
                 }
             }
-            .onAppear { isSearchFocused = true }
+            .onAppear {
+                searcher.category = category
+                isSearchFocused = true
+                if category != nil && searcher.searchQuery.isEmpty {
+                    searcher.search(for: "", near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
+                }
+            }
         }
     }
 
@@ -395,8 +405,11 @@ struct DestinationSearchView: View {
                 }
                 .acCardStyle(padding: 0)
                 .padding(.horizontal)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: searcher.isSearching)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: searcher.searchResults.isEmpty)
     }
 
     // MARK: - Actions
@@ -469,7 +482,7 @@ struct SavedRouteRow: View {
             .padding(.vertical, 14)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ACRowButtonStyle())
     }
 }
 
@@ -537,10 +550,25 @@ struct SearchResultRow: View {
                 .frame(width: 50, height: 50)
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSaved)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ACRowButtonStyle())
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
+    }
+}
+
+// MARK: - Row press-state button style
+
+private struct ACRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                configuration.isPressed
+                    ? Theme.Colors.acField.opacity(0.6)
+                    : Color.clear
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.15, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 

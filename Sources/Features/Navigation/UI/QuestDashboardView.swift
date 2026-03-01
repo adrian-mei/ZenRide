@@ -31,6 +31,7 @@ struct QuestDashboardView: View {
                 }
                 Spacer()
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showingCatalog = true
                 } label: {
                     HStack(spacing: 5) {
@@ -44,12 +45,13 @@ struct QuestDashboardView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ACPillButtonStyle())
                 .background(Theme.Colors.acField)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showingSearch = true
                 } label: {
                     HStack(spacing: 5) {
@@ -63,7 +65,7 @@ struct QuestDashboardView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ACPillButtonStyle())
                 .background(Theme.Colors.acField)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
@@ -88,6 +90,7 @@ struct QuestDashboardView: View {
                                     questStore.removeQuest(id: quest.id)
                                 }
                             })
+                            .transition(.scale(scale: 0.85).combined(with: .opacity))
                         }
                     }
                     .scrollTargetLayout()
@@ -281,3 +284,15 @@ struct QuestCard: View {
         .acCardStyle(padding: 16, interactive: false)
     }
 }
+
+// MARK: - Pill press-state button style
+
+private struct ACPillButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+            .animation(.spring(response: 0.15, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
