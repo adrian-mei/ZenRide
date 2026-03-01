@@ -91,42 +91,68 @@ struct NavigationBottomPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Drag handle
-            Capsule()
-                .fill(Theme.Colors.acWood.opacity(0.3))
-                .frame(width: 36, height: 6)
-                .padding(.top, 12)
-                .padding(.bottom, 16)
-
             if isCruiseMode {
                 cruiseModeContent
             } else if isArriving {
-                Text("Almost there!")
-                    .font(Theme.Typography.title)
-                    .foregroundColor(Theme.Colors.acLeaf)
-                    .opacity(arrivingPulse ? 1.0 : 0.5)
-                    .padding(.vertical, 24)
-                ACDangerButton(title: "End Route", isFullWidth: false, action: onEnd)
-                    .padding(.bottom, 32)
-            } else {
-                // 3-column route progress layout
-                HStack(spacing: 0) {
-                    ACMetricsColumn(value: arrivalTime, label: "arrival")
-                    columnDivider
-                    ACMetricsColumn(value: "\(remainingMinutes)", label: "min")
-                    columnDivider
-                    ACMetricsColumn(value: distanceValue, label: distanceUnit)
+                HStack {
+                    Text("Almost there!")
+                        .font(Theme.Typography.title)
+                        .foregroundColor(Theme.Colors.acLeaf)
+                        .opacity(arrivingPulse ? 1.0 : 0.5)
+                    Spacer()
+                    Button(action: onEnd) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(width: 44, height: 44)
+                            .background(Theme.Colors.acCoral)
+                            .foregroundColor(.white)
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("End Route")
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-                ACDangerButton(title: "End Route", isFullWidth: false, action: onEnd)
-                    .padding(.bottom, 32)
+                .padding(.vertical, 12)
+            } else {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(arrivalTime)
+                            .font(.system(size: 24, weight: .black, design: .rounded))
+                            .foregroundColor(Theme.Colors.acTextDark)
+                        HStack(spacing: 6) {
+                            Text("\(remainingMinutes) min")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(Theme.Colors.acTextMuted)
+                            Text("•")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(Theme.Colors.acTextMuted)
+                            Text("\(distanceValue) \(distanceUnit)")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(Theme.Colors.acTextMuted)
+                        }
+                    }
+                    
+                    Spacer(minLength: 16)
+                    
+                    Button(action: onEnd) {
+                        Text("End")
+                            .font(Theme.Typography.button)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Theme.Colors.acCoral)
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
         }
         .background(Theme.Colors.acField)
-        .cornerRadius(32, corners: [.topLeft, .topRight])
-        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
-        .ignoresSafeArea(edges: .bottom)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
+        .shadow(color: Theme.Colors.acBorder.opacity(0.3), radius: 6, x: 0, y: 4)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
         .onReceive(clock) { now = $0 }
         .onChange(of: isArriving) { _, arriving in
             if !isCruiseMode && arriving {
@@ -147,11 +173,35 @@ struct NavigationBottomPanel: View {
 
             // Live stats: time · distance · speed
             HStack(spacing: 0) {
-                ACMetricsColumn(value: elapsedFormatted, label: "time")
+                VStack(spacing: 4) {
+                    Text(elapsedFormatted)
+                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextDark)
+                    Text("time")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                }
+                .frame(maxWidth: .infinity)
                 columnDivider
-                ACMetricsColumn(value: cruiseDistanceFormatted, label: cruiseDistanceUnit)
+                VStack(spacing: 4) {
+                    Text(cruiseDistanceFormatted)
+                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextDark)
+                    Text(cruiseDistanceUnit)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                }
+                .frame(maxWidth: .infinity)
                 columnDivider
-                ACMetricsColumn(value: currentSpeedString, label: "mph")
+                VStack(spacing: 4) {
+                    Text(currentSpeedString)
+                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextDark)
+                    Text("mph")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+                }
+                .frame(maxWidth: .infinity)
             }
             .padding(.horizontal, 16)
 
@@ -192,12 +242,34 @@ struct NavigationBottomPanel: View {
 
             // Action buttons
             HStack(spacing: 12) {
-                ACPillButton(title: "Find a Place", icon: "magnifyingglass", isFullWidth: true, action: { onSetDestination?() })
-                ACDangerButton(title: "End Drive", action: onEnd)
+                Button(action: { onSetDestination?() }) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                        Text("Find Place")
+                    }
+                    .font(Theme.Typography.button)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Theme.Colors.acCream)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                }
+                
+                Button(action: onEnd) {
+                    Text("End")
+                        .font(Theme.Typography.button)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Theme.Colors.acCoral)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                }
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 32)
+            .padding(.bottom, 16)
         }
+        .padding(.top, 16)
     }
 
     // MARK: - Helpers
