@@ -8,7 +8,6 @@ struct QuestDashboardView: View {
     @StateObject private var experiencesStore = ExperiencesStore()
 
     @State private var selectedExperience: ExperienceRoute?
-    @State private var showingExperienceAction = false
     @State private var preloadedExperienceWaypoints: [QuestWaypoint] = []
     @State private var preloadedExperienceTitle: String = ""
     @State private var showingBuilder = false
@@ -45,7 +44,6 @@ struct QuestDashboardView: View {
                             ExperienceDashboardCard(summary: exp) {
                                 if let route = experiencesStore.loadExperience(filename: exp.filename) {
                                     selectedExperience = route
-                                    showingExperienceAction = true
                                 }
                             }
                             .transition(.scale(scale: 0.85).combined(with: .opacity))
@@ -60,32 +58,9 @@ struct QuestDashboardView: View {
                 .scrollClipDisabled()
             }
         }
-        .confirmationDialog(
-            selectedExperience?.title ?? "Experience",
-            isPresented: $showingExperienceAction,
-            titleVisibility: .visible
-        ) {
-            Button("Start Adventure Now") {
-                if let route = selectedExperience {
-                    startExperienceImmediately(route)
-                }
-            }
-            Button("Customize Route") {
-                if let route = selectedExperience {
-                    preloadedExperienceTitle = route.title
-                    preloadedExperienceWaypoints = route.stops.map { stop in
-                        QuestWaypoint(
-                            name: stop.name,
-                            coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude),
-                            icon: "star.circle.fill"
-                        )
-                    }
-                    showingBuilder = true
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(selectedExperience?.subtitle ?? "")
+        
+        .sheet(item: $selectedExperience) { experience in
+            ExperienceDetailView(experience: experience)
         }
     }
 
@@ -155,14 +130,15 @@ struct ExperienceDashboardCard: View {
                     Text(summary.title)
                         .font(.system(size: 16, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextDark)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     Text(summary.subtitle)
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .multilineTextAlignment(.leading)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     Spacer(minLength: 0)
                     

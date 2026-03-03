@@ -177,6 +177,32 @@ struct ZenMapView: UIViewRepresentable {
             let camera = MKMapCamera(lookingAtCenter: uiView.centerCoordinate, fromDistance: 10000, pitch: 0, heading: 0)
             uiView.setCamera(camera, animated: true)
         }
+        
+        if routeState == .search, let location = locationProvider.currentLocation {
+            let bearing = location.course >= 0 ? location.course : 0
+            let mapHeading = uiView.camera.heading
+            let screenBearing = bearing - mapHeading
+            
+            if let userLocationView = uiView.view(for: uiView.userLocation) {
+                let currentType = vehicleStore.selectedVehicle?.type ?? .car
+                let character = playerStore.selectedCharacter
+                
+                if coordinator.lastVehicleType != currentType || coordinator.lastCharacter != character {
+                    coordinator.lastVehicleType = currentType
+                    coordinator.lastCharacter = character
+                    userLocationView.image = MapVehicleImageRenderer.image(for: currentType, character: character)
+                }
+
+                if abs(screenBearing - coordinator.lastBearing) > 1.0 {
+                    coordinator.lastBearing = screenBearing
+                    let radians = CGFloat(screenBearing * .pi / 180.0)
+                    UIView.animate(withDuration: 0.2, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                        userLocationView.transform = CGAffineTransform(rotationAngle: radians)
+                    }
+                }
+            }
+        }
+        
         coordinator.lastRouteState = routeState
 
         // Quest Waypoints
@@ -255,6 +281,8 @@ struct ZenMapView: UIViewRepresentable {
         var lastCameraPitch = 0.0
         var lastCameraCount = -1
         var lastInstructionCount = -1
+        var lastVehicleType: VehicleType?
+        var lastCharacter: Character?
         weak var mapView: MKMapView?
         var lastSearchRegion: MKCoordinateRegion?
         var isSearchingPOIs = false
@@ -279,8 +307,33 @@ struct ZenMapView: UIViewRepresentable {
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) { parent.onMapTap?() }
 
+        func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+            if parent.routeState == .search, let location = userLocation.location {
+                let bearing = location.course >= 0 ? location.course : 0
+                let screenBearing = bearing - mapView.camera.heading
+                if let view = mapView.view(for: userLocation) {
+                    let radians = CGFloat(screenBearing * .pi / 180.0)
+                    UIView.animate(withDuration: 0.2, delay: 0, options: [.curveLinear, .beginFromCurrentState]) {
+                        view.transform = CGAffineTransform(rotationAngle: radians)
+                    }
+                }
+            }
+        }
+
         func mapView(_ mapView: MKMapView, didChange mode: MKUserTrackingMode, animated: Bool) {
             DispatchQueue.main.async { self.parent.isTracking = (mode == .followWithHeading || mode == .follow) }
+        }
+
+        func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
+            if parent.routeState == .search, let location = mapView.userLocation.location {
+                let bearing = location.course >= 0 ? location.course : 0
+                let screenBearing = bearing - mapView.camera.heading
+                
+                if let view = mapView.view(for: mapView.userLocation) {
+                    let radians = CGFloat(screenBearing * .pi / 180.0)
+                    view.transform = CGAffineTransform(rotationAngle: radians)
+                }
+            }
         }
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
@@ -334,7 +387,25 @@ struct ZenMapView: UIViewRepresentable {
         // MARK: - Annotation Views
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-            if annotation is MKUserLocation { return nil }
+            if annotation is MKUserLocation {
+                let id = "UserLocation"
+                let v = mapView.dequeueReusableAnnotationView(withIdentifier: id) ?? {
+                    let v = MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+                    v.layer.shadowColor = UIColor.black.cgColor
+                    v.layer.shadowOpacity = 0.3
+                    v.layer.shadowRadius = 4
+                    return v
+                }()
+                let currentType = parent.vehicleStore.selectedVehicle?.type ?? .car
+                let character = parent.playerStore.selectedCharacter
+                
+                if self.lastVehicleType != currentType || self.lastCharacter != character || v.image == nil {
+                    v.image = MapVehicleImageRenderer.image(for: currentType, character: character)
+                    self.lastVehicleType = currentType
+                    self.lastCharacter = character
+                }
+                return v
+            }
 
             if let car = annotation as? SimulatedCarAnnotation {
                 let id = "Car_\(car.vehicleType.rawValue)"
@@ -444,15 +515,15 @@ struct ZenMapView: UIViewRepresentable {
             if poly.subtitle == "selected" {
                 if poly.isBorder {
                     r.strokeColor = UIColor(red: 0.83, green: 0.71, blue: 0.51, alpha: 1.0)
-                    r.lineWidth = 14
+                    r.lineWidth = 18
                 } else {
                     r.strokeColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
-                    r.lineWidth = 8
-                    r.lineDashPattern = [12, 8]
+                    r.lineWidth = 10
+                    // Removed dash pattern to make it cuter and solid
                 }
             } else {
                 r.strokeColor = UIColor.systemGray3.withAlphaComponent(0.6)
-                r.lineWidth = 8
+                r.lineWidth = 10
             }
             r.lineCap = .round
             r.lineJoin = .round

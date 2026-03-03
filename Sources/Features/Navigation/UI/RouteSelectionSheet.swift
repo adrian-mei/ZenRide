@@ -12,7 +12,6 @@ struct RouteSelectionSheet: View {
     var onCancel: () -> Void
 
     @EnvironmentObject var routingService: RoutingService
-    @EnvironmentObject var savedRoutes: SavedRoutesStore
     @EnvironmentObject var vehicleStore: VehicleStore
     @State private var activeSheet: RouteActiveSheet? = nil
 
@@ -29,8 +28,9 @@ struct RouteSelectionSheet: View {
                         Text(destinationName.isEmpty ? "Destination" : destinationName)
                             .font(Theme.Typography.title)
                             .foregroundColor(Theme.Colors.acTextDark)
-                            .lineLimit(1)
+                            .lineLimit(2)
                             .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
                     Button(action: onCancel) {
@@ -45,21 +45,44 @@ struct RouteSelectionSheet: View {
                 .padding(.bottom, 12)
 
                 // MARK: Vehicle mode + Avoid row
-                HStack(spacing: 10) {
-                    vehicleModeToggle
+                HStack(spacing: 12) {
+                    Button {
+                        activeSheet = .vehicleGarage
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: vehicleStore.selectedVehicleMode.icon)
+                                .font(.system(size: 16, weight: .bold))
+                            Text(vehicleStore.selectedVehicleMode.displayName)
+                                .font(Theme.Typography.button)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Theme.Colors.acLeaf)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
                     Spacer()
+
                     Button {
                         activeSheet = .avoidPrefs
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             Image(systemName: "slider.horizontal.3")
                             Text("Options")
+                                .font(Theme.Typography.button)
                         }
-                        .font(Theme.Typography.button)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Theme.Colors.acCream)
                         .foregroundColor(Theme.Colors.acTextDark)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(Theme.Colors.acBorder.opacity(0.8), lineWidth: 2)
+                        )
                     }
-                    .buttonStyle(ACButtonStyle(variant: .secondary))
-                    .frame(height: 36)
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
@@ -75,11 +98,6 @@ struct RouteSelectionSheet: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(20)
-                        .background(Theme.Colors.acCream)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 16)
                     } else {
                         ForEach(Array(routingService.availableRoutes.enumerated()), id: \.offset) { index, route in
                             RouteListRow(route: route, isSelected: index == routingService.selectedRouteIndex) {
@@ -88,67 +106,32 @@ struct RouteSelectionSheet: View {
                                 }
                             }
                             if index < routingService.availableRoutes.count - 1 {
-                                ACSectionDivider(leadingInset: 52)
+                                Divider().background(Theme.Colors.acBorder.opacity(0.3))
                             }
                         }
                     }
                 }
-                .background(Theme.Colors.acCream)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.Colors.acBorder, lineWidth: 2))
+                .acCardStyle(padding: 0)
                 .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+                .padding(.bottom, 24)
 
                 // MARK: Action Buttons
-                VStack(spacing: 16) {
-                    Button(action: {
-                        guard routingService.selectedRouteIndex < routingService.availableRoutes.count else { return }
-                        let selectedRoute = routingService.availableRoutes[routingService.selectedRouteIndex]
-                        if let lastCoord = routingService.activeRoute.last {
-                            // Using the destination name provided to the sheet
-                            let name = destinationName.isEmpty ? "Saved Route" : destinationName
-                            // Calling savedRoutesStore (needs to be available in Environment)
-                            // We will add @EnvironmentObject var savedRoutes: SavedRoutesStore at the top
-                            savedRoutes.savePlace(name: name, coordinate: lastCoord, offlineRoute: selectedRoute)
-                            
-                            // Prefetch TTS for offline mode
-                            var prefetchTexts = [String]()
-                            prefetchTexts.append("Route to \(name) is ready. Let's have a wonderful trip together!")
-                            prefetchTexts.append("You have arrived at your final destination. Route complete!")
-                            if let instructions = selectedRoute.guidance?.instructions {
-                                for inst in instructions {
-                                    let text = inst.message ?? "Continue"
-                                    prefetchTexts.append("In 500 feet, \(text)")
-                                    prefetchTexts.append(text)
-                                }
-                            }
-                            SpeechService.shared.prefetch(texts: prefetchTexts)
-                            
-                            // Optional: provide some haptic feedback
-                            let generator = UINotificationFeedbackGenerator()
-                            generator.notificationOccurred(.success)
-                        }
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.down.circle.fill")
-                            Text("Save for Offline Mode")
-                        }
+                VStack(spacing: 12) {
+                    Button(action: onDrive) {
+                        Text("Start Drive")
+                            .font(.system(size: 20, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(ACButtonStyle(variant: .largePrimary))
+                    .disabled(routingService.isCalculatingRoute || routingService.availableRoutes.isEmpty)
+
+                    Button(action: onSimulate) {
+                        Text("Simulate Route")
+                            .font(Theme.Typography.button)
                     }
                     .buttonStyle(ACButtonStyle(variant: .secondary))
-
-                    HStack(spacing: 16) {
-                        Button("Simulate") {
-                            onSimulate()
-                        }
-                        .buttonStyle(ACButtonStyle(variant: .secondary))
-                        .disabled(routingService.isCalculatingRoute || routingService.availableRoutes.isEmpty)
-
-                        Button("Start Drive") {
-                            onDrive()
-                        }
-                        .buttonStyle(ACButtonStyle(variant: .primary))
-                        .disabled(routingService.isCalculatingRoute || routingService.availableRoutes.isEmpty)
-                    }
+                    .disabled(routingService.isCalculatingRoute || routingService.availableRoutes.isEmpty)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
@@ -166,24 +149,6 @@ struct RouteSelectionSheet: View {
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
-        }
-    }
-
-    private var vehicleModeToggle: some View {
-        Button {
-            activeSheet = .vehicleGarage
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: vehicleStore.selectedVehicleMode.icon)
-                    .font(.system(size: 16, weight: .bold))
-                Text(vehicleStore.selectedVehicleMode.displayName)
-                    .font(Theme.Typography.button)
-            }
-            .padding(.horizontal, 16)
-            .frame(height: 36)
-            .background(Theme.Colors.acLeaf)
-            .foregroundColor(.white)
-            .clipShape(Capsule())
         }
     }
 }

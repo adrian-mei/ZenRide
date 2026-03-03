@@ -113,7 +113,10 @@ struct QuestBuilderView: View {
                 Button { addStopMode = .start; showAddStop = true } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .semibold))
-                        Text(startLocationCustomLabel).font(Theme.Typography.button).lineLimit(1)
+                        Text(startLocationCustomLabel)
+                            .font(Theme.Typography.button)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(isCustomStart ? Theme.Colors.acWood : Theme.Colors.acCream)
@@ -163,7 +166,8 @@ struct QuestBuilderView: View {
             Text(wp.name)
                 .font(Theme.Typography.body)
                 .foregroundColor(Theme.Colors.acTextDark)
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {

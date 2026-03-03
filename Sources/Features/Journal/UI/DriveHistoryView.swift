@@ -120,7 +120,8 @@ private struct DriveRecordCard: View {
                 Text(record.destinationName)
                     .font(Theme.Typography.headline)
                     .foregroundColor(Theme.Colors.acTextDark)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 if record.isBookmarked {
                     Image(systemName: "bookmark.fill")

@@ -26,6 +26,7 @@ private func makeInstruction(
 /// Decodes MockRoutingData JSON, manually sets availableRoutes, and calls selectRoute.
 /// Uses the production (non-mock) selectRoute path so instructions/distances match
 /// what real navigation sees.
+@MainActor
 private func makeServiceWithRoute(at index: Int = 0) -> RoutingService {
     let service = RoutingService()
     let data = MockRoutingData.tomTomResponseJSON.data(using: .utf8)!
@@ -37,6 +38,7 @@ private func makeServiceWithRoute(at index: Int = 0) -> RoutingService {
 
 // MARK: - Coordinate Math Tests
 
+@MainActor
 struct CoordinateMathTests {
 
     // Distance from a point to itself should be effectively zero.
@@ -128,6 +130,7 @@ struct CoordinateMathTests {
 
 // MARK: - Route Selection Tests
 
+@MainActor
 struct RoutingServiceSelectionTests {
 
     // selectRoute should populate activeRoute with the leg's coordinate points.
@@ -267,6 +270,7 @@ struct RoutingServiceSelectionTests {
 
 // MARK: - Simulation State Tests
 
+@MainActor
 struct SimulationStateTests {
 
     // simulationCompletedNaturally must start false so a fresh ride doesn't auto-end.
@@ -331,6 +335,7 @@ struct SimulationStateTests {
 }
 
 // MARK: - Routing Service Edge Cases
+@MainActor
 struct RoutingServiceEdgeCaseTests {
 
     @Test func modeDefaults() {

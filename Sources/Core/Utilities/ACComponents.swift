@@ -456,26 +456,52 @@ struct ACMapRoundButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(isActive ? Theme.Colors.acLeaf : Theme.Colors.acTextDark)
-                .frame(width: 52, height: 52)
-                .background(isActive ? Theme.Colors.acLeaf.opacity(0.12) : Theme.Colors.acCream)
-                .clipShape(Circle())
-                .overlay(
-                    Circle().stroke(
-                        isActive ? Theme.Colors.acLeaf : Theme.Colors.acBorder,
-                        lineWidth: isActive ? 2.5 : 2
-                    )
-                )
-                .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 4)
-                .bunnyPaw()
+                .font(.system(size: 26, weight: .bold))
+                .frame(width: 48, height: 48)
         }
-        .buttonStyle(.plain)
-        .padding(.bottom, 4)
+        .buttonStyle(ACMapRoundButtonStyle(isActive: isActive))
         .accessibilityLabel(label)
-        .contentShape(Circle())
+        .padding(.bottom, 6)
+    }
+}
+
+// MARK: - ACMapRoundButtonStyle
+
+public struct ACMapRoundButtonStyle: ButtonStyle {
+    public var isActive: Bool
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        let isPressed = configuration.isPressed
+        let scale: CGFloat = isPressed ? 0.90 : 1.0
+        
+        ZStack {
+            // Drop shadow
+            Circle()
+                .fill(Theme.Colors.acBorder.opacity(0.8))
+                .frame(width: 56, height: 56)
+                .offset(y: 4)
+            
+            // Outer thick border
+            Circle()
+                .fill(isActive ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.8))
+                .frame(width: 56, height: 56)
+            
+            // Inner face
+            Circle()
+                .fill(isActive ? Theme.Colors.acLeaf.opacity(0.15) : Theme.Colors.acCream)
+                .frame(width: 48, height: 48)
+            
+            // Icon content
+            configuration.label
+                .foregroundColor(isActive ? Theme.Colors.acLeaf : Theme.Colors.acWood)
+        }
+        .scaleEffect(scale)
+        .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isPressed)
     }
 }
 

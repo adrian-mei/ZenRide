@@ -3,6 +3,7 @@ import SwiftUI
 struct ExperiencesCatalogView: View {
     @StateObject private var store = ExperiencesStore()
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedExperience: ExperienceRoute? = nil
     
     // Callbacks to start the trip
     var onSelectExperience: (ExperienceRoute) -> Void
@@ -24,8 +25,7 @@ struct ExperiencesCatalogView: View {
                                 ForEach(store.experiences) { exp in
                                     ExperienceCard(summary: exp) {
                                         if let route = store.loadExperience(filename: exp.filename) {
-                                            onSelectExperience(route)
-                                            dismiss()
+                                            selectedExperience = route
                                         }
                                     }
                                 }
@@ -35,6 +35,12 @@ struct ExperiencesCatalogView: View {
                     }
                     .padding(.bottom, 40)
                 }
+            }
+            .sheet(item: $selectedExperience) { exp in
+                ExperienceDetailView(experience: exp, onStart: {
+                    onSelectExperience(exp)
+                    dismiss()
+                })
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -148,7 +154,7 @@ struct ExperienceCard: View {
                         .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .multilineTextAlignment(.leading)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
                     
                     HStack {

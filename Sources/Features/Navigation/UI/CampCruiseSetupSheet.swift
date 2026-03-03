@@ -118,7 +118,8 @@ struct CampCruiseSetupSheet: View {
             Text(wp.name)
                 .font(Theme.Typography.body)
                 .foregroundColor(Theme.Colors.acTextDark)
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
             Button {
                 _ = waypoints.remove(at: index)

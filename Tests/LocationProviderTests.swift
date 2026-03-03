@@ -9,9 +9,12 @@ struct LocationProviderTests {
     @Test func simulationLifecycle() async throws {
         let provider = LocationProvider()
         
-        provider.startSimulation(
-            origin: CLLocationCoordinate2D(latitude: 37.000, longitude: -122.000),
-            destination: CLLocationCoordinate2D(latitude: 37.010, longitude: -122.010)
+        provider.simulateDrive(
+            along: [
+                CLLocationCoordinate2D(latitude: 37.000, longitude: -122.000),
+                CLLocationCoordinate2D(latitude: 37.010, longitude: -122.010)
+            ],
+            speedMPH: 45.0
         )
         
         #expect(provider.isSimulating == true)
@@ -29,10 +32,10 @@ struct LocationProviderTests {
     @Test func invalidRoutesForSimulation() async throws {
         let provider = LocationProvider()
         
-        provider.startSimulationWithRoute([])
+        provider.simulateDrive(along: [])
         #expect(provider.isSimulating == false)
         
-        provider.startSimulationWithRoute([CLLocationCoordinate2D(latitude: 37.0, longitude: -122.0)])
+        provider.simulateDrive(along: [CLLocationCoordinate2D(latitude: 37.0, longitude: -122.0)])
         #expect(provider.isSimulating == false)
     }
 
@@ -43,7 +46,7 @@ struct LocationProviderTests {
         let p2 = CLLocationCoordinate2D(latitude: 37.005, longitude: -122.000)
         let p3 = CLLocationCoordinate2D(latitude: 37.010, longitude: -122.000)
         
-        provider.startSimulationWithRoute([p1, p2, p3])
+        provider.simulateDrive(along: [p1, p2, p3])
         
         #expect(provider.isSimulating == true)
         
@@ -56,9 +59,12 @@ struct LocationProviderTests {
 
     @Test func ignoredLiveUpdatesWhenSimulating() async throws {
         let provider = LocationProvider()
-        provider.startSimulation(
-            origin: CLLocationCoordinate2D(latitude: 37.000, longitude: -122.000),
-            destination: CLLocationCoordinate2D(latitude: 37.010, longitude: -122.010)
+        provider.simulateDrive(
+            along: [
+                CLLocationCoordinate2D(latitude: 37.000, longitude: -122.000),
+                CLLocationCoordinate2D(latitude: 37.010, longitude: -122.010)
+            ],
+            speedMPH: 45.0
         )
         
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -90,9 +96,12 @@ struct LocationProviderTests {
 
     @Test func authorizationChangesWhenSimulating() async throws {
         let provider = LocationProvider()
-        provider.startSimulation(
-            origin: CLLocationCoordinate2D(latitude: 37.000, longitude: -122.000),
-            destination: CLLocationCoordinate2D(latitude: 37.010, longitude: -122.010)
+        provider.simulateDrive(
+            along: [
+                CLLocationCoordinate2D(latitude: 37.000, longitude: -122.000),
+                CLLocationCoordinate2D(latitude: 37.010, longitude: -122.010)
+            ],
+            speedMPH: 45.0
         )
         
         provider.locationManagerDidChangeAuthorization(CLLocationManager())

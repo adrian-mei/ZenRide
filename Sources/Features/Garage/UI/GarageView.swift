@@ -236,24 +236,6 @@ struct MapHomeView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .sheet(isPresented: .constant(true)) {
-            HomeBottomSheet(
-                onProfileTap: { activeSheet = .profile },
-                onDestinationSelected: onDestinationSelected,
-                onCruiseTap: performRollOut,
-                onRollOut: performRollOut,
-                onSearchFocused: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                        bottomSheetDetent = .large
-                    }
-                }
-            )
-            .presentationDetents([.fraction(0.15), .fraction(0.35), .large], selection: $bottomSheetDetent)
-            .presentationBackgroundInteraction(.enabled(upThrough: .large))
-            .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(24)
-            .interactiveDismissDisabled()
-        }
         .onAppear {
             if postRideInfo != nil {
                 mapRouteState = .search
@@ -270,29 +252,47 @@ struct MapHomeView: View {
                 }
             }
         }
-        .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .garage:
-                VehicleGarageView()
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
-            case .profile:
-                ProfileView()
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
-            case .moodCard:
-                if let moodSave = pendingMoodSave {
-                    MoodSelectionCard(onSelect: { mood in
-                        moodSave(mood)
-                        activeSheet = nil
-                    }, onDismiss: {
-                        moodSave("")
-                        activeSheet = nil
-                    })
-                    .presentationDetents([.fraction(0.45)])
-                    .presentationDragIndicator(.visible)
+        .sheet(isPresented: .constant(true)) {
+            HomeBottomSheet(
+                onProfileTap: { activeSheet = .profile },
+                onDestinationSelected: onDestinationSelected,
+                onCruiseTap: performRollOut,
+                onRollOut: performRollOut,
+                onSearchFocused: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        bottomSheetDetent = .large
+                    }
+                }
+            )
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .garage:
+                    VehicleGarageView()
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                case .profile:
+                    ProfileView()
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                case .moodCard:
+                    if let moodSave = pendingMoodSave {
+                        MoodSelectionCard(onSelect: { mood in
+                            moodSave(mood)
+                            activeSheet = nil
+                        }, onDismiss: {
+                            moodSave("")
+                            activeSheet = nil
+                        })
+                        .presentationDetents([.fraction(0.45)])
+                        .presentationDragIndicator(.visible)
+                    }
                 }
             }
+            .presentationDetents([.fraction(0.15), .fraction(0.35), .large], selection: $bottomSheetDetent)
+            .presentationBackgroundInteraction(.enabled(upThrough: .large))
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(24)
+            .interactiveDismissDisabled()
         }
     }
 }
@@ -912,7 +912,8 @@ private struct LevelUpToast: View {
                     Text("Unlocked \(characters.map { $0.name }.joined(separator: ", "))!")
                         .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextMuted)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -1061,11 +1062,13 @@ struct RecentRow: View {
                     Text(title)
                         .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextDark)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(subtitle)
                         .font(.subheadline)
                         .foregroundColor(Theme.Colors.acTextMuted)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -1189,28 +1192,21 @@ struct SquareActionButton: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                ZStack {
-                    Color.clear
-                        .aspectRatio(1, contentMode: .fit)
-                        .background(Theme.Colors.acField)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
-                        .shadow(color: Theme.Colors.acBorder.opacity(0.7), radius: 0, x: 0, y: 4)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(color)
-                }
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(color)
                 
                 Text(title)
-                    .font(Theme.Typography.caption)
+                    .font(.system(size: 13, weight: .black, design: .rounded))
                     .foregroundColor(Theme.Colors.acTextDark)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ACButtonStyle(variant: .largeSecondary))
     }
 }
 
