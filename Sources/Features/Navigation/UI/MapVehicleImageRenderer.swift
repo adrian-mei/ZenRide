@@ -3,7 +3,7 @@ import UIKit
 /// Renders UIImages for the player's vehicle/character pin on the map.
 enum MapVehicleImageRenderer {
 
-    static func image(for type: VehicleType, character: Character) -> UIImage {
+    static func image(for type: VehicleMode, character: Character) -> UIImage {
         if type.isOnFoot { return onFootImage(for: character) }
         return vehicleImage(for: type, character: character)
     }
@@ -34,7 +34,7 @@ enum MapVehicleImageRenderer {
 
     // MARK: - Vehicle
 
-    private static func vehicleImage(for type: VehicleType, character: Character) -> UIImage {
+    private static func vehicleImage(for type: VehicleMode, character: Character) -> UIImage {
         let size = CGSize(width: 50, height: 60)
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { ctx in
@@ -49,24 +49,24 @@ enum MapVehicleImageRenderer {
 
             switch type {
             case .car:
-                bodyColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
+                bodyColor = UIColor(red: 0.1, green: 0.4, blue: 0.8, alpha: 1.0) // Sleek Blue
                 bodyRect  = CGRect(x: 10, y: 15, width: 30, height: 40)
                 hasTop    = true
             case .sportsCar:
                 bodyColor = UIColor.systemRed
-                bodyRect  = CGRect(x: 8, y: 22, width: 34, height: 32)
+                bodyRect  = CGRect(x: 8, y: 15, width: 34, height: 42)
                 hasTop    = true
             case .electricCar:
-                bodyColor = UIColor.systemCyan
+                bodyColor = UIColor.systemTeal
                 bodyRect  = CGRect(x: 10, y: 15, width: 30, height: 40)
                 hasTop    = true
             case .suv:
-                bodyColor    = UIColor(red: 0.4, green: 0.55, blue: 0.35, alpha: 1.0)
-                bodyRect     = CGRect(x: 6, y: 8, width: 38, height: 46)
+                bodyColor    = UIColor.darkGray
+                bodyRect     = CGRect(x: 6, y: 12, width: 38, height: 46)
                 hasTop       = true
                 cornerRadius = 6
             case .truck:
-                bodyColor    = UIColor.systemGray
+                bodyColor    = UIColor.systemYellow
                 bodyRect     = CGRect(x: 5, y: 5, width: 40, height: 50)
                 hasTop       = true
                 cornerRadius = 4

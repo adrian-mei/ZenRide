@@ -2,6 +2,12 @@ import SwiftUI
 import MapKit
 import UIKit
 
+class ParkedCarAnnotation: NSObject, MKAnnotation {
+    @objc dynamic var coordinate: CLLocationCoordinate2D
+    var title: String? = "Parked Vehicle"
+    init(coordinate: CLLocationCoordinate2D) { self.coordinate = coordinate }
+}
+
 struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var routingService: RoutingService
@@ -9,10 +15,11 @@ struct ZenMapView: UIViewRepresentable {
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var multiplayerService: MultiplayerService
     @EnvironmentObject var playerStore: PlayerStore
+    @EnvironmentObject var parkedCarStore: ParkedCarStore
     @Binding var routeState: RouteState
     @Binding var isTracking: Bool
     var mapMode: MapMode = .turnByTurn
-    var onMapTap: (() -> Void)? = nil
+    var onMapTap: (() -> Void)?
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -122,6 +129,22 @@ struct ZenMapView: UIViewRepresentable {
             coordinator.lastBearing = 0
         }
 
+        // Handle Parked Car Annotation
+        if let car = parkedCarStore.parkedCar {
+            if let existing = coordinator.parkedCarAnnotation {
+                UIView.animate(withDuration: 0.2) {
+                    existing.coordinate = car.coordinate
+                }
+            } else {
+                let newAnn = ParkedCarAnnotation(coordinate: car.coordinate)
+                coordinator.parkedCarAnnotation = newAnn
+                uiView.addAnnotation(newAnn)
+            }
+        } else if let existing = coordinator.parkedCarAnnotation {
+            uiView.removeAnnotation(existing)
+            coordinator.parkedCarAnnotation = nil
+        }
+
         // Dynamic 3D camera
         if routeState == .navigating, let location = locationProvider.currentLocation, isTracking {
             if mapMode == .turnByTurn {
@@ -177,18 +200,18 @@ struct ZenMapView: UIViewRepresentable {
             let camera = MKMapCamera(lookingAtCenter: uiView.centerCoordinate, fromDistance: 10000, pitch: 0, heading: 0)
             uiView.setCamera(camera, animated: true)
         }
-        
+
         if routeState == .search, let location = locationProvider.currentLocation {
             let bearing = location.course >= 0 ? location.course : 0
             let mapHeading = uiView.camera.heading
             let screenBearing = bearing - mapHeading
-            
+
             if let userLocationView = uiView.view(for: uiView.userLocation) {
                 let currentType = vehicleStore.selectedVehicle?.type ?? .car
                 let character = playerStore.selectedCharacter
-                
-                if coordinator.lastVehicleType != currentType || coordinator.lastCharacter != character {
-                    coordinator.lastVehicleType = currentType
+
+                if coordinator.lastVehicleMode != currentType || coordinator.lastCharacter != character {
+                    coordinator.lastVehicleMode = currentType
                     coordinator.lastCharacter = character
                     userLocationView.image = MapVehicleImageRenderer.image(for: currentType, character: character)
                 }
@@ -202,7 +225,7 @@ struct ZenMapView: UIViewRepresentable {
                 }
             }
         }
-        
+
         coordinator.lastRouteState = routeState
 
         // Quest Waypoints
@@ -274,6 +297,7 @@ struct ZenMapView: UIViewRepresentable {
         var lastBearing = 0.0
         var lastRouteState: RouteState = .search
         var simulatedCarAnnotation: SimulatedCarAnnotation?
+        var parkedCarAnnotation: ParkedCarAnnotation?
         var friendAnnotations: [String: FriendAnnotation] = [:]
         var lastCameraCenter: CLLocationCoordinate2D?
         var lastCameraBearing = 0.0
@@ -281,7 +305,7 @@ struct ZenMapView: UIViewRepresentable {
         var lastCameraPitch = 0.0
         var lastCameraCount = -1
         var lastInstructionCount = -1
-        var lastVehicleType: VehicleType?
+        var lastVehicleMode: VehicleMode?
         var lastCharacter: Character?
         weak var mapView: MKMapView?
         var lastSearchRegion: MKCoordinateRegion?
@@ -328,7 +352,7 @@ struct ZenMapView: UIViewRepresentable {
             if parent.routeState == .search, let location = mapView.userLocation.location {
                 let bearing = location.course >= 0 ? location.course : 0
                 let screenBearing = bearing - mapView.camera.heading
-                
+
                 if let view = mapView.view(for: mapView.userLocation) {
                     let radians = CGFloat(screenBearing * .pi / 180.0)
                     view.transform = CGAffineTransform(rotationAngle: radians)
@@ -398,10 +422,10 @@ struct ZenMapView: UIViewRepresentable {
                 }()
                 let currentType = parent.vehicleStore.selectedVehicle?.type ?? .car
                 let character = parent.playerStore.selectedCharacter
-                
-                if self.lastVehicleType != currentType || self.lastCharacter != character || v.image == nil {
+
+                if self.lastVehicleMode != currentType || self.lastCharacter != character || v.image == nil {
                     v.image = MapVehicleImageRenderer.image(for: currentType, character: character)
-                    self.lastVehicleType = currentType
+                    self.lastVehicleMode = currentType
                     self.lastCharacter = character
                 }
                 return v
@@ -476,8 +500,9 @@ struct ZenMapView: UIViewRepresentable {
                 let id = "Camera"
                 let v = mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView
                     ?? MKMarkerAnnotationView(annotation: cam, reuseIdentifier: id)
-                v.glyphImage = UIImage(systemName: "camera.fill")
-                v.markerTintColor = .systemOrange
+                v.glyphImage = UIImage(systemName: "exclamationmark.triangle.fill")
+                v.markerTintColor = .systemRed
+                v.canShowCallout = true
                 return v
             }
 
@@ -502,6 +527,22 @@ struct ZenMapView: UIViewRepresentable {
                 return v
             }
 
+            if annotation is ParkedCarAnnotation {
+                let id = "ParkedCar"
+                let v: MKMarkerAnnotationView
+                if let dequeued = mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView {
+                    dequeued.annotation = annotation
+                    v = dequeued
+                } else {
+                    v = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+                    v.canShowCallout = true
+                }
+                v.glyphImage = UIImage(systemName: "parkingsign.circle.fill")
+                v.markerTintColor = UIColor.systemTeal
+                v.displayPriority = .required
+                return v
+            }
+
             return nil
         }
 
@@ -514,12 +555,11 @@ struct ZenMapView: UIViewRepresentable {
             let r = MKPolylineRenderer(polyline: poly)
             if poly.subtitle == "selected" {
                 if poly.isBorder {
-                    r.strokeColor = UIColor(red: 0.83, green: 0.71, blue: 0.51, alpha: 1.0)
+                    r.strokeColor = UIColor(red: 0.1, green: 0.3, blue: 0.7, alpha: 1.0)
                     r.lineWidth = 18
                 } else {
-                    r.strokeColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
+                    r.strokeColor = UIColor(red: 0.2, green: 0.5, blue: 1.0, alpha: 1.0)
                     r.lineWidth = 10
-                    // Removed dash pattern to make it cuter and solid
                 }
             } else {
                 r.strokeColor = UIColor.systemGray3.withAlphaComponent(0.6)

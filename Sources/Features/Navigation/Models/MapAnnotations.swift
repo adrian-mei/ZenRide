@@ -10,9 +10,9 @@ class BorderedPolyline: MKPolyline {
 
 class SimulatedCarAnnotation: NSObject, MKAnnotation {
     @objc dynamic var coordinate: CLLocationCoordinate2D
-    var vehicleType: VehicleType
+    var vehicleType: VehicleMode
 
-    init(coordinate: CLLocationCoordinate2D, vehicleType: VehicleType) {
+    init(coordinate: CLLocationCoordinate2D, vehicleType: VehicleMode) {
         self.coordinate = coordinate
         self.vehicleType = vehicleType
         super.init()

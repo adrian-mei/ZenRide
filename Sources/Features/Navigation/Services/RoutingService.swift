@@ -1,99 +1,6 @@
 import Foundation
 import CoreLocation
 
-enum VehicleMode: String, CaseIterable {
-    // Cars
-    case car
-    case sportsCar
-    case electricCar
-    case suv
-    case truck
-    // Two-wheelers
-    case motorcycle
-    case scooter
-    // Human-powered
-    case bicycle
-    case mountainBike
-    // On-foot / micro
-    case walking
-    case running
-    case skateboard
-
-    var icon: String {
-        switch self {
-        case .car:          return "car.fill"
-        case .sportsCar:    return "car.rear.fill"
-        case .electricCar:  return "bolt.car.fill"
-        case .suv:          return "suv.side.fill"
-        case .truck:        return "box.truck.fill"
-        case .motorcycle:   return "motorcycle"
-        case .scooter:      return "scooter"
-        case .bicycle:      return "bicycle"
-        case .mountainBike: return "figure.outdoor.cycle"
-        case .walking:      return "figure.walk"
-        case .running:      return "figure.run"
-        case .skateboard:   return "skateboard"
-        }
-    }
-
-    var displayName: String {
-        switch self {
-        case .car:          return "Car"
-        case .sportsCar:    return "Sports Car"
-        case .electricCar:  return "Electric"
-        case .suv:          return "SUV"
-        case .truck:        return "Truck"
-        case .motorcycle:   return "Motorcycle"
-        case .scooter:      return "Scooter"
-        case .bicycle:      return "Bicycle"
-        case .mountainBike: return "Mountain Bike"
-        case .walking:      return "Walking"
-        case .running:      return "Running"
-        case .skateboard:   return "Skateboard"
-        }
-    }
-
-    /// Camera avoidance default for this mode
-    var defaultAvoidCameras: Bool {
-        switch self {
-        case .motorcycle, .scooter, .sportsCar: return true
-        default: return false
-        }
-    }
-
-    /// Default highway avoidance
-    var defaultAvoidHighways: Bool {
-        switch self {
-        case .bicycle, .mountainBike, .scooter, .walking, .running, .skateboard: return true
-        default: return false
-        }
-    }
-
-    var simulationSpeedMPH: Double {
-        switch self {
-        case .car, .electricCar, .suv:          return 35
-        case .sportsCar:                         return 45
-        case .truck:                             return 30
-        case .motorcycle, .scooter:             return 35
-        case .bicycle, .mountainBike:           return 12
-        case .walking:                           return 3
-        case .running:                           return 7
-        case .skateboard:                        return 8
-        }
-    }
-
-    /// TomTom specific travel mode string
-    var tomTomTravelMode: String {
-        switch self {
-        case .car, .sportsCar, .electricCar, .suv: return "car"
-        case .truck: return "truck"
-        case .motorcycle, .scooter: return "motorcycle"
-        case .bicycle, .mountainBike: return "bicycle"
-        case .walking, .running, .skateboard: return "pedestrian"
-        }
-    }
-}
-
 enum RoutingError: Error {
     case invalidURL
     case noData
@@ -134,7 +41,7 @@ struct TomTomInstruction: Codable {
     var roadFeature: RoadFeature {
         let msg = message?.lowercased() ?? ""
         if instructionType == "MOTORWAY_ENTER" { return .freewayEntry }
-        if instructionType == "MOTORWAY_EXIT"  { return .freewayExit }
+        if instructionType == "MOTORWAY_EXIT" { return .freewayExit }
         if instructionType?.hasPrefix("ROUNDABOUT") == true { return .roundabout }
         if msg.contains("traffic signal") || msg.contains("traffic light") { return .trafficLight }
         if msg.contains("stop sign") { return .stopSign }
@@ -164,7 +71,7 @@ struct TomTomRoute: Codable, Identifiable {
     var isLessTraffic: Bool {
         tags?.contains("less_traffic") == true
     }
-    
+
     var hasTolls: Bool {
         tags?.contains("has_tolls") == true
     }
@@ -236,7 +143,7 @@ class RoutingService: ObservableObject {
         if currentLegIndex == -1 { return quest.waypoints[0].name }
         return quest.waypoints[min(currentLegIndex + 1, quest.waypoints.count - 1)].name
     }
-    
+
     var totalStopsInQuest: Int { activeQuest?.waypoints.count ?? 0 }
     var currentStopNumber: Int {
         if currentLegIndex == -1 { return 0 }
@@ -305,10 +212,10 @@ class RoutingService: ObservableObject {
     // MARK: - Rerouting
 
     private var lastRerouteCheckTime: Date?
-    
+
     func checkReroute(currentLocation: CLLocation) {
         guard activeRoute.count > 1 else { return }
-        
+
         let now = Date()
         if let last = lastRerouteCheckTime, now.timeIntervalSince(last) < 1.0 {
             return // Throttle reroute checks to max 1 per second
@@ -365,7 +272,7 @@ class RoutingService: ObservableObject {
         if type.contains("UTURN") { return .uturn }
         return .straight
     }
-    
+
     func selectRoute(at index: Int) {
         guard index >= 0 && index < availableRoutes.count else { return }
         selectedRouteIndex = index
@@ -429,23 +336,23 @@ class RoutingService: ObservableObject {
     func countCameras(on route: TomTomRoute, cameras: [SpeedCamera]) -> Int {
         var count = 0
         guard let leg = route.legs.first else { return 0 }
-        
+
         let legPoints = leg.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
         guard let first = legPoints.first else { return 0 }
-        
+
         // Find route bounding box for fast pre-filtering
         var minLat = first.latitude
         var maxLat = first.latitude
         var minLng = first.longitude
         var maxLng = first.longitude
-        
+
         for p in legPoints {
             if p.latitude < minLat { minLat = p.latitude }
             if p.latitude > maxLat { maxLat = p.latitude }
             if p.longitude < minLng { minLng = p.longitude }
             if p.longitude > maxLng { maxLng = p.longitude }
         }
-        
+
         // Pad bounding box by ~100 meters (approx 0.001 degrees)
         minLat -= 0.001
         maxLat += 0.001
@@ -457,7 +364,7 @@ class RoutingService: ObservableObject {
             if camera.lat < minLat || camera.lat > maxLat || camera.lng < minLng || camera.lng > maxLng {
                 continue
             }
-            
+
             let camLoc = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
             for pLoc in legPoints {
                 if pLoc.distance(to: camLoc) < 70 {
@@ -551,7 +458,7 @@ class RoutingService: ObservableObject {
 
         // Build avoid features from current preferences
         var avoidFeatures: [String] = []
-        if avoidTolls    { avoidFeatures.append("tollRoads") }
+        if avoidTolls { avoidFeatures.append("tollRoads") }
         if avoidHighways { avoidFeatures.append("motorways") }
 
         let cameraAvoidAreas = cameras.map { $0.boundingBoxForRouting }.joined(separator: "!")
