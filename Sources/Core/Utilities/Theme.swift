@@ -30,6 +30,29 @@ public struct Theme {
         public static let acTextMuted = Color(hex: "8B6914")
     }
 
+    // MARK: - UIColors (For MapKit and UIKit integration)
+    public struct UIColors {
+        public static let acLeaf = UIColor(hex: "5BAD6F") ?? .systemGreen
+        public static let acMint = UIColor(hex: "A8D8A8") ?? .systemGreen
+        public static let acSky = UIColor(hex: "87CEEB") ?? .systemBlue
+        public static let acCream = UIColor(hex: "FFF9E6") ?? .white
+        public static let acField = UIColor(hex: "F5E6C8") ?? .white
+        public static let acBorder = UIColor(hex: "D4B483") ?? .lightGray
+        public static let acGold = UIColor(hex: "F4C430") ?? .systemYellow
+        public static let acCoral = UIColor(hex: "FF8C7A") ?? .systemRed
+        public static let acWood = UIColor(hex: "C68642") ?? .brown
+        public static let acGrass = UIColor(hex: "4CAF50") ?? .systemGreen
+        public static let acLavender = UIColor(hex: "C3B1E1") ?? .systemPurple
+        
+        public static let acAction = UIColor(hex: "007AFF") ?? .systemBlue
+        public static let acSuccess = UIColor(hex: "4CD964") ?? .systemGreen
+        public static let acError = UIColor(hex: "FF3B30") ?? .systemRed
+        public static let acCharcoal = UIColor(hex: "1C1C1E") ?? .darkGray
+
+        public static let acTextDark = UIColor(hex: "5C4A1E") ?? .black
+        public static let acTextMuted = UIColor(hex: "8B6914") ?? .gray
+    }
+
     // MARK: - Typography
     public struct Typography {
         /// Heavy, rounded title font mimicking Quicksand/Nunito black

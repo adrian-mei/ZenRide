@@ -163,14 +163,9 @@ struct ExperienceDetailView: View {
                                     }
                                 } label: {
                                     Text("Save Order")
-                                        .font(Theme.Typography.button)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Theme.Colors.acLeaf)
-                                        .clipShape(Capsule())
+                                        .frame(maxWidth: .infinity)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(ACButtonStyle(variant: .primary))
                             }
                         }
                         .padding(.bottom, 8)
@@ -189,14 +184,9 @@ struct ExperienceDetailView: View {
                             Image(systemName: "map.fill")
                             Text("Start Full Experience")
                         }
-                        .font(Theme.Typography.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Theme.Colors.acLeaf)
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .shadow(color: Theme.Colors.acLeaf.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
+                    .buttonStyle(ACButtonStyle(variant: .largePrimary))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                 }

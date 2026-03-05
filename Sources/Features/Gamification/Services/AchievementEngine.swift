@@ -29,7 +29,7 @@ struct AchievementEngine {
                 title: "Camp Regular",
                 subtitle: "Complete 10 rides",
                 icon: "tent.fill",
-                color: .yellow,
+                color: Theme.Colors.acGold,
                 isEarned: totalRides >= 10,
                 progress: min(1.0, Double(totalRides) / 10.0)
             ),
@@ -38,7 +38,7 @@ struct AchievementEngine {
                 title: "Dedicated Commuter",
                 subtitle: "Complete 50 rides",
                 icon: "car.fill",
-                color: Color(red: 0.8, green: 0.3, blue: 0.3),
+                color: Theme.Colors.acCoral,
                 isEarned: totalRides >= 50,
                 progress: min(1.0, Double(totalRides) / 50.0)
             ),
@@ -47,7 +47,7 @@ struct AchievementEngine {
                 title: "Gentle Breeze",
                 subtitle: "Avg Zen Score ≥ 80 over 10 rides",
                 icon: "leaf.fill",
-                color: .green,
+                color: Theme.Colors.acLeaf,
                 isEarned: avgZen >= 80 && totalRides >= 10,
                 progress: totalRides == 0 ? 0 : min(1.0, Double(avgZen) / 80.0)
             ),
@@ -56,7 +56,7 @@ struct AchievementEngine {
                 title: "Midnight Owl",
                 subtitle: "5 night rides",
                 icon: "moon.stars.fill",
-                color: .purple,
+                color: Theme.Colors.acLavender,
                 isEarned: nightRides >= 5,
                 progress: min(1.0, Double(nightRides) / 5.0)
             ),
@@ -65,7 +65,7 @@ struct AchievementEngine {
                 title: "Smooth Glider",
                 subtitle: "Avoid 10 speed cameras",
                 icon: "wind",
-                color: .cyan,
+                color: Theme.Colors.acMint,
                 isEarned: savedCameras >= 10,
                 progress: min(1.0, Double(savedCameras) / 10.0)
             ),
@@ -74,7 +74,7 @@ struct AchievementEngine {
                 title: "Tailwind Chaser",
                 subtitle: "Experience a brisk ride over 80 mph",
                 icon: "hare.fill",
-                color: .orange,
+                color: Theme.Colors.acWood,
                 isEarned: topSpeed > 80,
                 progress: min(1.0, topSpeed / 80.0)
             ),
@@ -83,7 +83,7 @@ struct AchievementEngine {
                 title: "Wilderness Explorer",
                 subtitle: "Ride 100+ miles total",
                 icon: "map.fill",
-                color: .blue,
+                color: Theme.Colors.acSky,
                 isEarned: totalMiles >= 100,
                 progress: min(1.0, totalMiles / 100.0)
             ),
@@ -92,7 +92,7 @@ struct AchievementEngine {
                 title: "Morning Dew",
                 subtitle: "5 early morning rides",
                 icon: "sunrise.fill",
-                color: Color(red: 1, green: 0.7, blue: 0.2),
+                color: Theme.Colors.acGold,
                 isEarned: morningRides >= 5,
                 progress: min(1.0, Double(morningRides) / 5.0)
             ),
@@ -101,7 +101,7 @@ struct AchievementEngine {
                 title: "Silent Shadow",
                 subtitle: "5 rides with zero camera incidents",
                 icon: "moon.fill",
-                color: Color(red: 0.5, green: 0.1, blue: 0.9),
+                color: Theme.Colors.acLavender,
                 isEarned: perfectRideCount >= 5,
                 progress: min(1.0, Double(perfectRideCount) / 5.0)
             ),
@@ -110,7 +110,7 @@ struct AchievementEngine {
                 title: "Warm Hearth",
                 subtitle: "Keep the camp lit 3 days in a row",
                 icon: "flame.fill",
-                color: .red,
+                color: Theme.Colors.acError,
                 isEarned: streak >= 3,
                 progress: min(1.0, Double(streak) / 3.0)
             ),
@@ -119,7 +119,7 @@ struct AchievementEngine {
                 title: "Wise Forager",
                 subtitle: "Save $500+ in potential fines",
                 icon: "leaf.circle.fill",
-                color: Color(red: 0.1, green: 0.8, blue: 0.4),
+                color: Theme.Colors.acGrass,
                 isEarned: store.totalSavedAllTime >= 500,
                 progress: min(1.0, store.totalSavedAllTime / 500.0)
             )

@@ -109,10 +109,10 @@ struct MapAnnotationViewFactory {
             v.markerTintColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
             v.displayPriority = .defaultLow
         } else if isTarget {
-            v.markerTintColor = .systemOrange
+            v.markerTintColor = Theme.UIColors.acGold
             v.displayPriority = .required
         } else {
-            v.markerTintColor = UIColor(red: 0.83, green: 0.71, blue: 0.51, alpha: 1.0)
+            v.markerTintColor = Theme.UIColors.acBorder
             v.displayPriority = .defaultHigh
         }
         return v
@@ -123,7 +123,7 @@ struct MapAnnotationViewFactory {
         let v = mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView
             ?? MKMarkerAnnotationView(annotation: cam, reuseIdentifier: id)
         v.glyphImage = UIImage(systemName: "exclamationmark.triangle.fill")
-        v.markerTintColor = .systemRed
+        v.markerTintColor = Theme.UIColors.acCoral
         v.canShowCallout = true
         return v
     }
@@ -137,14 +137,14 @@ struct MapAnnotationViewFactory {
             v = MKMarkerAnnotationView(annotation: poi, reuseIdentifier: id)
             v.canShowCallout = true
             let btn = UIButton(type: .contactAdd)
-            btn.tintColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
+            btn.tintColor = Theme.UIColors.acLeaf
             v.rightCalloutAccessoryView = btn
         }
         switch poi.type {
-        case .emergency: v.glyphImage = UIImage(systemName: "shield.fill"); v.markerTintColor = .systemBlue
-        case .school:    v.glyphImage = UIImage(systemName: "figure.child"); v.markerTintColor = .systemYellow
-        case .park:      v.glyphImage = UIImage(systemName: "tree.fill"); v.markerTintColor = UIColor(red: 0.35, green: 0.68, blue: 0.43, alpha: 1.0)
-        case .freeway:   v.glyphImage = UIImage(systemName: "car.fill"); v.markerTintColor = .systemBlue
+        case .emergency: v.glyphImage = UIImage(systemName: "shield.fill"); v.markerTintColor = Theme.UIColors.acSky
+        case .school:    v.glyphImage = UIImage(systemName: "figure.child"); v.markerTintColor = Theme.UIColors.acGold
+        case .park:      v.glyphImage = UIImage(systemName: "tree.fill"); v.markerTintColor = Theme.UIColors.acLeaf
+        case .freeway:   v.glyphImage = UIImage(systemName: "car.fill"); v.markerTintColor = Theme.UIColors.acSky
         }
         return v
     }
@@ -160,7 +160,7 @@ struct MapAnnotationViewFactory {
             v.canShowCallout = true
         }
         v.glyphImage = UIImage(systemName: "parkingsign.circle.fill")
-        v.markerTintColor = UIColor.systemTeal
+        v.markerTintColor = Theme.UIColors.acSky
         v.displayPriority = .required
         return v
     }
