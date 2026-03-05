@@ -34,8 +34,8 @@ struct HomeBottomSheet: View {
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
     @State private var searchTask: Task<Void, Never>?
-    @State private var activeSheet: BottomSheetChild?
-    @State private var questBuilderPreloaded: [QuestWaypoint] = []
+    @StateObject private var vm = HomeBottomSheetViewModel()
+
 
     var body: some View {
         ScrollView {
@@ -120,7 +120,7 @@ struct HomeBottomSheet: View {
                             guard let coord = item.placemark.location?.coordinate else { return }
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             let wp = QuestWaypoint(name: item.name ?? "Stop", coordinate: coord, icon: "mappin.circle.fill")
-                            questBuilderPreloaded = [wp]
+                            vm.questBuilderPreloaded = [wp]
                         }
                     )
                     .padding(.horizontal)
@@ -135,7 +135,7 @@ struct HomeBottomSheet: View {
             if focused { onSearchFocused?() }
         }
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: searcher.searchQuery.isEmpty)
-        .sheet(item: $activeSheet) { child in
+        .sheet(item: $vm.activeSheet) { child in
             switch child {
             case .destinationSearch(let category, let index):
                 DestinationSearchView(category: category, slotIndex: index) { name, coordinate in
@@ -162,10 +162,10 @@ struct HomeBottomSheet: View {
             )
             
             HomeSheetDiscoverActions(
-                onWanderTap: { activeSheet = .campCruise },
+                onWanderTap: { vm.activeSheet = .campCruise },
                 onDiscoverNewTap: { 
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    activeSheet = .destinationSearch(nil, nil)
+                    vm.activeSheet = .destinationSearch(nil, nil)
                 }
             )
 
@@ -175,7 +175,7 @@ struct HomeBottomSheet: View {
                     routeTo(item: MKMapItem(placemark: MKPlacemark(coordinate: coord)))
                 },
                 onAssign: { category, idx in
-                    activeSheet = .destinationSearch(category, idx)
+                    vm.activeSheet = .destinationSearch(category, idx)
                 }
             )
 
@@ -184,13 +184,7 @@ struct HomeBottomSheet: View {
             HomeSheetRecentMemories(memories: memoryStore.memories)
 
             if let car = parkedCarStore.parkedCar {
-                let distanceString: String? = {
-                    if let loc = locationProvider.currentLocation {
-                        let dist = loc.distance(from: CLLocation(latitude: car.latitude, longitude: car.longitude)) / 1609.34
-                        return String(format: "%.1f miles away", dist)
-                    }
-                    return nil
-                }()
+                let distanceString = vm.distanceToCar(carLocation: car.coordinate, currentLocation: locationProvider.currentLocation)
                 HomeSheetParkedCarWidget(
                     car: car,
                     distanceString: distanceString,
