@@ -180,7 +180,7 @@ class VehicleStore: ObservableObject {
                 name: "My Bike",
                 make: "Unknown",
                 model: "Default",
-                year: Calendar.current.component(.year, from: Date()),
+                year: Date().year,
                 type: .motorcycle,
                 colorHex: "00FFFF",
                 licensePlate: "",

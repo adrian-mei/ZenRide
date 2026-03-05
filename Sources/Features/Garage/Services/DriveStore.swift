@@ -66,9 +66,9 @@ class DriveStore: ObservableObject {
     }
 
     func toggleBookmark(id: UUID) {
-        guard let idx = records.firstIndex(where: { $0.id == id }) else { return }
-        records[idx].isBookmarked.toggle()
-        Log.info("DriveStore", "Bookmark toggled for '\(records[idx].destinationName)'")
+        guard records.update(id: id, { $0.isBookmarked.toggle() }) else { return }
+        let name = records.first(where: { $0.id == id })?.destinationName ?? id.uuidString
+        Log.info("DriveStore", "Bookmark toggled for '\(name)'")
         save()
         // Ensure UI updates
         objectWillChange.send()

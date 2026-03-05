@@ -73,4 +73,43 @@ struct PlayerStoreTests {
         store.selectCharacter(lockedChar)
         #expect(store.selectedCharacterId == "camper_fox")
     }
+
+    @Test func unlockedCharacters_atLevel1_returnsOnlyFox() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        // Only camper_fox has unlockLevel 1 among the base characters
+        #expect(store.unlockedCharacters.count == 1)
+        #expect(store.unlockedCharacters[0].id == "camper_fox")
+    }
+
+    @Test func unlockedCharacters_atLevel5_includesThreeChars() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        // 100 + 200 + 300 + 400 = 1000 XP → level 5
+        store.addXP(1000)
+        #expect(store.currentLevel == 5)
+        // camper_fox(1), scout_bear(3), breezy_bird(5) are all ≤ level 5
+        #expect(store.unlockedCharacters.count == 3)
+    }
+
+    @Test func selectedCharacter_invalidId_fallsBackToFirst() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        store.selectedCharacterId = "nonexistent_id"
+        #expect(store.selectedCharacter.id == "camper_fox")
+    }
+
+    @Test func xpForNextLevel_level1_returns100() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        #expect(store.xpForNextLevel() == 100)
+    }
+
+    @Test func xpForNextLevel_level2_returns200() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        store.addXP(100) // exactly hits level 2
+        #expect(store.currentLevel == 2)
+        #expect(store.xpForNextLevel() == 200)
+    }
 }

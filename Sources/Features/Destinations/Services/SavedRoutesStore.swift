@@ -184,21 +184,11 @@ class SavedRoutesStore: ObservableObject {
     }
 
     private func saveRecentSearches() {
-        do {
-            let data = try JSONEncoder().encode(recentSearches)
-            defaults.set(data, forKey: recentSearchesKey)
-        } catch {
-            Log.error("SavedRoutesStore", "Failed to encode recent searches: \(error)")
-        }
+        defaults.saveJSON(recentSearches, forKey: recentSearchesKey)
     }
 
     private func loadRecentSearches() {
-        guard let data = defaults.data(forKey: recentSearchesKey) else { return }
-        do {
-            recentSearches = try JSONDecoder().decode([RecentSearch].self, from: data)
-        } catch {
-            Log.error("SavedRoutesStore", "Failed to decode recent searches: \(error)")
-        }
+        recentSearches = defaults.loadJSON([RecentSearch].self, forKey: recentSearchesKey) ?? []
     }
 
     // MARK: - Pinned / Saved Places
@@ -234,8 +224,7 @@ class SavedRoutesStore: ObservableObject {
     }
 
     func togglePin(id: UUID) {
-        guard let idx = routes.firstIndex(where: { $0.id == id }) else { return }
-        routes[idx].isPinned.toggle()
+        guard routes.update(id: id, { $0.isPinned.toggle() }) else { return }
         save()
         objectWillChange.send()
     }
@@ -252,10 +241,9 @@ class SavedRoutesStore: ObservableObject {
 
     func recordVisit(destinationName: String, coordinate: CLLocationCoordinate2D,
                      durationSeconds: Int, departureTime: Date) {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: departureTime)
-        let weekday = calendar.component(.weekday, from: departureTime)
-        let month = calendar.component(.month, from: departureTime)
+        let hour    = departureTime.hour
+        let weekday = departureTime.weekday
+        let month   = departureTime.month
 
         let record = VisitRecord(date: departureTime, hour: hour, weekday: weekday, month: month)
 

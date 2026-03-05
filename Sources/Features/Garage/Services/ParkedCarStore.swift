@@ -45,20 +45,10 @@ class ParkedCarStore: ObservableObject {
 
     private func save() {
         guard let car = parkedCar else { return }
-        do {
-            let data = try JSONEncoder().encode(car)
-            UserDefaults.standard.set(data, forKey: key)
-        } catch {
-            Log.error("ParkedCarStore", "Failed to encode parked car: \(error)")
-        }
+        UserDefaults.standard.saveJSON(car, forKey: key)
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return }
-        do {
-            self.parkedCar = try JSONDecoder().decode(ParkedCar.self, from: data)
-        } catch {
-            Log.error("ParkedCarStore", "Failed to decode parked car: \(error)")
-        }
+        parkedCar = UserDefaults.standard.loadJSON(ParkedCar.self, forKey: key)
     }
 }

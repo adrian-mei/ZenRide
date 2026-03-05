@@ -69,20 +69,10 @@ class RideJournal: ObservableObject {
     }
 
     private func save() {
-        do {
-            let data = try JSONEncoder().encode(entries)
-            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.rideJournal)
-        } catch {
-            Log.error("RideJournal", "Failed to encode entries: \(error)")
-        }
+        UserDefaults.standard.saveJSON(entries, forKey: UserDefaultsKeys.rideJournal)
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: UserDefaultsKeys.rideJournal) else { return }
-        do {
-            entries = try JSONDecoder().decode([RideEntry].self, from: data)
-        } catch {
-            Log.error("RideJournal", "Failed to decode entries: \(error)")
-        }
+        entries = UserDefaults.standard.loadJSON([RideEntry].self, forKey: UserDefaultsKeys.rideJournal) ?? []
     }
 }
