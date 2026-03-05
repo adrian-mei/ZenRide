@@ -18,29 +18,29 @@ public struct AchievementsShelf: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("MEMENTOS")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(.white.opacity(0.5))
+                        .font(Theme.Typography.caption)
+                        .foregroundColor(Theme.Colors.acWood)
                         .kerning(1.5)
                     Text("\(earnedCount) of \(achievements.count) collected")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.4))
+                        .font(Theme.Typography.body)
+                        .foregroundColor(Theme.Colors.acTextMuted)
                 }
                 Spacer()
 
                 // Progress bar (No XP)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Collection")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.green.opacity(0.8))
+                        .font(Theme.Typography.label)
+                        .foregroundColor(Theme.Colors.acLeaf)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.1)).frame(height: 4)
+                            Capsule().fill(Theme.Colors.acBorder.opacity(0.3)).frame(height: 6)
                             Capsule()
-                                .fill(LinearGradient(colors: [.green, .cyan], startPoint: .leading, endPoint: .trailing))
-                                .frame(width: geo.size.width * Double(earnedCount) / Double(max(achievements.count, 1)), height: 4)
+                                .fill(LinearGradient(colors: [Theme.Colors.acLeaf, Theme.Colors.acSky], startPoint: .leading, endPoint: .trailing))
+                                .frame(width: geo.size.width * Double(earnedCount) / Double(max(achievements.count, 1)), height: 6)
                         }
                     }
-                    .frame(width: 80, height: 4)
+                    .frame(width: 80, height: 6)
                 }
             }
 
@@ -52,8 +52,9 @@ public struct AchievementsShelf: View {
                     }
                     if achievements.filter(\.isEarned).count < achievements.count {
                         Rectangle()
-                            .fill(Color.white.opacity(0.08))
-                            .frame(width: 1, height: 60)
+                            .fill(Theme.Colors.acBorder.opacity(0.3))
+                            .frame(width: 2, height: 60)
+                            .clipShape(Capsule())
                         ForEach(achievements.filter { !$0.isEarned }) { badge in
                             AchievementBadge(achievement: badge, size: 60)
                         }

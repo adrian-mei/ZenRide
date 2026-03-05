@@ -12,21 +12,21 @@ struct QuestProgressRibbon: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "map.fill")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(Theme.Typography.label)
                     Text(quest.title.uppercased())
-                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .font(Theme.Typography.label)
                         .kerning(1.0)
                 }
-                .foregroundColor(Color.white.opacity(0.6))
+                .foregroundColor(Theme.Colors.acTextDark.opacity(0.6))
 
                 Spacer()
 
                 Text("STOP \(currentStopNumber) OF \(totalStopsInQuest)")
-                    .font(.system(size: 10, weight: .black, design: .rounded))
-                    .foregroundColor(Color(hex: "4CD964"))
+                    .font(Theme.Typography.label)
+                    .foregroundColor(Theme.Colors.acLeaf)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Color(hex: "4CD964").opacity(0.12))
+                    .background(Theme.Colors.acLeaf.opacity(0.12))
                     .clipShape(Capsule())
             }
             .padding(.horizontal, 16)
@@ -35,8 +35,8 @@ struct QuestProgressRibbon: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(height: 4)
+                        .fill(Theme.Colors.acBorder.opacity(0.2))
+                        .frame(height: 6)
 
                     let total = Double(totalStopsInQuest)
                     let current = Double(currentStopNumber)
@@ -44,24 +44,24 @@ struct QuestProgressRibbon: View {
                     let overallProgress = (max(0, current - 1) / total) + legProgress
 
                     Capsule()
-                        .fill(Color(hex: "4CD964"))
-                        .frame(width: geo.size.width * min(1.0, overallProgress), height: 4)
+                        .fill(Theme.Colors.acLeaf)
+                        .frame(width: geo.size.width * min(1.0, overallProgress), height: 6)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 6)
             .padding(.horizontal, 16)
 
             if !currentStopName.isEmpty {
                 Text("Next: \(currentStopName)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .font(Theme.Typography.caption)
+                    .foregroundColor(Theme.Colors.acTextDark)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
                     .padding(.top, 2)
             }
         }
         .padding(.vertical, 12)
-        .background(Color.white.opacity(0.05))
-        Divider().background(Color.white.opacity(0.15))
+        .background(Theme.Colors.acBorder.opacity(0.08))
+        Divider().background(Theme.Colors.acBorder.opacity(0.3))
     }
 }

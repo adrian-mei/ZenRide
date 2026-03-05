@@ -58,12 +58,12 @@ struct ExperienceDetailView: View {
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(experience.subtitle)
-                                .font(.system(size: 18, weight: .medium, design: .rounded))
+                                .font(Theme.Typography.headline)
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .fixedSize(horizontal: false, vertical: true)
 
                             Text(experience.description)
-                                .font(.system(size: 15, weight: .regular, design: .rounded))
+                                .font(Theme.Typography.body)
                                 .foregroundColor(Theme.Colors.acTextMuted)
                                 .lineSpacing(4)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -79,7 +79,7 @@ struct ExperienceDetailView: View {
                                     Text(experience.city)
                                 }
                             }
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.caption)
                             .foregroundColor(Theme.Colors.acWood)
                             .padding(.top, 8)
                         }
@@ -100,7 +100,7 @@ struct ExperienceDetailView: View {
                                             .frame(width: 32, height: 32)
                                             .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
                                         Text("\(index + 1)")
-                                            .font(.system(size: 16, weight: .black, design: .rounded))
+                                            .font(Theme.Typography.headline)
                                             .foregroundColor(Theme.Colors.acWood)
                                     }
                                     .padding(.top, 2)
@@ -108,12 +108,12 @@ struct ExperienceDetailView: View {
                                     // Content
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(stop.name)
-                                            .font(.system(size: 18, weight: .black, design: .rounded))
+                                            .font(Theme.Typography.headline)
                                             .foregroundColor(Theme.Colors.acTextDark)
                                             .fixedSize(horizontal: false, vertical: true)
 
                                         Text(stop.description)
-                                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                                            .font(Theme.Typography.body)
                                             .foregroundColor(Theme.Colors.acTextMuted)
                                             .lineSpacing(2)
                                             .fixedSize(horizontal: false, vertical: true)
@@ -128,7 +128,7 @@ struct ExperienceDetailView: View {
                                                     .font(.system(size: 10))
                                                 Text("Start Here")
                                             }
-                                            .font(.system(size: 12, weight: .black, design: .rounded))
+                                            .font(Theme.Typography.label)
                                             .padding(.horizontal, 14)
                                             .padding(.vertical, 8)
                                             .background(Theme.Colors.acWood.opacity(0.1))
@@ -150,7 +150,7 @@ struct ExperienceDetailView: View {
                     } header: {
                         HStack {
                             Text("Destinations")
-                                .font(.system(size: 18, weight: .black, design: .rounded))
+                                .font(Theme.Typography.title)
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .textCase(nil)
 
@@ -163,7 +163,7 @@ struct ExperienceDetailView: View {
                                     }
                                 } label: {
                                     Text("Save Order")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .font(Theme.Typography.button)
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
@@ -189,7 +189,7 @@ struct ExperienceDetailView: View {
                             Image(systemName: "map.fill")
                             Text("Start Full Experience")
                         }
-                        .font(.system(size: 18, weight: .black, design: .rounded))
+                        .font(Theme.Typography.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(Theme.Colors.acLeaf)

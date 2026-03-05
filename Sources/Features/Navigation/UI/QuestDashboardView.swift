@@ -18,12 +18,12 @@ struct QuestDashboardView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("EXPERIENCES")
-                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .font(Theme.Typography.button)
                         .foregroundColor(Theme.Colors.acWood)
                         .kerning(1.5)
                     if !experiencesStore.experiences.isEmpty {
                         Text("\(experiencesStore.experiences.count) curated route\(experiencesStore.experiences.count == 1 ? "" : "s")")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .font(Theme.Typography.caption)
                             .foregroundColor(Theme.Colors.acTextMuted)
                     }
                 }
@@ -125,7 +125,7 @@ struct ExperienceDashboardCard: View {
 
                     // Duration Badge
                     Text("\(summary.durationMinutes) min")
-                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -137,12 +137,13 @@ struct ExperienceDashboardCard: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(summary.title)
-                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .font(Theme.Typography.body)
+                        .bold()
                         .foregroundColor(Theme.Colors.acTextDark)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(summary.subtitle)
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -155,7 +156,7 @@ struct ExperienceDashboardCard: View {
                         Spacer()
                         HStack(spacing: 4) {
                             Text("EXPLORE")
-                                .font(.system(size: 11, weight: .black, design: .rounded))
+                                .font(Theme.Typography.label)
                             Image(systemName: "arrow.right.circle.fill")
                                 .font(.system(size: 12))
                         }

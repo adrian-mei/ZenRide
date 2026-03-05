@@ -30,11 +30,11 @@ struct QuestCelebrationOverlay: View {
 
                     VStack(spacing: 8) {
                         Text(isFinal ? "Adventure Complete!" : "Stop Reached!")
-                            .font(.system(size: 24, weight: .black, design: .rounded))
+                            .font(Theme.Typography.title)
                             .foregroundColor(Theme.Colors.acTextDark)
 
                         Text(isFinal ? "You've reached your final destination." : "You've arrived at \(stopName).")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acTextMuted)
                             .multilineTextAlignment(.center)
                     }
@@ -43,7 +43,7 @@ struct QuestCelebrationOverlay: View {
                         onDismiss()
                     } label: {
                         Text(isFinal ? "Awesome!" : "Continue Journey")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.button)
                             .foregroundColor(.white)
                             .padding(.horizontal, 30)
                             .padding(.vertical, 12)

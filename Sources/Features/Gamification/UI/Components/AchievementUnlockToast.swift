@@ -21,15 +21,15 @@ public struct AchievementUnlockToast: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("New Memento Collected!")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(Theme.Typography.caption)
                     .foregroundColor(achievement.color)
                     .kerning(0.5)
                 Text(achievement.title)
-                    .font(.system(size: 15, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextDark)
                 Text(achievement.subtitle)
-                    .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(Theme.Colors.acTextMuted)
             }
 
             Spacer()
@@ -42,7 +42,7 @@ public struct AchievementUnlockToast: View {
         .padding(.vertical, 12)
         .background(
             ZStack {
-                Color(red: 0.06, green: 0.06, blue: 0.1)
+                Theme.Colors.acCream
                 achievement.color.opacity(0.08)
             }
         )
@@ -53,6 +53,7 @@ public struct AchievementUnlockToast: View {
         .scaleEffect(appeared ? 1 : 0.85)
         .opacity(appeared ? 1 : 0)
         .onAppear {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 appeared = true
             }
