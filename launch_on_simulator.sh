@@ -3,9 +3,9 @@ set -e
 
 # Configuration
 DEVICE_NAME="iPhone 17 Pro"
-SCHEME="FashodaMap"
-PROJECT="FashodaMap.xcodeproj"
-BUNDLE_ID="com.adrian.FashodaMap"
+SCHEME="ZenMap"
+PROJECT="ZenMap.xcodeproj"
+BUNDLE_ID="com.adrian.ZenMap"
 
 echo "🚀 Launching $SCHEME on Simulator ($DEVICE_NAME)..."
 

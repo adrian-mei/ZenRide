@@ -62,7 +62,7 @@ class PlayerStore: ObservableObject {
 
     private let xpKey = UserDefaultsKeys.playerXP
     private let charKey = UserDefaultsKeys.playerCharacter
-    private let modeKey = "ZenRide_CurrentMode"
+    private let modeKey = "ZenMap_CurrentMode"
 
     init() {
         load()

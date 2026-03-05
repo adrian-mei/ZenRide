@@ -5,7 +5,7 @@ import Combine
 import SwiftData
 
 @main
-struct FashodaMapApp: App {
+struct ZenMapApp: App {
     @StateObject private var cameraStore = CameraStore()
     @StateObject private var parkingStore = ParkingStore()
     @StateObject private var bunnyPolice = BunnyPolice()

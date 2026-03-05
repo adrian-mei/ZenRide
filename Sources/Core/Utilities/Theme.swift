@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// FashodaMap (Animal Crossing / Camp) Theme Engine
+/// ZenMap (Animal Crossing / Camp) Theme Engine
 /// Ports the exact CSS palette from the `fashoda` web app ecosystem.
 public struct Theme {
     

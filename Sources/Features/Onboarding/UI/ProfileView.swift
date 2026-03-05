@@ -135,7 +135,7 @@ struct ProfileView: View {
             .alert("Privacy", isPresented: $showPrivacyAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("FashodaMap stores all your data privately on this device. Nothing is sent to external servers. Your routes, trips, and preferences never leave your iPhone.")
+                Text("ZenMap stores all your data privately on this device. Nothing is sent to external servers. Your routes, trips, and preferences never leave your iPhone.")
             }
             .alert("Sign Out", isPresented: $showSignOutAlert) {
                 Button("Cancel", role: .cancel) {}

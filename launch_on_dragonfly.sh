@@ -2,9 +2,9 @@
 
 # Configuration
 DEVICE_ID="00008110-00062CE034A0A01E"
-SCHEME="FashodaMap"
-PROJECT="FashodaMap.xcodeproj"
-BUNDLE_ID="com.adrian.FashodaMap"
+SCHEME="ZenMap"
+PROJECT="ZenMap.xcodeproj"
+BUNDLE_ID="com.adrian.ZenMap"
 
 echo "🚀 Preparing to launch $SCHEME on DragonFly ($DEVICE_ID)..."
 
@@ -27,7 +27,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 3. Find the built app path
-# Usually in build/Build/Products/Debug-iphoneos/FashodaMap.app
+# Usually in build/Build/Products/Debug-iphoneos/ZenMap.app
 # But xcodebuild might put it in DerivedData. 
 # We'll try to locate it.
 APP_PATH=$(xcodebuild -project "$PROJECT" -scheme "$SCHEME" -destination "id=$DEVICE_ID" -showBuildSettings | grep -m 1 "CODESIGNING_FOLDER_PATH" | awk '{print $3}')

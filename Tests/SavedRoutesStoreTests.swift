@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 import CoreLocation
-@testable import FashodaMap
+@testable import ZenMap
 
 // MARK: - Helpers
 

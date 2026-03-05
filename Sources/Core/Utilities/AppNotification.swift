@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppNotification {
-    static let toggle3DMap = Notification.Name("FashodaMap.toggle3DMap")
-    static let recenterMap = Notification.Name("FashodaMap.recenterMap")
-    static let addPOIToRoute = Notification.Name("FashodaMap.addPOIToRoute")
+    static let toggle3DMap = Notification.Name("ZenMap.toggle3DMap")
+    static let recenterMap = Notification.Name("ZenMap.recenterMap")
+    static let addPOIToRoute = Notification.Name("ZenMap.addPOIToRoute")
 }

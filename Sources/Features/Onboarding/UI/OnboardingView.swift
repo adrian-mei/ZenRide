@@ -49,7 +49,7 @@ struct WelcomeStep: View {
                     }
 
                     VStack(spacing: 12) {
-                        Text("Welcome to\nFashodaMap")
+                        Text("Welcome to\nZenMap")
                             .font(Theme.Typography.title)
                             .foregroundColor(Theme.Colors.acTextDark)
                             .multilineTextAlignment(.center)

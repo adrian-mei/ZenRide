@@ -1,6 +1,6 @@
-# FashodaMap
+# ZenMap
 
-This app is called **FashodaMap** (repo folder: ZenRide).
+This app is called **ZenMap** (repo folder: ZenRide).
 It is an iOS SwiftUI app — a gamified, cozy Animal Crossing-themed driving companion.
 
 ## Key Facts

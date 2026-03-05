@@ -2,7 +2,7 @@ import Foundation
 
 enum UserDefaultsKeys {
     static let hasCompletedOnboarding = "hasCompletedOnboarding"
-    static let questsV2               = "FashodaMap_Quests_v2"
+    static let questsV2               = "ZenMap_Quests_v2"
     static let playerXP               = "PlayerStore_TotalXP_v1"
     static let playerCharacter        = "PlayerStore_Character_v1"
     static let vehicleStoreV1         = "VehicleStore_v1"

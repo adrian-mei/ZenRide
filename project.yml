@@ -1,9 +1,9 @@
-name: FashodaMap
+name: ZenMap
 options:
   bundleIdPrefix: com.adrian
   minimumXcodeGenVersion: 2.30.0
 targets:
-  FashodaMap:
+  ZenMap:
     type: application
     platform: iOS
     deploymentTarget: '17.0'
@@ -31,14 +31,14 @@ targets:
       DEVELOPMENT_TEAM: U79GV5TEWJ
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
-  FashodaMapTests:
+  ZenMapTests:
     type: bundle.unit-test
     platform: iOS
     deploymentTarget: '17.0'
     sources:
     - Tests
     dependencies:
-    - target: FashodaMap
+    - target: ZenMap
     settings:
       CODE_SIGN_STYLE: Automatic
       GENERATE_INFOPLIST_FILE: YES

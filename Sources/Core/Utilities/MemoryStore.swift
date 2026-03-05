@@ -50,7 +50,7 @@ public struct Memory: Identifiable, Codable {
 public class MemoryStore: ObservableObject {
     @Published public var memories: [Memory] = []
     
-    private let saveKey = "ZenRide_Memories"
+    private let saveKey = "ZenMap_Memories"
     
     public init() {
         load()

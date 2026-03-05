@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import FashodaMap
+@testable import ZenMap
 
 final class ACMapRoundButtonTests: XCTestCase {
     func testMapButtonActionFires() {
