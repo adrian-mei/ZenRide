@@ -31,9 +31,13 @@ struct CampCruiseSetupSheet: View {
                 }
         }
         .sheet(isPresented: $showAddStop) {
-            CruiseStopPickerSheet { waypoint in
+            DestinationSearchView { name, coord in
+                let waypoint = QuestWaypoint(name: name, coordinate: coord, icon: "mappin.circle.fill")
                 waypoints.append(waypoint)
+                showAddStop = false
             }
+
+
         }
         .sheet(isPresented: $showInviteSheet) {
             InviteCrewSheet()
@@ -254,150 +258,5 @@ struct CampCruiseSetupSheet: View {
 }
 
 // MARK: - CruiseStopPickerSheet
-
-private struct CruiseStopPickerSheet: View {
-    @EnvironmentObject var locationProvider: LocationProvider
-    @EnvironmentObject var savedRoutes: SavedRoutesStore
-
-    @Environment(\.dismiss) private var dismiss
-
-    let onSelect: (QuestWaypoint) -> Void
-
-    @StateObject private var searcher = DestinationSearcher()
-    @FocusState private var isSearchFocused: Bool
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.Colors.acField.ignoresSafeArea()
-                VStack(spacing: 0) {
-                    searchBar
-                    resultsContent
-                }
-            }
-            .navigationTitle("Add a Stop")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(Theme.Colors.acWood)
-                }
-            }
-            .onAppear { isSearchFocused = true }
-        }
-    }
-
-    @ViewBuilder
-    private var searchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(Theme.Colors.acTextMuted)
-                .font(.system(size: 16, weight: .bold))
-            TextField("Search for a place…", text: $searcher.searchQuery)
-                .focused($isSearchFocused)
-                .submitLabel(.search)
-                .autocorrectionDisabled()
-                .font(Theme.Typography.body)
-                .foregroundColor(Theme.Colors.acTextDark)
-                .onChange(of: searcher.searchQuery) { _, query in
-                    searcher.scheduleSearch(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
-                }
-                .onSubmit {
-                    let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
-                    guard !q.isEmpty else { return }
-                    searcher.search(for: q, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
-                }
-            if !searcher.searchQuery.isEmpty {
-                Button { searcher.searchQuery = ""; searcher.searchResults = []; searcher.isSearching = false } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundColor(Theme.Colors.acTextMuted).frame(width: 36, height: 36)
-                }
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Theme.Colors.acCream)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acBorder, lineWidth: 2))
-        .padding()
-    }
-
-    @ViewBuilder
-    private var resultsContent: some View {
-        if searcher.isSearching {
-            Spacer()
-            ProgressView().scaleEffect(1.4).tint(Theme.Colors.acWood)
-            Text("Searching…").font(Theme.Typography.body).foregroundStyle(Theme.Colors.acWood).padding(.top, 8)
-            Spacer()
-        } else if !searcher.searchResults.isEmpty {
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(Array(searcher.searchResults.prefix(12).enumerated()), id: \.offset) { idx, item in
-                        let userLoc = locationProvider.currentLocation
-                        let dist: String? = {
-                            guard let userLoc, let placeLoc = item.placemark.location else { return nil }
-                            let miles = userLoc.distance(from: placeLoc) / Constants.metersPerMile
-                            return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
-                        }()
-                        SearchResultRow(item: item, isSaved: false, distanceString: dist) {
-                            guard let coord = item.placemark.location?.coordinate else { return }
-                            let wp = QuestWaypoint(name: item.name ?? "Stop", coordinate: coord, icon: "mappin.circle.fill")
-                            onSelect(wp)
-                            dismiss()
-                        } onSave: {
-                            guard let coord = item.placemark.location?.coordinate else { return }
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            savedRoutes.savePlace(name: item.name ?? "Place", coordinate: coord)
-                        }
-                        if idx < min(searcher.searchResults.count, 12) - 1 {
-                            ACSectionDivider(leadingInset: 66)
-                        }
-                    }
-                }
-                .background(Theme.Colors.acCream)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.Colors.acBorder, lineWidth: 2))
-                .padding(.horizontal)
-            }
-        } else {
-            let pinned = savedRoutes.pinnedRoutes
-            let recents = savedRoutes.recentSearches
-
-            if pinned.isEmpty && recents.isEmpty {
-                Spacer()
-                Image(systemName: "mappin.and.ellipse").font(.system(size: 48)).foregroundStyle(Theme.Colors.acBorder)
-                Text("Search for a destination").font(Theme.Typography.body).foregroundStyle(Theme.Colors.acTextMuted).padding(.top, 8)
-                Spacer()
-            } else {
-                List {
-                    if !pinned.isEmpty {
-                        Section("Bookmarked") {
-                            ForEach(pinned) { route in
-                                SavedRouteRow(systemIcon: "bookmark.fill", iconColor: Theme.Colors.acCoral, title: route.destinationName, subtitle: "Saved Place") {
-                                    let wp = QuestWaypoint(name: route.destinationName, coordinate: CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude), icon: "bookmark.fill")
-                                    onSelect(wp)
-                                    dismiss()
-                                }
-                            }
-                        }
-                    }
-
-                    if !recents.isEmpty {
-                        Section("Recent Searches") {
-                            ForEach(recents) { recent in
-                                SavedRouteRow(systemIcon: "clock.fill", iconColor: Theme.Colors.acTextMuted, title: recent.name, subtitle: recent.subtitle) {
-                                    let wp = QuestWaypoint(name: recent.name, coordinate: CLLocationCoordinate2D(latitude: recent.latitude, longitude: recent.longitude), icon: "clock.fill")
-                                    onSelect(wp)
-                                    dismiss()
-                                }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-            }
-        }
-    }
-}
 
 // MARK: - InviteCrewSheet

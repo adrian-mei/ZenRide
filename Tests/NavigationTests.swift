@@ -314,7 +314,7 @@ struct SimulationStateTests {
     // startNavigationSession should clear all session data so a fresh ride starts clean.
     @Test func startNavigationSessionClearsSessionData() {
         let owl = BunnyPolice()
-        owl.speedReadings = [30, 45, 50]
+        owl.speedTracker.speedReadings = [30, 45, 50]
         owl.zenScore = 75
         owl.startNavigationSession()
         #expect(owl.speedReadings.isEmpty)
@@ -325,7 +325,7 @@ struct SimulationStateTests {
         let owl = BunnyPolice()
         owl.camerasPassedThisRide = 5
         owl.zenScore = 60
-        owl.speedReadings = [30, 45]
+        owl.speedTracker.speedReadings = [30, 45]
         owl.resetRideStats()
         #expect(owl.camerasPassedThisRide == 0)
         #expect(owl.zenScore == 100)
