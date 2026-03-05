@@ -175,7 +175,7 @@ struct RideView: View {
             vm.departureTime = Date()
             vm.navigationStartTime = Date()
             bunnyPolice.startNavigationSession()
-            prefetchTTS(for: vm.destinationName)
+            vm.audioCoordinator.prefetchTTS(for: vm.destinationName, instructions: routingService.instructions, activeQuest: routingService.questManager.activeQuest)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 vm.routeState = .navigating
                 locationProvider.isSimulating = false
@@ -190,7 +190,7 @@ struct RideView: View {
             vm.departureTime = Date()
             vm.navigationStartTime = Date()
             bunnyPolice.startNavigationSession()
-            prefetchTTS(for: vm.destinationName)
+            vm.audioCoordinator.prefetchTTS(for: vm.destinationName, instructions: routingService.instructions, activeQuest: routingService.questManager.activeQuest)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 vm.routeState = .navigating
                 locationProvider.simulateDrive(along: routingService.activeRoute, speedMPH: routingService.vehicleMode.simulationSpeedMPH)
@@ -232,22 +232,5 @@ struct RideView: View {
 
 
 
-    private func prefetchTTS(for destinationName: String) {
-        var prefetchTexts = [String]()
-        let dest = vm.destinationName.isEmpty ? "your destination" : vm.destinationName
-        prefetchTexts.append("Route to \(dest) is ready. Let's have a wonderful trip together!")
-        prefetchTexts.append("You have arrived at your final destination. Route complete!")
-        for instruction in routingService.instructions {
-            prefetchTexts.append("In 500 feet, \(instruction.text)")
-            prefetchTexts.append(instruction.text)
-        }
-        if let quest = routingService.questManager.activeQuest {
-            for i in 0..<(quest.waypoints.count - 1) {
-                let current = quest.waypoints[i].name
-                let next = quest.waypoints[i + 1].name
-                prefetchTexts.append("Arrived at \(current). Next stop is \(next). Route is ready when you are.")
-            }
-        }
-        SpeechService.shared.prefetch(texts: prefetchTexts)
-    }
+
 }

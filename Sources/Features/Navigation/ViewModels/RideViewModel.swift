@@ -5,6 +5,7 @@ import Combine
 
 @MainActor
 class RideViewModel: ObservableObject {
+    @Published var audioCoordinator = NavigationAudioCoordinator()
     @Published var routeState: RouteState
     @Published var destinationName: String
     @Published var uiVisible = true

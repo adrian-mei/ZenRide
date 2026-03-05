@@ -54,4 +54,22 @@ class NavigationAudioCoordinator: ObservableObject {
             }
         }
     }
+    func prefetchTTS(for destinationName: String, instructions: [NavigationInstruction], activeQuest: DailyQuest?) {
+        var prefetchTexts = [String]()
+        let dest = destinationName.isEmpty ? "your destination" : destinationName
+        prefetchTexts.append("Route to \(dest) is ready. Let's have a wonderful trip together!")
+        prefetchTexts.append("You have arrived at your final destination. Route complete!")
+        for instruction in instructions {
+            prefetchTexts.append("In 500 feet, \(instruction.text)")
+            prefetchTexts.append(instruction.text)
+        }
+        if let quest = activeQuest {
+            for i in 0..<(quest.waypoints.count - 1) {
+                let current = quest.waypoints[i].name
+                let next = quest.waypoints[i + 1].name
+                prefetchTexts.append("Arrived at \(current). Next stop is \(next). Route is ready when you are.")
+            }
+        }
+        speechService.prefetch(texts: prefetchTexts)
+    }
 }
