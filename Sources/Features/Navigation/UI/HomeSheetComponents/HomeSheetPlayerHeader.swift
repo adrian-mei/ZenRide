@@ -14,7 +14,7 @@ struct HomeSheetPlayerHeader: View {
                     .fill(Color(hex: colorHex))
                     .frame(width: 50, height: 50)
                 Image(systemName: icon)
-                    .font(.system(size: 24))
+                    .font(Theme.Typography.title2)
                     .foregroundColor(.white)
             }
 

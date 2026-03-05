@@ -59,7 +59,7 @@ public struct AchievementBadge: View {
                     VStack {
                         Spacer()
                         Text("\(Int(achievement.progress * 100))%")
-                            .font(.system(size: 8, weight: .black, design: .rounded))
+                            .font(Theme.Typography.label)
                             .foregroundColor(achievement.color.opacity(0.9))
                             .padding(.bottom, 5)
                     }

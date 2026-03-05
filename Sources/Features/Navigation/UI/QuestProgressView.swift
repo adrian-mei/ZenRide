@@ -10,18 +10,18 @@ struct QuestProgressView: View {
                 // Header
                 HStack {
                     Image(systemName: "map.fill")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Theme.Colors.acLeaf)
 
                     Text(quest.title.uppercased())
-                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Theme.Colors.acTextDark)
                         .kerning(1.0)
 
                     Spacer()
 
                     Text("\(routingService.questManager.currentStopNumber)/\(routingService.questManager.totalStopsInQuest)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.label)
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
@@ -86,7 +86,7 @@ struct QuestProgressView: View {
                         .shadow(color: isTarget ? Theme.Colors.acGold.opacity(0.4) : Color.clear, radius: 4)
 
                     Image(systemName: isPast ? "checkmark" : waypoint.icon)
-                        .font(.system(size: 12, weight: .black))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(isPast || isTarget ? .white : Theme.Colors.acTextMuted)
                 }
                 .overlay(
@@ -95,7 +95,7 @@ struct QuestProgressView: View {
                 )
 
                 Text(waypoint.name)
-                    .font(.system(size: 9, weight: isTarget ? .bold : .medium, design: .rounded))
+                    .font(Theme.Typography.label)
                     .foregroundColor(isTarget ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
                     .lineLimit(1)
                     .frame(width: 50)

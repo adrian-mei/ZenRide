@@ -8,7 +8,7 @@ struct StatRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Text(label)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(Theme.Typography.label)
                 .foregroundColor(Theme.Colors.acTextMuted)
                 .frame(width: 54, alignment: .leading)
 
@@ -25,7 +25,7 @@ struct StatRow: View {
             .frame(height: 10)
 
             Text(String(format: "%.0f", value))
-                .font(.system(size: 11, weight: .black, design: .rounded))
+                .font(Theme.Typography.label)
                 .foregroundColor(Theme.Colors.acTextDark)
                 .frame(width: 18, alignment: .trailing)
                 .contentTransition(.numericText())

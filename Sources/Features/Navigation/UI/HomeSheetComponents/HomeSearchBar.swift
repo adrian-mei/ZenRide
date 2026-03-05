@@ -15,7 +15,7 @@ struct HomeSearchBar: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(Theme.Colors.acTextMuted)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(Theme.Typography.body)
 
                 TextField("Search Destinations", text: $searchQuery)
                     .focused(isSearchFocused)

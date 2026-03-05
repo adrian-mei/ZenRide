@@ -17,7 +17,7 @@ struct SearchResultRow: View {
                             .fill(Theme.Colors.acLeaf.opacity(0.15))
                             .frame(width: 42, height: 42)
                         Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 22))
+                            .font(Theme.Typography.headline)
                             .foregroundStyle(Theme.Colors.acLeaf)
                     }
 
@@ -55,13 +55,13 @@ struct SearchResultRow: View {
             Button(action: onSave) {
                 ZStack {
                     Image(systemName: "bookmark.fill")
-                        .font(.system(size: 20))
+                        .font(Theme.Typography.headline)
                         .foregroundStyle(Theme.Colors.acWood)
                         .scaleEffect(isSaved ? 1 : 0.01)
                         .opacity(isSaved ? 1 : 0)
 
                     Image(systemName: "bookmark")
-                        .font(.system(size: 20))
+                        .font(Theme.Typography.headline)
                         .foregroundStyle(Theme.Colors.acWood)
                         .scaleEffect(isSaved ? 0.01 : 1)
                         .opacity(isSaved ? 0 : 1)

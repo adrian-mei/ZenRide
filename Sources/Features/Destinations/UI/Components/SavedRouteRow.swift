@@ -16,7 +16,7 @@ struct SavedRouteRow: View {
                         .fill(iconColor.opacity(0.15))
                         .frame(width: 36, height: 36)
                     Image(systemName: systemIcon)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(Theme.Typography.body)
                         .foregroundStyle(iconColor)
                 }
 
@@ -34,7 +34,7 @@ struct SavedRouteRow: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(Theme.Typography.caption)
                     .foregroundColor(Theme.Colors.acBorder)
             }
             .padding(.horizontal, 16)

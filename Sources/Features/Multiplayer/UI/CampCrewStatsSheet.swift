@@ -107,10 +107,10 @@ struct CampCrewStatsSheet: View {
                 HStack(spacing: 10) {
                     Image(systemName: "\(index + 1).circle.fill")
                         .foregroundColor(Theme.Colors.acLeaf)
-                        .font(.system(size: 16))
+                        .font(Theme.Typography.body)
                     Image(systemName: wp.icon)
                         .foregroundColor(Theme.Colors.acTextDark)
-                        .font(.system(size: 14))
+                        .font(Theme.Typography.button)
                     Text(wp.name)
                         .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextDark)
@@ -133,7 +133,7 @@ struct CampCrewStatsSheet: View {
                         .fill(Theme.Colors.acWood.opacity(0.15))
                         .frame(width: 38, height: 38)
                     Image(systemName: "person.badge.plus")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(Theme.Typography.title3)
                         .foregroundColor(Theme.Colors.acWood)
                 }
                 VStack(alignment: .leading, spacing: 2) {
@@ -142,13 +142,13 @@ struct CampCrewStatsSheet: View {
                         .foregroundColor(Theme.Colors.acTextDark)
                     if let code = multiplayerService.inviteCode {
                         Text("Code: \(code)")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .font(Theme.Typography.caption)
                             .foregroundColor(Theme.Colors.acLeaf)
                     }
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(Theme.Typography.caption)
                     .foregroundColor(Theme.Colors.acBorder)
             }
             .padding(14)
@@ -178,11 +178,11 @@ private struct CrewMemberRow: View {
                     .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
 
                 Text(emoji)
-                    .font(.system(size: 28))
+                    .font(Theme.Typography.title)
 
                 if isHost {
                     Image(systemName: "crown.fill")
-                        .font(.system(size: 12))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Theme.Colors.acGold)
                         .offset(x: 16, y: -16)
                 }
@@ -206,7 +206,7 @@ private struct CrewMemberRow: View {
                         }
                     }
                 }
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(Theme.Typography.caption)
                 .foregroundColor(Theme.Colors.acTextMuted)
             }
 
@@ -215,7 +215,7 @@ private struct CrewMemberRow: View {
             if let dist = distanceMeters {
                 let miles = Double(dist) * 0.000621371
                 Text(String(format: "%.1f mi", miles))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(Theme.Typography.button)
                     .foregroundColor(Theme.Colors.acWood)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)

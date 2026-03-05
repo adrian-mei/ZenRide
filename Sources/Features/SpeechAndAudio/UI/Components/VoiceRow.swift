@@ -55,7 +55,7 @@ struct VoiceRow: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 22))
+                .font(Theme.Typography.headline)
                 .foregroundColor(isSelected ? Theme.Colors.acLeaf : Theme.Colors.acBorder)
                 .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
 
@@ -67,7 +67,7 @@ struct VoiceRow: View {
 
                     if !qualityLabel.isEmpty {
                         Text(qualityLabel)
-                            .font(.system(size: 8, weight: .black, design: .rounded))
+                            .font(Theme.Typography.label)
                             .foregroundColor(qualityColor)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -82,7 +82,7 @@ struct VoiceRow: View {
                         Text(gender)
                     }
                 }
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .font(Theme.Typography.caption)
                 .foregroundColor(Theme.Colors.acTextMuted)
             }
 

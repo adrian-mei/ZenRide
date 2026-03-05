@@ -23,12 +23,12 @@ struct DriveRecordCard: View {
                 Spacer()
                 Label(String(format: "%.1f mi", record.totalDistanceMiles), systemImage: "ruler")
             }
-            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .font(Theme.Typography.caption)
             .foregroundColor(Theme.Colors.acTextMuted)
 
             if record.sessions.count > 1 {
                 Text("\(record.sessions.count) stops on this trip")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(Theme.Typography.caption)
                     .foregroundColor(Theme.Colors.acLeaf)
                     .padding(.top, 4)
             }

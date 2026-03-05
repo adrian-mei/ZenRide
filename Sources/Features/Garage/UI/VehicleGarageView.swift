@@ -130,7 +130,7 @@ struct VehicleGarageView: View {
                             .fill(Theme.Colors.acField)
                             .frame(width: 130, height: 130)
                         Image(systemName: vm.hoveredTemplate.type.icon)
-                            .font(.system(size: 66, weight: .bold))
+                            .font(Theme.Typography.display)
                             .foregroundColor(Color(hex: vm.hoveredTemplate.colorHex))
                     }
                     .id(vm.hoveredId)
@@ -142,7 +142,7 @@ struct VehicleGarageView: View {
 
                     // Name slides in/out
                     Text(vm.hoveredTemplate.name)
-                        .font(.system(size: 19, weight: .black, design: .rounded))
+                        .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.acTextDark)
                         .id(vm.hoveredId + "_name")
                         .transition(.asymmetric(
@@ -153,12 +153,12 @@ struct VehicleGarageView: View {
                     // FREE badge or type label
                     HStack(spacing: 6) {
                         Text(vm.hoveredTemplate.type.displayName)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .font(Theme.Typography.caption)
                             .foregroundColor(Theme.Colors.acTextMuted)
 
                         if vm.hoveredTemplate.unlockLevel == 1 {
                             Text("FREE")
-                                .font(.system(size: 9, weight: .black, design: .rounded))
+                                .font(Theme.Typography.label)
                                 .kerning(1.2)
                                 .foregroundColor(Theme.Colors.acLeaf)
                                 .padding(.horizontal, 7)
@@ -189,11 +189,11 @@ struct VehicleGarageView: View {
                         VStack(spacing: 6) {
                             HStack {
                                 Text("Your Progress")
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(Theme.Typography.caption)
                                     .foregroundColor(Theme.Colors.acTextMuted)
                                 Spacer()
                                 Text("Lv \(playerStore.currentLevel) → \(vm.hoveredTemplate.unlockLevel)")
-                                    .font(.system(size: 11, weight: .black, design: .rounded))
+                                    .font(Theme.Typography.caption)
                                     .foregroundColor(Theme.Colors.acTextMuted)
                             }
                             GeometryReader { geo in
@@ -207,7 +207,7 @@ struct VehicleGarageView: View {
                             }
                             .frame(height: 8)
                             Text(levelsNeeded == 1 ? "1 more level to unlock" : "\(levelsNeeded) levels to unlock")
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .font(Theme.Typography.caption)
                                 .foregroundColor(Theme.Colors.acTextMuted)
                         }
                         .padding(.horizontal, 20)
@@ -222,7 +222,7 @@ struct VehicleGarageView: View {
                         dismiss()
                     } label: {
                         Text(isLocked ? "Locked · Level \(vm.hoveredTemplate.unlockLevel)" : "Select")
-                            .font(.system(size: 15, weight: .black, design: .rounded))
+                            .font(Theme.Typography.button)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(isLocked ? Theme.Colors.acField : Theme.Colors.acLeaf)

@@ -158,11 +158,11 @@ struct CruiseSearchSheet: View {
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
-                                quickChip(icon: "cup.and.saucer.fill", color: Color.orange, label: "Coffee")
-                                quickChip(icon: "fuelpump.fill", color: Color.red, label: "Gas")
-                                quickChip(icon: "parkingsign.circle.fill", color: Color.blue, label: "Parking")
-                                quickChip(icon: "fork.knife", color: Color.green, label: "Food")
-                                quickChip(icon: "tree.fill", color: Color.teal, label: "Parks")
+                                quickChip(icon: "cup.and.saucer.fill", color: Theme.Colors.acWood, label: "Coffee")
+                                quickChip(icon: "fuelpump.fill", color: Theme.Colors.acCoral, label: "Gas")
+                                quickChip(icon: "parkingsign.circle.fill", color: Theme.Colors.acSky, label: "Parking")
+                                quickChip(icon: "fork.knife", color: Theme.Colors.acLeaf, label: "Food")
+                                quickChip(icon: "tree.fill", color: Theme.Colors.acGrass, label: "Parks")
                             }
                             .padding(.horizontal, 16)
                         }

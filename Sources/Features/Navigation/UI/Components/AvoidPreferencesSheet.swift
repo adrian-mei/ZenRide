@@ -40,7 +40,7 @@ struct AvoidPreferencesSheet: View {
                         dismiss()
                     }
                         .foregroundColor(Theme.Colors.acWood)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.body)
                 }
             }
         }

@@ -9,7 +9,7 @@ struct HomeSheetDiscoverActions: View {
             Button(action: onWanderTap) {
                 VStack(spacing: 8) {
                     Image(systemName: "tent.fill")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(Theme.Typography.title2)
                     Text("Wander & Discover")
                         .font(Theme.Typography.button)
                 }
@@ -24,7 +24,7 @@ struct HomeSheetDiscoverActions: View {
             } label: {
                 VStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(Theme.Typography.title2)
                     Text("Discover New")
                         .font(Theme.Typography.button)
                 }

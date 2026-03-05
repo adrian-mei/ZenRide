@@ -31,7 +31,7 @@ struct HomeSearchResults: View {
         } else if searchResults.isEmpty {
             VStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 32))
+                    .font(Theme.Typography.largeTitle)
                     .foregroundStyle(Theme.Colors.acTextMuted)
                 Text("No results for \"\(searchQuery)\"")
                     .font(Theme.Typography.body)
@@ -66,7 +66,7 @@ struct HomeSearchResults: View {
                             onAddToTripBuilder(item)
                         } label: {
                             Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 22))
+                                .font(Theme.Typography.headline)
                                 .foregroundColor(Theme.Colors.acLeaf)
                                 .frame(width: 44, height: 44)
                         }

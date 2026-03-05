@@ -22,7 +22,7 @@ struct RouteSelectionSheet: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ROUTE TO")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.label)
                             .foregroundColor(Theme.Colors.acTextMuted)
                             .kerning(1)
                         Text(destinationName.isEmpty ? "Destination" : destinationName)

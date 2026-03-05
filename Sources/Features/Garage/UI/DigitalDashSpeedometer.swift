@@ -149,43 +149,4 @@ struct DigitalDashSpeedometer: View {
         if score > 50 { return Theme.Colors.acGold }
         return Theme.Colors.acError
     }
-        .frame(width: 60, height: 60)
-        .background(Theme.Colors.acCream)
-    }
-
-    private var compassView: some View {
-        VStack(spacing: 4) {
-            Image(systemName: "location.north.fill")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.blue)
-                .rotationEffect(.degrees(max(0, locationProvider.currentLocation?.course ?? 0)))
-
-            Text(compassDirection)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(.black)
-        }
-        .frame(width: 40, height: 60)
-        .background(Theme.Colors.acCream)
-    }
-
-    private var ecoView: some View {
-        VStack(spacing: 4) {
-            Image(systemName: "leaf.fill")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(ecoColor)
-
-            Text("\(Int(locationProvider.ecoScore))")
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .foregroundColor(.black)
-        }
-        .frame(width: 40, height: 60)
-        .background(Theme.Colors.acCream)
-    }
-
-    private var ecoColor: Color {
-        let score = locationProvider.ecoScore
-        if score > 80 { return Color(red: 0.35, green: 0.68, blue: 0.43) } // acLeaf
-        if score > 50 { return Color.orange }
-        return Color.red
-    }
 }

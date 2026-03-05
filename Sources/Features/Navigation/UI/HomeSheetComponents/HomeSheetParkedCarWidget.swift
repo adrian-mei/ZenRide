@@ -21,7 +21,7 @@ struct HomeSheetParkedCarWidget: View {
                 Button("Clear") {
                     onClear()
                 }
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(Theme.Typography.button)
                 .foregroundColor(Theme.Colors.acCoral)
             }
             .padding(.horizontal)
@@ -32,24 +32,24 @@ struct HomeSheetParkedCarWidget: View {
                         .fill(Theme.Colors.acSky.opacity(0.15))
                         .frame(width: 48, height: 48)
                     Image(systemName: "car.fill")
-                        .font(.system(size: 22))
+                        .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.acSky)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     if let street = car.streetName, !street.isEmpty {
                         Text(street)
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acTextDark)
                     } else {
                         Text("Location Saved")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acTextDark)
                     }
 
                     if let distanceString = distanceString {
                         Text(distanceString)
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .font(Theme.Typography.caption)
                             .foregroundColor(Theme.Colors.acWood)
                     }
                 }
@@ -59,7 +59,7 @@ struct HomeSheetParkedCarWidget: View {
                     onNavigate()
                 } label: {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(Theme.Typography.title3)
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
                         .background(Theme.Colors.acSky)

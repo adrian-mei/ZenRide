@@ -15,7 +15,7 @@ struct ModeSelector: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: mode.icon)
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Theme.Typography.button)
                             Text(mode.displayName)
                                 .font(Theme.Typography.button)
                         }

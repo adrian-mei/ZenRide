@@ -18,7 +18,7 @@ struct TemplateRow: View {
                               : Color(hex: template.colorHex).opacity(0.15))
                         .frame(width: 38, height: 38)
                     Image(systemName: isLocked ? "lock.fill" : template.type.icon)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(Theme.Typography.body)
                         .foregroundColor(isLocked
                                          ? Theme.Colors.acTextMuted
                                          : Color(hex: template.colorHex))
@@ -27,12 +27,12 @@ struct TemplateRow: View {
                 // Name + level
                 VStack(alignment: .leading, spacing: 1) {
                     Text(template.name)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(isLocked ? Theme.Colors.acTextMuted : Theme.Colors.acTextDark)
                         .lineLimit(1)
                     if isLocked {
                         Text("Lv \(template.unlockLevel)")
-                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .font(Theme.Typography.label)
                             .foregroundColor(Theme.Colors.acWood.opacity(0.7))
                     }
                 }
@@ -41,7 +41,7 @@ struct TemplateRow: View {
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 13))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Theme.Colors.acGold)
                         .transition(.scale.combined(with: .opacity))
                 }

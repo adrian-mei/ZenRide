@@ -4,7 +4,7 @@ struct AddBikeCard: View {
     var body: some View {
         VStack {
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 32))
+                .font(Theme.Typography.largeTitle)
                 .foregroundColor(Theme.Colors.acLeaf)
             Text("Add Bike")
                 .font(Theme.Typography.button)

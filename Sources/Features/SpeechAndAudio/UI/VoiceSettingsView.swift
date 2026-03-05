@@ -29,7 +29,7 @@ struct VoiceSettingsView: View {
                     Section {
                         HStack(spacing: 12) {
                             Image(systemName: "person.wave.2.fill")
-                                .font(.system(size: 22))
+                                .font(Theme.Typography.headline)
                                 .foregroundColor(Theme.Colors.acSky)
                                 .frame(width: 32)
                             VStack(alignment: .leading, spacing: 3) {
@@ -61,7 +61,7 @@ struct VoiceSettingsView: View {
                         )
                     } header: {
                         Text("Cloud Voices")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.caption)
                             .foregroundColor(Theme.Colors.acWood)
                     }
 
@@ -83,7 +83,7 @@ struct VoiceSettingsView: View {
                             }
                         } header: {
                             Text("English")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .font(Theme.Typography.caption)
                                 .foregroundColor(Theme.Colors.acWood)
                         } footer: {
                             Text("Missing voices? Download more in Settings › Accessibility › Spoken Content.")

@@ -31,10 +31,10 @@ struct BikePassCard: View {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("LICENSE PLATE")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(Theme.Typography.label)
                         .foregroundColor(.white.opacity(0.6))
                     Text(vehicle.licensePlate.isEmpty ? "UNREGISTERED" : vehicle.licensePlate.uppercased())
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .font(Theme.Typography.body)
                         .foregroundColor(.white)
                 }
 

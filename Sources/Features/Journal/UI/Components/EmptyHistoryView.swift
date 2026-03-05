@@ -4,7 +4,7 @@ struct EmptyHistoryView: View {
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "book.closed.fill")
-                .font(.system(size: 64))
+                .font(Theme.Typography.display)
                 .foregroundColor(Theme.Colors.acWood.opacity(0.5))
 
             Text("Your Journal is empty.")

@@ -13,7 +13,7 @@ struct SettingsRow: View {
                     .frame(width: 32, height: 32)
                 Image(systemName: icon)
                     .foregroundColor(.white)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Theme.Typography.button)
             }
 
             Text(title)
@@ -24,7 +24,7 @@ struct SettingsRow: View {
 
             Image(systemName: "chevron.right")
                 .foregroundColor(.secondary)
-                .font(.system(size: 14, weight: .semibold))
+                .font(Theme.Typography.button)
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)

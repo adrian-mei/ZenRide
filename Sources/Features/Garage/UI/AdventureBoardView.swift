@@ -29,7 +29,7 @@ struct AdventureBoardView: View {
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(Theme.Colors.acWood)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(Theme.Typography.button)
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -54,7 +54,7 @@ struct AdventureBoardView: View {
                                 }
                                 Spacer()
                                 Image(systemName: "arrow.right.circle.fill")
-                                    .font(.system(size: 32))
+                                    .font(Theme.Typography.largeTitle)
                                     .foregroundColor(Theme.Colors.acLeaf)
                             }
                         }

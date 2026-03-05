@@ -11,7 +11,7 @@ struct CruiseRoutePlannerCard: View {
                 ACSectionHeader(title: "ROUTE STOPS", icon: "map.fill", color: Theme.Colors.acLeaf)
                 Spacer()
                 Text("optional")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(Theme.Typography.label)
                     .foregroundColor(Theme.Colors.acTextMuted)
             }
 
@@ -29,7 +29,7 @@ struct CruiseRoutePlannerCard: View {
                 showAddStop = true
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 16))
+                    Image(systemName: "plus.circle.fill").font(Theme.Typography.body)
                     Text("Add a Stop").font(Theme.Typography.button)
                 }
             }
@@ -41,7 +41,7 @@ struct CruiseRoutePlannerCard: View {
     private var emptyState: some View {
         HStack(spacing: 12) {
             Image(systemName: "location.circle.fill")
-                .font(.system(size: 24))
+                .font(Theme.Typography.title2)
                 .foregroundColor(Theme.Colors.acSky)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Free Cruise")
@@ -63,7 +63,7 @@ struct CruiseRoutePlannerCard: View {
         HStack(spacing: 12) {
             Image(systemName: "\(index + 1).circle.fill")
                 .foregroundColor(Theme.Colors.acLeaf)
-                .font(.system(size: 18))
+                .font(Theme.Typography.title3)
             Image(systemName: wp.icon)
                 .foregroundColor(Theme.Colors.acTextDark)
             Text(wp.name)
@@ -76,7 +76,7 @@ struct CruiseRoutePlannerCard: View {
                 _ = waypoints.remove(at: index)
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 20))
+                    .font(Theme.Typography.headline)
                     .foregroundColor(Theme.Colors.acTextMuted)
             }
             .buttonStyle(.plain)

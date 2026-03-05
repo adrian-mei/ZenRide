@@ -51,7 +51,7 @@ struct CruiseModeDashboard: View {
             if !activeSessionMembers.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "person.2.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(Theme.Typography.button)
                         .foregroundStyle(Theme.Colors.acSuccess)
                     Text("\(activeSessionMembers.count) friend\(activeSessionMembers.count == 1 ? "" : "s") on the road")
                         .font(Theme.Typography.button)

@@ -86,7 +86,7 @@ struct NavigationBottomPanel: View {
                     Spacer()
                     Button(action: onEnd) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .black))
+                            .font(Theme.Typography.body)
                             .frame(width: 44, height: 44)
                             .background(Theme.Colors.acCoral)
                             .foregroundColor(.white)
@@ -101,7 +101,7 @@ struct NavigationBottomPanel: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(vm.remainingMinutes(routeTimeSeconds: routeTimeSeconds, routeDistanceMeters: routeDistanceMeters, distanceTraveledMeters: distanceTraveledMeters))")
-                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .font(Theme.Typography.largeTitle)
                                 .foregroundColor(Theme.Colors.acLeaf) // Bright green ETA
                             Text("min")
                                 .font(Theme.Typography.headline)
@@ -128,7 +128,7 @@ struct NavigationBottomPanel: View {
                             onSetDestination?()
                         }) {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 20, weight: .bold))
+                                .font(Theme.Typography.headline)
                                 .frame(width: 50, height: 50)
                                 .background(Theme.Colors.acTextDark.opacity(0.1))
                                 .foregroundColor(Theme.Colors.acTextDark)
@@ -137,7 +137,7 @@ struct NavigationBottomPanel: View {
 
                         ShareLink(item: "I'm on my way! My ETA is \(vm.arrivalTime(routeTimeSeconds: routeTimeSeconds, routeDistanceMeters: routeDistanceMeters, distanceTraveledMeters: distanceTraveledMeters)).") {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 20, weight: .bold))
+                                .font(Theme.Typography.headline)
                                 .frame(width: 50, height: 50)
                                 .background(Theme.Colors.acTextDark.opacity(0.1))
                                 .foregroundColor(Theme.Colors.acTextDark)

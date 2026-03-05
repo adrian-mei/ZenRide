@@ -34,7 +34,7 @@ struct ExperienceDetailView: View {
                                     .fill(Theme.Colors.acWood)
                                     .frame(width: 30, height: 30)
                                 Text("\(index + 1)")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .font(Theme.Typography.button)
                                     .foregroundColor(.white)
                             }
                         }
@@ -125,7 +125,7 @@ struct ExperienceDetailView: View {
                                         } label: {
                                             HStack(spacing: 4) {
                                                 Image(systemName: "location.fill")
-                                                    .font(.system(size: 10))
+                                                    .font(Theme.Typography.label)
                                                 Text("Start Here")
                                             }
                                             .font(Theme.Typography.label)

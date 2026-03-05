@@ -9,15 +9,15 @@ struct PickerSectionHeader: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .black))
+                .font(Theme.Typography.label)
                 .foregroundColor(color)
             Text(title)
-                .font(.system(size: 9, weight: .black, design: .rounded))
+                .font(Theme.Typography.label)
                 .foregroundColor(color)
                 .kerning(1.5)
             Spacer()
             Text(badge)
-                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .font(Theme.Typography.label)
                 .foregroundColor(Theme.Colors.acTextMuted)
         }
         .padding(.horizontal, 14)

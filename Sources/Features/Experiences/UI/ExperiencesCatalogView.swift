@@ -46,13 +46,13 @@ struct ExperiencesCatalogView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Experiences")
-                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.acWood)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 24))
+                            .font(Theme.Typography.title2)
                             .foregroundColor(Theme.Colors.acWood.opacity(0.4))
                     }
                     .buttonStyle(.plain)
@@ -66,16 +66,16 @@ struct ExperiencesCatalogView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Curated Journeys")
-                        .font(.system(size: 32, weight: .black, design: .rounded))
+                        .font(Theme.Typography.largeTitle)
                         .foregroundColor(Theme.Colors.acWood)
 
                     Text("Select a journey to start exploring.")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextMuted)
                 }
                 Spacer()
                 Image(systemName: "tent.fill")
-                    .font(.system(size: 40))
+                    .font(Theme.Typography.largeTitle)
                     .foregroundColor(Theme.Colors.acWood.opacity(0.2))
                     .rotationEffect(.degrees(-15))
             }
@@ -85,7 +85,7 @@ struct ExperiencesCatalogView: View {
                 Text("•")
                 Label("Scenic Routes", systemImage: "sparkles")
             }
-            .font(.system(size: 12, weight: .black, design: .rounded))
+            .font(Theme.Typography.caption)
             .foregroundColor(Theme.Colors.acLeaf)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -124,7 +124,7 @@ struct ExperienceCard: View {
                                     image.resizable().aspectRatio(contentMode: .fill)
                                 case .failure:
                                     Image(systemName: "photo.fill")
-                                        .font(.system(size: 40))
+                                        .font(Theme.Typography.largeTitle)
                                         .foregroundColor(Theme.Colors.acBorder)
                                 @unknown default:
                                     EmptyView()
@@ -135,7 +135,7 @@ struct ExperienceCard: View {
 
                     // Duration Badge
                     Text("\(summary.durationMinutes) min")
-                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
@@ -147,11 +147,11 @@ struct ExperienceCard: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(summary.title)
-                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.acTextDark)
 
                     Text(summary.subtitle)
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -161,7 +161,7 @@ struct ExperienceCard: View {
                         Spacer()
                         HStack(spacing: 4) {
                             Text("EXPLORE")
-                                .font(.system(size: 12, weight: .black, design: .rounded))
+                                .font(Theme.Typography.caption)
                             Image(systemName: "arrow.right.circle.fill")
                         }
                         .foregroundColor(Theme.Colors.acLeaf)

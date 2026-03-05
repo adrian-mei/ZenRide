@@ -25,17 +25,17 @@ struct RouteListRow: View {
                         if route.isSafeRoute {
                             Image(systemName: "shield.fill")
                                 .foregroundColor(Theme.Colors.acSky)
-                                .font(.system(size: 13))
+                                .font(Theme.Typography.caption)
                         }
                         if route.isZeroCameras {
                             Image(systemName: "eye.slash.fill")
                                 .foregroundColor(Theme.Colors.acLeaf)
-                                .font(.system(size: 13))
+                                .font(Theme.Typography.caption)
                         }
                         if route.hasTolls {
                             Image(systemName: "dollarsign.circle.fill")
                                 .foregroundColor(Theme.Colors.acGold)
-                                .font(.system(size: 13))
+                                .font(Theme.Typography.caption)
                         }
                     }
                     Text(formatDistance(route.summary.lengthInMeters))

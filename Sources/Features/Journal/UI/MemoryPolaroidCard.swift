@@ -9,7 +9,7 @@ struct MemoryPolaroidCard: View {
                 Theme.Colors.acSky.opacity(0.3)
                 VStack(spacing: 8) {
                     Image(systemName: "mappin.and.ellipse")
-                        .font(.system(size: 30))
+                        .font(Theme.Typography.title)
                         .foregroundColor(Theme.Colors.acTextDark.opacity(0.5))
                     Text(memory.locationName)
                         .font(Theme.Typography.caption)
@@ -26,7 +26,7 @@ struct MemoryPolaroidCard: View {
             .rotationEffect(.degrees(Double.random(in: -2...2)))
 
             Text(memory.thought)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(Theme.Typography.label)
                 .foregroundColor(Theme.Colors.acTextDark)
                 .italic()
                 .multilineTextAlignment(.center)

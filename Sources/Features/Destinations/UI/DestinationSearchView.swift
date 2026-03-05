@@ -74,7 +74,7 @@ struct DestinationSearchView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(Theme.Colors.acTextMuted)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(Theme.Typography.body)
 
                 TextField("Where to?", text: $searcher.searchQuery)
                     .focused($isSearchFocused)
@@ -119,7 +119,7 @@ struct DestinationSearchView: View {
     private func categoryFilterIndicator(_ category: RoutineCategory) -> some View {
         HStack {
             Label("Filtering for \(category.displayName)", systemImage: category.icon)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(Theme.Typography.caption)
                 .foregroundColor(categoryColor(category))
             Spacer()
         }
@@ -141,7 +141,7 @@ struct DestinationSearchView: View {
                 .padding(.top, 40)
             } else if searcher.searchResults.isEmpty {
                 VStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 32)).foregroundStyle(Theme.Colors.acTextMuted)
+                    Image(systemName: "magnifyingglass").font(Theme.Typography.largeTitle).foregroundStyle(Theme.Colors.acTextMuted)
                     Text("No results for \"\(searcher.searchQuery)\"").font(Theme.Typography.body).foregroundStyle(Theme.Colors.acTextMuted)
                 }
                 .padding(.top, 40)

@@ -44,7 +44,7 @@ struct MoodSelectionButton: View {
         } label: {
             VStack(spacing: 6) {
                 Text(emoji)
-                    .font(.system(size: 28))
+                    .font(Theme.Typography.title)
                 Text(label)
                     .font(Theme.Typography.label)
                     .foregroundColor(isSelected ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)

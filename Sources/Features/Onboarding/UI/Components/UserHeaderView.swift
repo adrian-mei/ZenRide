@@ -15,7 +15,7 @@ struct UserHeaderView: View {
                     .frame(width: 72, height: 72)
                     .overlay(Circle().stroke(Color(hex: playerStore.selectedCharacter.colorHex), lineWidth: 2))
                 Image(systemName: playerStore.selectedCharacter.icon)
-                    .font(.system(size: 32))
+                    .font(Theme.Typography.largeTitle)
                     .foregroundColor(Color(hex: playerStore.selectedCharacter.colorHex))
             }
 

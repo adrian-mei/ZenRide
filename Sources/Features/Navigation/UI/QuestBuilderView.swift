@@ -85,7 +85,7 @@ struct QuestBuilderView: View {
             HStack(spacing: 10) {
                 Button { startLocation = .currentLocation } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "location.fill").font(.system(size: 13, weight: .semibold))
+                        Image(systemName: "location.fill").font(Theme.Typography.caption)
                         Text("📍 Current Location").font(Theme.Typography.button)
                     }
                     .padding(.horizontal, 14).padding(.vertical, 10)
@@ -98,7 +98,7 @@ struct QuestBuilderView: View {
 
                 Button { addStopMode = .start; showAddStop = true } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .semibold))
+                        Image(systemName: "magnifyingglass").font(Theme.Typography.caption)
                         Text(startLocationCustomLabel)
                             .font(Theme.Typography.button)
                             .lineLimit(2)
@@ -133,7 +133,7 @@ struct QuestBuilderView: View {
             }
             Button { addStopMode = .stop; showAddStop = true } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 18))
+                    Image(systemName: "plus.circle.fill").font(Theme.Typography.title3)
                     Text("Add a Stop").font(Theme.Typography.button)
                 }
             }
@@ -147,7 +147,7 @@ struct QuestBuilderView: View {
         HStack(spacing: 12) {
             Image(systemName: "\(index + 1).circle.fill")
                 .foregroundColor(Theme.Colors.acLeaf)
-                .font(.system(size: 20))
+                .font(Theme.Typography.headline)
             Image(systemName: wp.icon).foregroundColor(Theme.Colors.acTextDark)
             Text(wp.name)
                 .font(Theme.Typography.body)
@@ -161,7 +161,7 @@ struct QuestBuilderView: View {
                 }
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(Theme.Typography.body)
                     .foregroundColor(Theme.Colors.acCoral)
                     .frame(width: 36, height: 36)
                     .background(Theme.Colors.acCoral.opacity(0.12))
@@ -179,7 +179,7 @@ struct QuestBuilderView: View {
     private var startTripButton: some View {
         Button { startTrip() } label: {
             HStack(spacing: 8) {
-                Image(systemName: "flag.checkered").font(.system(size: 18))
+                Image(systemName: "flag.checkered").font(Theme.Typography.title3)
                 Text("Start Trip").font(Theme.Typography.button)
             }
         }

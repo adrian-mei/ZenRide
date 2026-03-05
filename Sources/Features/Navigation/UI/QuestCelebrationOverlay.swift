@@ -22,7 +22,7 @@ struct QuestCelebrationOverlay: View {
                             .frame(width: 80, height: 80)
 
                         Image(systemName: isFinal ? "flag.checkered" : "checkmark")
-                            .font(.system(size: 40, weight: .black))
+                            .font(Theme.Typography.largeTitle)
                             .foregroundColor(.white)
                     }
                     .scaleEffect(showContent ? 1.0 : 0.5)

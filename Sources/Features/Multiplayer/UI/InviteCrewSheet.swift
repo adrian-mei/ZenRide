@@ -65,7 +65,7 @@ struct InviteCrewSheet: View {
                     if let code = multiplayerService.inviteCode {
                         ShareLink(item: "Join my Crew! Code: \(code)") {
                             HStack(spacing: 8) {
-                                Image(systemName: "square.and.arrow.up").font(.system(size: 16))
+                                Image(systemName: "square.and.arrow.up").font(Theme.Typography.body)
                                 Text("Share Invite").font(Theme.Typography.button)
                             }
                             .foregroundColor(.white)
@@ -73,7 +73,7 @@ struct InviteCrewSheet: View {
                             .padding(.vertical, 14)
                             .background(Theme.Colors.acLeaf)
                             .clipShape(Capsule())
-                            .shadow(color: Color(hex: "388E3C").opacity(0.8), radius: 0, x: 0, y: 5)
+                            .shadow(color: Theme.Colors.acLeaf.opacity(0.8), radius: 0, x: 0, y: 5)
                         }
                         .padding(.horizontal)
                     }

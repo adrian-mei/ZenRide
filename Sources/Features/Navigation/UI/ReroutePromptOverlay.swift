@@ -13,7 +13,7 @@ struct ReroutePromptOverlay: View {
 
             VStack(spacing: 20) {
                 Image(systemName: "arrow.triangle.swap")
-                    .font(.system(size: 40, weight: .bold))
+                    .font(Theme.Typography.largeTitle)
                     .foregroundColor(Theme.Colors.acSky)
 
                 Text("Rerouting!")

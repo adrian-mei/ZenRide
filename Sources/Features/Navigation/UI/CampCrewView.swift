@@ -10,7 +10,7 @@ struct CampCrewView: View {
         }) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("ROAD TRIP CREW")
-                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .font(Theme.Typography.label)
                     .foregroundColor(Theme.Colors.acTextDark.opacity(0.6))
                     .padding(.leading, 4)
 
@@ -35,7 +35,7 @@ struct CampCrewView: View {
                                 )
 
                             Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(Theme.Typography.button)
                                 .foregroundColor(Theme.Colors.acTextMuted)
                         }
                         .padding(.leading, 12)
@@ -73,7 +73,7 @@ struct CampCrewView: View {
                 )
 
             Text(emoji)
-                .font(.system(size: 20))
+                .font(Theme.Typography.headline)
         }
         .shadow(color: Theme.Colors.acBorder.opacity(0.3), radius: 2, x: 0, y: 2)
         .zIndex(zIndex)

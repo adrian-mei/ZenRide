@@ -15,7 +15,7 @@ public struct AchievementUnlockToast: View {
                     .fill(achievement.color.opacity(0.2))
                     .frame(width: 44, height: 44)
                 Image(systemName: achievement.icon)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(Theme.Typography.headline)
                     .foregroundColor(achievement.color)
             }
 
@@ -28,14 +28,14 @@ public struct AchievementUnlockToast: View {
                     .font(Theme.Typography.body)
                     .foregroundColor(Theme.Colors.acTextDark)
                 Text(achievement.subtitle)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .font(Theme.Typography.label)
                     .foregroundColor(Theme.Colors.acTextMuted)
             }
 
             Spacer()
 
             Image(systemName: "leaf.fill")
-                .font(.system(size: 16))
+                .font(Theme.Typography.body)
                 .foregroundColor(achievement.color)
         }
         .padding(.horizontal, 16)

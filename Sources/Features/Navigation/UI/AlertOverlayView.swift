@@ -20,7 +20,7 @@ struct AlertOverlayView: View {
 
                     VStack(spacing: -2) {
                         Text("SPEED\nLIMIT")
-                            .font(.system(size: 8, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.label)
                             .multilineTextAlignment(.center)
                             .foregroundColor(Theme.Colors.acTextDark)
                             .padding(.top, 4)
@@ -44,7 +44,7 @@ struct AlertOverlayView: View {
                 Spacer()
 
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 34))
+                    .font(Theme.Typography.largeTitle)
                     .foregroundColor(Theme.Colors.acGold)
                     .scaleEffect(bounce ? 1.2 : 1.0)
             }

@@ -26,7 +26,7 @@ struct RecentRow: View {
                         .fill(iconColor.opacity(0.14))
                         .frame(width: 40, height: 40)
                     Image(systemName: icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(Theme.Typography.body)
                         .foregroundStyle(iconColor)
                 }
 
@@ -44,7 +44,7 @@ struct RecentRow: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.acBorder)
             }
             .padding(.vertical, 13)
@@ -65,12 +65,12 @@ struct BookmarkRouteCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "bookmark.fill")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(Theme.Typography.button)
                         .foregroundColor(Theme.Colors.acCoral)
                     Spacer()
                     if route.offlineRoute != nil {
                         Text("Offline")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.label)
                             .foregroundColor(Theme.Colors.acSky)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)

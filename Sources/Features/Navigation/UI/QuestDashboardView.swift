@@ -114,7 +114,7 @@ struct ExperienceDashboardCard: View {
                                     image.resizable().aspectRatio(contentMode: .fill)
                                 case .failure:
                                     Image(systemName: "photo.fill")
-                                        .font(.system(size: 30))
+                                        .font(Theme.Typography.title)
                                         .foregroundColor(Theme.Colors.acBorder)
                                 @unknown default:
                                     EmptyView()
@@ -158,7 +158,7 @@ struct ExperienceDashboardCard: View {
                             Text("EXPLORE")
                                 .font(Theme.Typography.label)
                             Image(systemName: "arrow.right.circle.fill")
-                                .font(.system(size: 12))
+                                .font(Theme.Typography.caption)
                         }
                         .foregroundColor(Theme.Colors.acLeaf)
                     }

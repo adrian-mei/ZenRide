@@ -57,7 +57,7 @@ struct GuidanceView: View {
             // Instruction Icon & Distance
             VStack(spacing: 2) {
                 Image(systemName: instruction.turnType.icon)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(Theme.Typography.largeTitle)
                     .foregroundColor(Theme.Colors.acCream)
                     .scaleEffect(isApproachingTurn ? 1.15 : 1.0)
                     .frame(height: 40)
@@ -92,7 +92,7 @@ struct GuidanceView: View {
                     .frame(width: 44, height: 44)
                     .overlay(
                         Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(Theme.Typography.title3)
                             .foregroundColor(Theme.Colors.acCream)
                     )
             }
@@ -117,7 +117,7 @@ struct GuidanceView: View {
                             .kerning(0.5)
 
                         Image(systemName: nextInst.turnType.icon)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(Theme.Typography.body)
                             .foregroundColor(Theme.Colors.acCream)
 
                         Text(nextInst.text)
