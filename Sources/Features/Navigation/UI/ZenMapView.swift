@@ -80,7 +80,7 @@ struct ZenMapView: UIViewRepresentable {
             parkedCar: parkedCarStore.parkedCar
         )
 
-        MapSynchronizers.updateDynamicCamera(
+        MapCameraEngine.updateDynamicCamera(
             uiView: uiView,
             coordinator: coordinator,
             routeState: routeState,
