@@ -11,7 +11,7 @@ struct HomeSheetDiscoverActions: View {
                     Image(systemName: "tent.fill")
                         .font(.system(size: 24, weight: .bold))
                     Text("Wander & Discover")
-                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .font(Theme.Typography.button)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -26,7 +26,7 @@ struct HomeSheetDiscoverActions: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 24, weight: .bold))
                     Text("Discover New")
-                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .font(Theme.Typography.button)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

@@ -23,20 +23,20 @@ struct SearchResultRow: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.name ?? "Unknown")
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.headline)
                             .foregroundStyle(Theme.Colors.acTextDark)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                         HStack(alignment: .top, spacing: 6) {
                             Text(item.placemark.zenFormattedAddress)
-                                .font(.system(size: 14, design: .rounded))
+                                .font(Theme.Typography.body)
                                 .foregroundStyle(Theme.Colors.acWood)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
 
                             if let dist = distanceString {
                                 Text(dist)
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(Theme.Typography.caption)
                                     .foregroundStyle(Theme.Colors.acSky)
                                     .padding(.horizontal, 7)
                                     .padding(.vertical, 2)

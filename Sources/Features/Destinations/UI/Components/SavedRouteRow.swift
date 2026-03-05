@@ -22,12 +22,12 @@ struct SavedRouteRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.headline)
                         .foregroundStyle(Theme.Colors.acTextDark)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(subtitle)
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .font(Theme.Typography.body)
                         .foregroundStyle(Theme.Colors.acWood)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
