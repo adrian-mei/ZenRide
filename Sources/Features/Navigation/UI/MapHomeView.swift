@@ -186,7 +186,13 @@ struct MapHomeView: View {
                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                 if questWaypoints.count >= 2 {
                                     let quest = DailyQuest(title: "Custom Route", waypoints: questWaypoints)
-                                    routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
+                                                                        if let (start, end) = routingService.questManager.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate) {
+                                        Task {
+                                            if let result = try? await QuestNavigationManager.generateLegRouting(from: start, to: end) {
+                                                routingService.loadLeg(result: result)
+                                            }
+                                        }
+                                    }
                                     let firstCoord = questWaypoints.first?.coordinate
                                         ?? locationProvider.currentLocation?.coordinate
                                         ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)

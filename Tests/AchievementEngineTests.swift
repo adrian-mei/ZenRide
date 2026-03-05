@@ -1,10 +1,17 @@
 import Testing
 import Foundation
+import SwiftData
 import CoreLocation
 @testable import ZenMap
 
 // MARK: - Helpers
 
+@MainActor private func makeStore() -> DriveStore {
+    let schema = Schema([SavedRoute.self, DriveRecord.self, DriveSession.self, CameraZoneEvent.self])
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [config])
+    return DriveStore(context: container.mainContext)
+}
 private func makeSession(
     date: Date = Date(),
     distanceMiles: Double = 5.0,
@@ -38,7 +45,7 @@ struct AchievementEngineTests {
 
     // Verify the engine produces exactly the 11 expected achievement IDs regardless of store state.
     @Test func achievementEngineReturnsExpectedIds() {
-        let store = DriveStore()
+        let store = makeStore()
         let ids = Set(AchievementEngine.compute(from: store).map(\.id))
         let expected: Set<String> = [
             "rides_10", "rides_50", "zen_80", "night_5", "safe_10",
@@ -49,7 +56,7 @@ struct AchievementEngineTests {
 
     // Progress for rides_10 must equal min(1.0, totalRides / 10) — data-independent consistency check.
     @Test func ridesProgressMatchesStoreRideCount() {
-        let store = DriveStore()
+        let store = makeStore()
         let achievements = AchievementEngine.compute(from: store)
         let rides10 = achievements.first { $0.id == "rides_10" }!
         let expected = min(1.0, Double(store.totalRideCount) / 10.0)
@@ -58,7 +65,7 @@ struct AchievementEngineTests {
 
     // campRegularEarned when totalRideCount >= 10.
     @Test func campRegularEarnedAt10Rides() {
-        let store = DriveStore()
+        let store = makeStore()
         for i in 0..<10 {
             let dest = CLLocationCoordinate2D(latitude: 37.8000 + Double(i) * 0.1, longitude: -122.4000)
             store.appendSession(originCoord: originA, destCoord: dest, destinationName: "AE_Place \(i)", session: makeSession())
@@ -69,7 +76,7 @@ struct AchievementEngineTests {
 
     // zen_80 isEarned must match the expected logic: avgZen >= 80 AND rides >= 10.
     @Test func zenAchievementReflectsRideCountCondition() {
-        let store = DriveStore()
+        let store = makeStore()
         let achievements = AchievementEngine.compute(from: store)
         let zen80 = achievements.first { $0.id == "zen_80" }!
         let expectedEarned = store.avgZenScore >= 80 && store.totalRideCount >= 10
@@ -78,7 +85,7 @@ struct AchievementEngineTests {
 
     // nightOwlCountsNightSessions: after adding 5 night sessions night_5 must be earned.
     @Test func nightOwlCountsNightSessions() {
-        let store = DriveStore()
+        let store = makeStore()
         for i in 0..<5 {
             let dest = CLLocationCoordinate2D(latitude: 37.8000 + Double(i) * 0.1, longitude: -122.4000)
             store.appendSession(originCoord: originA, destCoord: dest, destinationName: "AE_Night \(i)", session: makeSession(timeOfDay: .night))
@@ -89,7 +96,7 @@ struct AchievementEngineTests {
 
     // earnedCount helper must equal manual filter count.
     @Test func earnedCountMatchesEarned() {
-        let store = DriveStore()
+        let store = makeStore()
         let achievements = AchievementEngine.compute(from: store)
         let manualCount = achievements.filter(\.isEarned).count
         let helperCount = AchievementEngine.earnedCount(from: store)

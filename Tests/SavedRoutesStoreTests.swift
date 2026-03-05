@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SwiftData
 import CoreLocation
 @testable import ZenMap
 
@@ -12,12 +13,15 @@ private let coordC = CLLocationCoordinate2D(latitude: 34.0522, longitude: -118.2
 @MainActor private func makeStore() -> SavedRoutesStore {
     let suite = UUID().uuidString
     let defaults = UserDefaults(suiteName: suite)!
-    return SavedRoutesStore()
+    let schema = Schema([SavedRoute.self, DriveRecord.self, DriveSession.self, CameraZoneEvent.self])
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [config])
+    return SavedRoutesStore(context: container.mainContext, defaults: defaults)
 }
 
 // MARK: - Tests
 
-struct SavedRoutesStoreTests {
+@MainActor struct SavedRoutesStoreTests {
 
     @MainActor @Test func savePlaceCreatesNewRoute() {
         let store = makeStore()

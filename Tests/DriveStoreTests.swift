@@ -1,4 +1,5 @@
 import Testing
+import SwiftData
 import Foundation
 import CoreLocation
 @testable import ZenMap
@@ -32,15 +33,17 @@ private let originA = CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.
 private let destA   = CLLocationCoordinate2D(latitude: 37.8000, longitude: -122.4000)
 private let destB   = CLLocationCoordinate2D(latitude: 34.0522, longitude: -118.2437) // far away
 
-@MainActor
-private func makeStore() -> DriveStore {
-    return DriveStore()
+
+@MainActor private func makeStore() -> DriveStore {
+    let schema = Schema([SavedRoute.self, DriveRecord.self, DriveSession.self, CameraZoneEvent.self])
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [config])
+    return DriveStore(context: container.mainContext)
 }
 
 // MARK: - Tests
 
-@MainActor
-struct DriveStoreTests {
+@MainActor struct DriveStoreTests {
 
     @Test func appendCreatesNewRecord() {
         let store = makeStore()

@@ -2,138 +2,9 @@ import Foundation
 import CoreLocation
 import SwiftData
 
-public enum RoutineCategory: String, Codable, CaseIterable {
-    case home = "home"
-    case work = "work"
-    case gym = "gym"
-    case partyMember = "party"
-    case holySpot = "holy"
-    case dayCare = "daycare"
-    case school = "school"
-    case afterSchool = "afterschool"
-    case dateSpot = "datespot"
-    case grocery = "grocery"
-    case coffee = "coffee"
 
-    var icon: String {
-        switch self {
-        case .home: return "house.fill"
-        case .work: return "briefcase.fill"
-        case .gym: return "dumbbell.fill"
-        case .partyMember: return "person.2.fill"
-        case .holySpot: return "leaf.fill"
-        case .dayCare: return "teddybear.fill"
-        case .school: return "figure.and.child.holdinghands"
-        case .afterSchool: return "soccerball"
-        case .dateSpot: return "heart.fill"
-        case .grocery: return "cart.fill"
-        case .coffee: return "cup.and.saucer.fill"
-        }
-    }
 
-    var displayName: String {
-        switch self {
-        case .home: return "Home"
-        case .work: return "Work"
-        case .gym: return "Gym"
-        case .partyMember: return "Party Member"
-        case .holySpot: return "Holy Spot"
-        case .dayCare: return "Day Care"
-        case .school: return "School"
-        case .afterSchool: return "Afterschool"
-        case .dateSpot: return "Date Spot"
-        case .grocery: return "Groceries"
-        case .coffee: return "Coffee"
-        }
-    }
-}
 
-public struct VisitRecord: Codable {
-    public let date: Date
-    public let hour: Int
-    public let weekday: Int // 1-7
-    public let month: Int // 1-12
-}
-
-@Model
-final class SavedRoute {
-    @Attribute(.unique) var id: UUID = UUID()
-    var destinationName: String
-    var latitude: Double
-    var longitude: Double
-    var useCount: Int
-    var lastUsedDate: Date
-    var typicalDepartureHours: [Int]   // capped at 50
-    var averageDurationSeconds: Int
-    var isPinned: Bool
-
-    // Routine Slotting
-    var category: RoutineCategory?
-    var slotIndex: Int? // 0, 1, 2
-    var contactIdentifier: String? // For party members
-    var customIcon: String? // For holy spots
-
-    // History for intelligence
-    var visitHistory: [VisitRecord] = []
-
-    @Attribute(.externalStorage) var offlineRouteData: Data?
-
-    @Transient var offlineRoute: TomTomRoute? {
-        get {
-            guard let data = offlineRouteData else { return nil }
-            do {
-                return try JSONDecoder().decode(TomTomRoute.self, from: data)
-            } catch {
-                Log.error("SavedRoute", "Failed to decode offline route: \(error)")
-                return nil
-            }
-        }
-        set {
-            if let value = newValue {
-                do {
-                    offlineRouteData = try JSONEncoder().encode(value)
-                } catch {
-                    Log.error("SavedRoute", "Failed to encode offline route: \(error)")
-                }
-            } else {
-                offlineRouteData = nil
-            }
-        }
-    }
-
-    init(id: UUID = UUID(), destinationName: String, latitude: Double, longitude: Double, useCount: Int, lastUsedDate: Date, typicalDepartureHours: [Int], averageDurationSeconds: Int, isPinned: Bool = false, offlineRoute: TomTomRoute? = nil, category: RoutineCategory? = nil, slotIndex: Int? = nil, contactIdentifier: String? = nil, customIcon: String? = nil, visitHistory: [VisitRecord] = []) {
-        self.id = id
-        self.destinationName = destinationName
-        self.latitude = latitude
-        self.longitude = longitude
-        self.useCount = useCount
-        self.lastUsedDate = lastUsedDate
-        self.typicalDepartureHours = typicalDepartureHours
-        self.averageDurationSeconds = averageDurationSeconds
-        self.isPinned = isPinned
-        self.category = category
-        self.slotIndex = slotIndex
-        self.contactIdentifier = contactIdentifier
-        self.customIcon = customIcon
-        self.visitHistory = visitHistory
-        if let offlineRoute = offlineRoute {
-            do {
-                self.offlineRouteData = try JSONEncoder().encode(offlineRoute)
-            } catch {
-                Log.error("SavedRoute", "Failed to encode offline route in init: \(error)")
-            }
-        }
-    }
-}
-
-struct RecentSearch: Codable, Identifiable {
-    var id = UUID()
-    var name: String
-    var subtitle: String
-    var latitude: Double
-    var longitude: Double
-    var timestamp: Date
-}
 
 extension Notification.Name {
     static let zenRideNavigateTo = Notification.Name("zenRideNavigateTo")
@@ -146,11 +17,12 @@ class SavedRoutesStore: ObservableObject {
 
     private let key = UserDefaultsKeys.savedRoutes
     private let recentSearchesKey = UserDefaultsKeys.recentSearches
-    private let defaults: UserDefaults = .standard
+    private let defaults: UserDefaults
     private let context: ModelContext
 
-    init() {
-        self.context = SharedModelContainer.shared.mainContext
+    init(context: ModelContext? = nil, defaults: UserDefaults = .standard) {
+        self.context = context ?? SharedModelContainer.shared.mainContext
+        self.defaults = defaults
         migrateIfNecessary()
         load()
         loadRecentSearches()

@@ -398,7 +398,8 @@ struct RoutingServiceEdgeCaseTests {
         let cam3 = SpeedCamera(id: "3", street: "St", from_cross_street: nil, to_cross_street: nil, speed_limit_mph: 30, lat: 37.001, lng: -122.0005)
 
         let cameras = [cam1, cam2, cam3]
-        let count = service.countCameras(on: route, cameras: cameras)
+        let engine = RouteCalculationEngine(apiClient: TomTomRoutingClient(apiKey: "test"))
+        let count = engine.countCameras(on: route, cameras: cameras)
 
         #expect(count == 2)
     }

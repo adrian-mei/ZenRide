@@ -73,7 +73,16 @@ struct QuestDashboardView: View {
             )
         }
         let quest = DailyQuest(title: route.title, waypoints: waypoints, icon: "star.fill")
-        routingService.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate)
+                if let (start, end) = routingService.questManager.startQuest(quest, currentLocation: locationProvider.currentLocation?.coordinate) {
+            Task {
+                do {
+                    let result = try await QuestNavigationManager.generateLegRouting(from: start, to: end)
+                    routingService.loadLeg(result: result)
+                } catch {
+                    print("Failed to route")
+                }
+            }
+        }
     }
 }
 

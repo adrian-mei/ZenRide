@@ -1,5 +1,13 @@
 import MapKit
 
+// MARK: - Parked Car Annotation
+
+class ParkedCarAnnotation: NSObject, MKAnnotation {
+    @objc dynamic var coordinate: CLLocationCoordinate2D
+    var title: String? = "Parked Vehicle"
+    init(coordinate: CLLocationCoordinate2D) { self.coordinate = coordinate }
+}
+
 // MARK: - Route Overlay
 
 class BorderedPolyline: MKPolyline {

@@ -111,7 +111,7 @@ struct NavigationBottomPanel: View {
                 routeProgressBar
             }
 
-            if let quest = routingService.activeQuest {
+            if let quest = routingService.questManager.activeQuest {
                 questProgressRibbon(quest: quest)
             }
 
@@ -233,7 +233,7 @@ struct NavigationBottomPanel: View {
 
                 Spacer()
 
-                Text("STOP \(routingService.currentStopNumber) OF \(routingService.totalStopsInQuest)")
+                Text("STOP \(routingService.questManager.currentStopNumber) OF \(routingService.questManager.totalStopsInQuest)")
                     .font(.system(size: 10, weight: .black, design: .rounded))
                     .foregroundColor(Color(hex: "4CD964"))
                     .padding(.horizontal, 8)
@@ -250,8 +250,8 @@ struct NavigationBottomPanel: View {
                         .fill(Color.white.opacity(0.15))
                         .frame(height: 4)
 
-                    let total = Double(routingService.totalStopsInQuest)
-                    let current = Double(routingService.currentStopNumber)
+                    let total = Double(routingService.questManager.totalStopsInQuest)
+                    let current = Double(routingService.questManager.currentStopNumber)
                     let legProgress = routeProgress / total
                     let overallProgress = (max(0, current - 1) / total) + legProgress
 
@@ -263,8 +263,8 @@ struct NavigationBottomPanel: View {
             .frame(height: 4)
             .padding(.horizontal, 16)
 
-            if !routingService.currentStopName.isEmpty {
-                Text("Next: \(routingService.currentStopName)")
+            if !routingService.questManager.currentStopName.isEmpty {
+                Text("Next: \(routingService.questManager.currentStopName)")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)

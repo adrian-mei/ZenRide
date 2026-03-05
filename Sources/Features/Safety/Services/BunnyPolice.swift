@@ -21,32 +21,20 @@ class BunnyPolice: ObservableObject {
 
     // MARK: - Navigation Session Tracking
 
-    @Published var speedReadings: [Float] = []
+    var speedTracker = SessionSpeedTracker()
+    var speedReadings: [Float] { speedTracker.speedReadings }
     @Published var cameraZoneEvents: [CameraZoneEvent] = []
 
     // Internal tracking (non-published to prevent UI thrashing)
     private var distanceToNearestFT: Double = 0
 
-    private var speedSampleTimer: Timer?
-    private var _sessionTopSpeedMph: Double = 0
-    private var sessionSpeedSum: Double = 0
-    private var sessionSpeedCount: Int = 0
 
-    // Per-camera approach/danger tracking
-    private struct ActiveZoneEntry {
-        let camera: SpeedCamera
-        var speedAtEntry: Double
-        var hasSlowedToLimit: Bool = false
-        var enteredDangerZone: Bool = false
-    }
+
+
     private var activeZoneEntry: ActiveZoneEntry?
 
-    var sessionAvgSpeedMph: Double {
-        guard sessionSpeedCount > 0 else { return 0 }
-        return sessionSpeedSum / Double(sessionSpeedCount)
-    }
-
-    var sessionTopSpeedMph: Double { _sessionTopSpeedMph }
+    var sessionAvgSpeedMph: Double { speedTracker.sessionAvgSpeedMph }
+    var sessionTopSpeedMph: Double { speedTracker.sessionTopSpeedMph }
 
     var cameras: [SpeedCamera] = []
     private var lastSpeedMPH: Double = 0
@@ -54,19 +42,14 @@ class BunnyPolice: ObservableObject {
     private var approachCooldowns: [String: Date] = [:]
     private var exitCooldowns: [String: Date] = [:]
     private var dangerCooldowns: [String: Date] = [:]
-    private var lastProximityCheckLocation: CLLocation?
+    private let scanner = CameraProximityScanner()
 
-    private let approachThresholdFT: Double = 1000
-    private let dangerThresholdFT: Double = 500
     private let cooldownMinutes: Double = 3.0
 
     func startNavigationSession() {
-        speedReadings = []
+        speedTracker.reset()
         cameraZoneEvents = []
         activeZoneEntry = nil
-        _sessionTopSpeedMph = 0
-        sessionSpeedSum = 0
-        sessionSpeedCount = 0
         startSpeedSampling()
         Log.info("BunnyPolice", "Navigation session started")
     }
@@ -80,51 +63,35 @@ class BunnyPolice: ObservableObject {
     func resetRideStats() {
         camerasPassedThisRide = 0
         zenScore = 100
-        speedReadings = []
+        speedTracker.reset()
         cameraZoneEvents = []
         activeZoneEntry = nil
-        _sessionTopSpeedMph = 0
-        sessionSpeedSum = 0
-        sessionSpeedCount = 0
         currentZone = .safe
         nearestCamera = nil
         distanceToNearestFT = 0
-        lastProximityCheckLocation = nil
         approachCooldowns = [:]
         dangerCooldowns = [:]
         exitCooldowns = [:]
     }
 
     private func startSpeedSampling() {
-        speedSampleTimer?.invalidate()
-        speedSampleTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+        speedTracker.startTracking { [weak self] in
+            return self?.lastSpeedMPH ?? 0
+        } onTick: { [weak self] (speed: Double) in
             guard let self = self else { return }
-
-            DispatchQueue.main.async {
-                let speed = self.lastSpeedMPH
-                if speed > 2 {
-                    self.speedReadings.append(Float(speed))
-                    self.sessionSpeedSum += speed
-                    self.sessionSpeedCount += 1
-                    if speed > self._sessionTopSpeedMph {
-                        self._sessionTopSpeedMph = speed
-                    }
-                }
-                // Safety net: track slowdown even when proximity check hasn't fired
-                if let entry = self.activeZoneEntry,
-                   entry.enteredDangerZone,
-                   let camera = self.nearestCamera,
-                   self.currentZone == .danger,
-                   speed <= Double(camera.speed_limit_mph) {
-                    self.activeZoneEntry?.hasSlowedToLimit = true
-                }
+            // Safety net: track slowdown even when proximity check hasn't fired
+            if let entry = self.activeZoneEntry,
+               entry.enteredDangerZone,
+               let camera = self.nearestCamera,
+               self.currentZone == .danger,
+               speed <= Double(camera.speed_limit_mph) {
+                self.activeZoneEntry?.hasSlowedToLimit = true
             }
         }
     }
 
     private func stopSpeedSampling() {
-        speedSampleTimer?.invalidate()
-        speedSampleTimer = nil
+        speedTracker.stopTracking()
     }
 
     // MARK: - Update Engine
@@ -135,39 +102,10 @@ class BunnyPolice: ObservableObject {
     }
 
     private func checkProximity(to location: CLLocation, speedMPH: Double) {
-        guard !cameras.isEmpty else { return }
-
-        if let last = lastProximityCheckLocation, location.distance(from: last) < 5 {
-            return
-        }
-        lastProximityCheckLocation = location
-
-        var closestDist = Double.greatestFiniteMagnitude
-        var closestCam: SpeedCamera?
-
-        // Fast approximate distance pre-filter
-        let lat = location.coordinate.latitude
-        let lng = location.coordinate.longitude
-        let latDegreeInMeters = Constants.metersPerDegree
-        let lngDegreeInMeters = Constants.metersPerDegree * cos(lat * .pi / 180.0)
-
-        for camera in cameras {
-            let dLat = (camera.lat - lat) * latDegreeInMeters
-            let dLng = (camera.lng - lng) * lngDegreeInMeters
-            let approxDistMetersSq = dLat * dLat + dLng * dLng
-
-            // 4,000,000 m^2 is 2000 meters squared. Skip real check if far away.
-            if approxDistMetersSq < 4_000_000 {
-                let camLoc = CLLocationCoordinate2D(latitude: camera.lat, longitude: camera.lng)
-                let distance = location.coordinate.distance(to: camLoc) * Constants.metersToFeet // meters → feet
-                if distance < closestDist {
-                    closestDist = distance
-                    closestCam = camera
-                }
-            }
-        }
-
-        guard let nearest = closestCam else { return }
+        guard let scanResult = scanner.scan(location: location, cameras: cameras) else { return }
+        
+        let nearest = scanResult.nearest
+        let closestDist = scanResult.distance
 
         // Only update if something visually or logically changed to avoid rapid SwiftUI invalidations
         if nearestCamera?.id != nearest.id || abs(distanceToNearestFT - closestDist) > 5.0 {
@@ -182,8 +120,9 @@ class BunnyPolice: ObservableObject {
 
         var newZone = previousZone
 
-        if distance <= dangerThresholdFT {
-            newZone = .danger
+        newZone = scanner.determineZone(distanceFT: distance)
+        
+        if newZone == .danger {
 
             // Begin zone entry tracking if not started, or promote from approach
             if activeZoneEntry == nil {
@@ -199,11 +138,19 @@ class BunnyPolice: ObservableObject {
             }
 
             if speedNow > Double(camera.speed_limit_mph) + 3.0 {
-                triggerSpeedingDangerWarning(for: camera)
+                let now = Date()
+                if let last = dangerCooldowns[camera.id] {
+                    if now.timeIntervalSince(last) >= 10.0 {
+                        dangerCooldowns[camera.id] = now
+                        zenScore = max(0, zenScore - 5)
+                    }
+                } else {
+                    dangerCooldowns[camera.id] = now
+                    zenScore = max(0, zenScore - 5)
+                }
             }
 
-        } else if distance <= approachThresholdFT {
-            newZone = .approach
+        } else if newZone == .approach {
 
             // Start tracking on approach (may or may not enter danger)
             if activeZoneEntry == nil {
@@ -211,12 +158,28 @@ class BunnyPolice: ObservableObject {
             }
 
             if previousZone == .safe {
-                triggerApproachWarning(for: camera)
+                let now = Date()
+                if let last = approachCooldowns[camera.id] {
+                    if now.timeIntervalSince(last) >= (cooldownMinutes * 60) {
+                        approachCooldowns[camera.id] = now
+                    }
+                } else {
+                    approachCooldowns[camera.id] = now
+                }
             }
         } else {
             newZone = .safe
             if previousZone == .approach || previousZone == .danger {
-                triggerExitMessage(for: camera)
+                let now = Date()
+                if let last = exitCooldowns[camera.id] {
+                    if now.timeIntervalSince(last) >= (cooldownMinutes * 60) {
+                        exitCooldowns[camera.id] = now
+                        camerasPassedThisRide += 1
+                    }
+                } else {
+                    exitCooldowns[camera.id] = now
+                    camerasPassedThisRide += 1
+                }
                 finalizeActiveZoneEntry()
             }
         }
@@ -254,43 +217,7 @@ class BunnyPolice: ObservableObject {
         Log.info("BunnyPolice", "Camera zone event: \(streetName) — \(outcome.rawValue)")
     }
 
-    // MARK: - Alerts
-
-    private func triggerSpeedingDangerWarning(for camera: SpeedCamera) {
-        let now = Date()
-        if let last = dangerCooldowns[camera.id], now.timeIntervalSince(last) < 10.0 {
-            return
-        }
-        dangerCooldowns[camera.id] = now
-
-        zenScore = max(0, zenScore - 5)
-
-        if !isMuted { speech.speak("Slow down! Camera ahead.") }
-    }
-
-    private func triggerApproachWarning(for camera: SpeedCamera) {
-        let now = Date()
-        if let last = approachCooldowns[camera.id], now.timeIntervalSince(last) < (cooldownMinutes * 60) {
-            return
-        }
-        approachCooldowns[camera.id] = now
-
-        let speech = "There's a speed camera coming up ahead. Please slow down and enjoy the ride."
-        speak(speech)
-    }
-
-    private func triggerExitMessage(for camera: SpeedCamera) {
-        let now = Date()
-        if let last = exitCooldowns[camera.id], now.timeIntervalSince(last) < (cooldownMinutes * 60) {
-            return
-        }
-        exitCooldowns[camera.id] = now
-
-        camerasPassedThisRide += 1
-
-        let speech = "You've safely passed the camera zone. The road is yours again. Ride safe!"
-        speak(speech)
-    }
+// Audio announcements are now handled by NavigationAudioCoordinator observing currentZone
 
     public func speak(_ text: String) {
         if !isMuted { speech.speak(text) }

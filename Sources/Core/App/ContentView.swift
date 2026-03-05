@@ -59,8 +59,8 @@ struct ContentView: View {
                     pendingSession = pending
 
                     // Gamification: award XP via PlayerStore
-                    let questWaypoints = routingService.completedQuestWaypointCount
-                    routingService.completedQuestWaypointCount = 0
+                    let questWaypoints = routingService.questManager.completedQuestWaypointCount
+                    routingService.questManager.completedQuestWaypointCount = 0
                     let xpEarned = playerStore.processRideEnd(
                         durationSeconds: pending?.actualDurationSeconds ?? 0,
                         avgSpeed: pending?.avgSpeedMph ?? 0,

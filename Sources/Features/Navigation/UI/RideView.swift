@@ -13,49 +13,44 @@ struct RideView: View {
     let initialDestinationName: String
     var onStop: (RideContext?, PendingDriveSession?) -> Void
 
-    @State private var routeState: RouteState
-    @State private var destinationName: String
-    @State private var uiVisible = true
-    @State private var showTapHint = false
-    @State private var departureTime: Date?
-    @State private var navigationStartTime: Date?
-    @State private var isTracking: Bool = true
-    @State private var mapMode: MapMode = .turnByTurn
-    @State private var cruiseOdometerMiles: Double = 0
-    @State private var cruiseLastLocation: CLLocation?
-    @State private var showCruiseSearch = false
-    @State private var celebrationStopName: String?
-    @State private var flashTriggered = false
+    @StateObject private var vm: RideViewModel
 
     init(initialDestinationName: String, onStop: @escaping (RideContext?, PendingDriveSession?) -> Void) {
         self.initialDestinationName = initialDestinationName
         self.onStop = onStop
-        _destinationName = State(initialValue: initialDestinationName)
-        _routeState = State(initialValue: initialDestinationName.isEmpty ? .navigating : .reviewing)
+        _vm = StateObject(wrappedValue: RideViewModel(initialDestinationName: initialDestinationName))
     }
 
     var body: some View {
         ZStack(alignment: .top) {
-            mapLayer
+                        ZenMapView(routeState: $vm.routeState, isTracking: $vm.isTracking, mapMode: vm.mapMode, onMapTap: {
+                if vm.routeState == .navigating {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        vm.uiVisible = true
+                        vm.showTapHint = false
+                    }
+                }
+            })
+            .ignoresSafeArea(.all)
 
-            if routeState == .navigating && (bunnyPolice.currentZone == .approach || bunnyPolice.currentZone == .danger) {
+            if vm.routeState == .navigating && (bunnyPolice.currentZone == .approach || bunnyPolice.currentZone == .danger) {
                 AlertOverlayView(camera: bunnyPolice.nearestCamera)
                     .allowsHitTesting(false)
                     .zIndex(100)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            if routeState == .navigating && routingService.showReroutePrompt {
+            if vm.routeState == .navigating && routingService.showReroutePrompt {
                 ReroutePromptOverlay()
                     .zIndex(101)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            if let stopName = celebrationStopName {
+            if let stopName = vm.celebrationStopName {
                 QuestCelebrationOverlay(
                     stopName: stopName,
-                    isFinal: routingService.activeQuest == nil,
-                    onDismiss: { celebrationStopName = nil }
+                    isFinal: routingService.questManager.activeQuest == nil,
+                    onDismiss: { vm.celebrationStopName = nil }
                 )
                 .zIndex(200)
                 .transition(.scale(scale: 0.85).combined(with: .opacity))
@@ -63,59 +58,58 @@ struct RideView: View {
 
             mainUIChrome
 
-            ACSnapshotEffect(isTriggered: $flashTriggered)
+            ACSnapshotEffect(isTriggered: $vm.flashTriggered)
                 .zIndex(300)
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: bunnyPolice.currentZone)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: routingService.showReroutePrompt)
-        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: celebrationStopName != nil)
-        .onAppear(perform: handleOnAppear)
+        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: vm.celebrationStopName != nil)
+                .onAppear {
+            vm.setup(
+                routingService: routingService,
+                bunnyPolice: bunnyPolice,
+                locationProvider: locationProvider,
+                multiplayerService: multiplayerService,
+                onStop: onStop
+            )
+            vm.handleOnAppear()
+        }
         .sheet(isPresented: Binding(
-            get: { routeState == .reviewing },
+            get: { vm.routeState == .reviewing },
             set: { _ in }
         )) {
             selectionSheet
         }
-        .sheet(isPresented: $showCruiseSearch) {
+        .sheet(isPresented: $vm.showCruiseSearch) {
             CruiseSearchSheet { name, coord in
-                showCruiseSearch = false
-                destinationName = name
+                vm.showCruiseSearch = false
+                vm.destinationName = name
                 let origin = locationProvider.currentLocation?.coordinate
                     ?? coord
                 Task {
                     await routingService.calculateSafeRoute(from: origin, to: coord, avoiding: bunnyPolice.cameras)
                 }
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    routeState = .reviewing
+                    vm.routeState = .reviewing
                 }
             }
         }
-        .onChange(of: routeState) { _, newValue in handleRouteStateChange(newValue) }
-        .onChange(of: locationProvider.currentLocation) { _, newValue in handleLocationChange(newValue) }
-        .onChange(of: locationProvider.simulationCompletedNaturally) { _, newValue in handleSimulationCompletion(newValue) }
+        .onChange(of: vm.routeState) { _, newValue in handleRouteStateChange(newValue) }
+        .onChange(of: locationProvider.currentLocation) { _, newValue in vm.handleLocationChange(newValue) }
+        .onChange(of: locationProvider.simulationCompletedNaturally) { _, newValue in vm.handleSimulationCompletion(newValue) }
     }
 
-    private var mapLayer: some View {
-        ZenMapView(routeState: $routeState, isTracking: $isTracking, mapMode: mapMode, onMapTap: {
-            if routeState == .navigating {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    uiVisible = true
-                    showTapHint = false
-                }
-            }
-        })
-        .ignoresSafeArea(.all)
-    }
+
 
     private var mainUIChrome: some View {
         ZStack {
-            if routeState == .navigating && uiVisible {
+            if vm.routeState == .navigating && vm.uiVisible {
                 // Top Left: Guidance / Quests
                 VStack(alignment: .center, spacing: 12) {
-                    if routingService.activeQuest != nil {
+                    if routingService.questManager.activeQuest != nil {
                         QuestProgressView()
                     }
-                    turnByTurnHUD
+                    TurnByTurnHUDView()
                     Spacer()
                 }
                 .padding(.top, 16)
@@ -144,10 +138,10 @@ struct RideView: View {
                 VStack {
                     Spacer()
                     NavigationBottomPanel(
-                        onEnd: { endRide() },
-                        onSetDestination: { showCruiseSearch = true },
-                        departureTime: departureTime,
-                        cruiseOdometerMiles: cruiseOdometerMiles
+                        onEnd: { vm.endRide() },
+                        onSetDestination: { vm.showCruiseSearch = true },
+                        departureTime: vm.departureTime,
+                        cruiseOdometerMiles: vm.cruiseOdometerMiles
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -156,129 +150,58 @@ struct RideView: View {
         .zIndex(5)
     }
 
-    private var turnByTurnHUD: some View {
-        VStack(spacing: 12) {
-            if routingService.activeRoute.isEmpty {
-                if let streetName = locationProvider.currentStreetName {
-                    HStack {
-                        Image(systemName: "car.fill")
-                            .foregroundColor(.white)
-                        Text(streetName)
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(Color(hex: "0B5B56"))
-                    .clipShape(Capsule())
-                    .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            } else {
-                GuidanceView()
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-    }
+
 
     private var controlsColumn: some View {
         VStack(alignment: .trailing, spacing: 12) {
-
-            VStack(spacing: 8) {
-                // Map Mode
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
-                    }
-                } label: {
-                    Image(systemName: mapMode == .turnByTurn ? "map.fill" : "location.north.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .frame(width: 48, height: 48)
-                        .foregroundColor(.black)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
-                }
-
-                // Audio Toggle
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    bunnyPolice.isMuted.toggle()
-                } label: {
-                    Image(systemName: bunnyPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .frame(width: 48, height: 48)
-                        .foregroundColor(bunnyPolice.isMuted ? Color.red : Color.black)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
-                }
-
-                // Recenter
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    isTracking = true
+            RideControlsView(
+                mapMode: $vm.mapMode,
+                isTracking: $vm.isTracking,
+                onRecenter: {
                     NotificationCenter.default.post(name: AppNotification.recenterMap, object: nil)
-                } label: {
-                    Image(systemName: isTracking ? "location.fill" : "location")
-                        .font(.system(size: 20, weight: .semibold))
-                        .frame(width: 48, height: 48)
-                        .foregroundColor(.black)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
+                },
+                onReportHazard: {
+                    vm.reportHazard()
                 }
-
-                // Report Hazard
-                Button { reportHazard() } label: {
-                    Image(systemName: "exclamationmark.bubble.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .frame(width: 48, height: 48)
-                        .foregroundColor(.black)
-                        .background(Color.white)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
-                }
-            }
+            )
         }
         .padding(.trailing, 16)
         .transition(.opacity)
     }
 
     private var selectionSheet: some View {
-        RouteSelectionSheet(destinationName: destinationName, onDrive: {
+        RouteSelectionSheet(destinationName: vm.destinationName, onDrive: {
             guard !routingService.activeRoute.isEmpty else { return }
-            departureTime = Date()
-            navigationStartTime = Date()
+            vm.departureTime = Date()
+            vm.navigationStartTime = Date()
             bunnyPolice.startNavigationSession()
-            prefetchTTS(for: destinationName)
+            prefetchTTS(for: vm.destinationName)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                routeState = .navigating
+                vm.routeState = .navigating
                 locationProvider.isSimulating = false
-                uiVisible = true
-                showTapHint = true
+                vm.uiVisible = true
+                vm.showTapHint = true
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                withAnimation { showTapHint = false }
+                withAnimation { vm.showTapHint = false }
             }
         }, onSimulate: {
             guard !routingService.activeRoute.isEmpty else { return }
-            departureTime = Date()
-            navigationStartTime = Date()
+            vm.departureTime = Date()
+            vm.navigationStartTime = Date()
             bunnyPolice.startNavigationSession()
-            prefetchTTS(for: destinationName)
+            prefetchTTS(for: vm.destinationName)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                routeState = .navigating
+                vm.routeState = .navigating
                 locationProvider.simulateDrive(along: routingService.activeRoute, speedMPH: routingService.vehicleMode.simulationSpeedMPH)
-                uiVisible = true
-                showTapHint = true
+                vm.uiVisible = true
+                vm.showTapHint = true
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                withAnimation { showTapHint = false }
+                withAnimation { vm.showTapHint = false }
             }
         }, onCancel: {
-            endRide()
+            vm.endRide()
         })
         .presentationDetents([.fraction(0.2), .medium, .large])
         .presentationDragIndicator(.visible)
@@ -286,149 +209,39 @@ struct RideView: View {
         .interactiveDismissDisabled()
     }
 
-    private func handleOnAppear() {
-        if initialDestinationName.isEmpty {
-            departureTime = Date()
-            navigationStartTime = Date()
-            bunnyPolice.startNavigationSession()
-            locationProvider.isSimulating = false
-            showTapHint = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                withAnimation { showTapHint = false }
-            }
-        }
-    }
+
 
     private func handleRouteStateChange(_ state: RouteState) {
         if state == .navigating {
             UIApplication.shared.isIdleTimerDisabled = true
         } else {
             UIApplication.shared.isIdleTimerDisabled = false
-            withAnimation { uiVisible = true }
+            withAnimation { vm.uiVisible = true }
         }
     }
 
-    private func handleLocationChange(_ location: CLLocation?) {
-        guard routeState == .navigating, let loc = location else { return }
-        routingService.checkReroute(currentLocation: loc)
-        bunnyPolice.processLocation(loc, speedMPH: locationProvider.currentSpeedMPH)
-        multiplayerService.broadcastLocalLocation(
-            coordinate: loc.coordinate,
-            heading: loc.course >= 0 ? loc.course : 0,
-            speedMph: locationProvider.currentSpeedMPH,
-            route: routingService.activeRoute,
-            etaSeconds: routingService.routeTimeSeconds
-        )
-        if routingService.activeRoute.isEmpty {
-            if let last = cruiseLastLocation {
-                let deltaMeters = loc.distance(from: last)
-                if deltaMeters < 800 {
-                    cruiseOdometerMiles += deltaMeters / Constants.metersPerMile
-                }
-            }
-            cruiseLastLocation = loc
-        }
-    }
 
-    private func handleSimulationCompletion(_ completed: Bool) {
-        guard completed && routeState == .navigating else { return }
 
-        if let quest = routingService.activeQuest {
-            let reachedStopName = quest.waypoints[routingService.currentStopNumber].name
-            celebrationStopName = reachedStopName
 
-            if let loc = locationProvider.currentLocation?.coordinate {
-                let advanced = routingService.advanceToNextLeg(currentLocation: loc)
-                if advanced {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-                        if !routingService.activeRoute.isEmpty && celebrationStopName == nil {
-                            locationProvider.simulateDrive(along: routingService.activeRoute, speedMPH: routingService.vehicleMode.simulationSpeedMPH)
-                        }
-                    }
-                } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-                        endRide()
-                    }
-                }
-            }
-        } else {
-            celebrationStopName = destinationName
-            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-                if routeState == .navigating {
-                    endRide()
-                }
-            }
-        }
-    }
 
-    private func buildRideContext() -> RideContext? {
-        guard !destinationName.isEmpty, let departure = departureTime else { return nil }
-        guard let destCoord = routingService.activeRoute.last,
-              let originCoord = routingService.activeRoute.first else { return nil }
-        return RideContext(
-            destinationName: destinationName,
-            destinationCoordinate: destCoord,
-            originCoordinate: originCoord,
-            routeDurationSeconds: routingService.routeTimeSeconds,
-            routeDistanceMeters: routingService.routeDistanceMeters,
-            departureTime: departure
-        )
-    }
 
-    private func buildPendingSession(context: RideContext?) -> PendingDriveSession? {
-        guard let ctx = context, let startTime = navigationStartTime else { return nil }
-        let actualDuration = Int(Date().timeIntervalSince(startTime))
-        let distanceMiles = Double(ctx.routeDistanceMeters) / Constants.metersPerMile
-        return PendingDriveSession(
-            speedReadings: bunnyPolice.speedReadings,
-            cameraZoneEvents: bunnyPolice.cameraZoneEvents,
-            topSpeedMph: bunnyPolice.sessionTopSpeedMph,
-            avgSpeedMph: bunnyPolice.sessionAvgSpeedMph,
-            zenScore: bunnyPolice.zenScore,
-            departureTime: ctx.departureTime,
-            actualDurationSeconds: max(actualDuration, ctx.routeDurationSeconds),
-            distanceMiles: distanceMiles,
-            originCoord: ctx.originCoordinate,
-            destCoord: ctx.destinationCoordinate,
-            destinationName: ctx.destinationName,
-            routeDurationSeconds: ctx.routeDurationSeconds
-        )
-    }
 
-    private func reportHazard() {
-        guard let location = locationProvider.currentLocation else { return }
-        NotificationCenter.default.post(
-            name: NSNotification.Name("DropHazardPin"),
-            object: location.coordinate
-        )
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(.success)
-    }
 
-    private func endRide() {
-        let context = buildRideContext()
-        let pending = buildPendingSession(context: context)
-        bunnyPolice.stopNavigationSession()
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-            routingService.activeRoute = []
-            routingService.availableRoutes = []
-            routingService.activeAlternativeRoutes = []
-            locationProvider.stopSimulation()
-            onStop(context, pending)
-        }
-    }
+
+
+
+
 
     private func prefetchTTS(for destinationName: String) {
         var prefetchTexts = [String]()
-        let dest = destinationName.isEmpty ? "your destination" : destinationName
+        let dest = vm.destinationName.isEmpty ? "your destination" : vm.destinationName
         prefetchTexts.append("Route to \(dest) is ready. Let's have a wonderful trip together!")
         prefetchTexts.append("You have arrived at your final destination. Route complete!")
         for instruction in routingService.instructions {
             prefetchTexts.append("In 500 feet, \(instruction.text)")
             prefetchTexts.append(instruction.text)
         }
-        if let quest = routingService.activeQuest {
+        if let quest = routingService.questManager.activeQuest {
             for i in 0..<(quest.waypoints.count - 1) {
                 let current = quest.waypoints[i].name
                 let next = quest.waypoints[i + 1].name

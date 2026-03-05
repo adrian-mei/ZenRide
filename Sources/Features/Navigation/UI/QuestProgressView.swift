@@ -5,7 +5,7 @@ struct QuestProgressView: View {
     @EnvironmentObject var routingService: RoutingService
 
     var body: some View {
-        if let quest = routingService.activeQuest {
+        if let quest = routingService.questManager.activeQuest {
             VStack(alignment: .leading, spacing: 10) {
                 // Header
                 HStack {
@@ -20,7 +20,7 @@ struct QuestProgressView: View {
 
                     Spacer()
 
-                    Text("\(routingService.currentStopNumber)/\(routingService.totalStopsInQuest)")
+                    Text("\(routingService.questManager.currentStopNumber)/\(routingService.questManager.totalStopsInQuest)")
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
@@ -41,13 +41,13 @@ struct QuestProgressView: View {
                         }
                         .padding(.vertical, 4)
                     }
-                    .onChange(of: routingService.currentLegIndex) { _, newValue in
+                    .onChange(of: routingService.questManager.currentLegIndex) { _, newValue in
                         withAnimation(.spring()) {
                             proxy.scrollTo(max(0, newValue), anchor: .center)
                         }
                     }
                     .onAppear {
-                        proxy.scrollTo(max(0, routingService.currentLegIndex), anchor: .center)
+                        proxy.scrollTo(max(0, routingService.questManager.currentLegIndex), anchor: .center)
                     }
                 }
             }
@@ -66,8 +66,8 @@ struct QuestProgressView: View {
 
     @ViewBuilder
     private func waypointNode(idx: Int, waypoint: QuestWaypoint) -> some View {
-        let isPast = idx <= routingService.currentLegIndex
-        let isTarget = idx == routingService.currentLegIndex + 1
+        let isPast = idx <= routingService.questManager.currentLegIndex
+        let isTarget = idx == routingService.questManager.currentLegIndex + 1
 
         HStack(spacing: 0) {
             // Connector line (left)
@@ -103,9 +103,9 @@ struct QuestProgressView: View {
             .scaleEffect(isTarget ? 1.1 : 1.0)
 
             // Connector line (right)
-            if idx < (routingService.activeQuest?.waypoints.count ?? 0) - 1 {
+            if idx < (routingService.questManager.activeQuest?.waypoints.count ?? 0) - 1 {
                 Rectangle()
-                    .fill(idx < routingService.currentLegIndex ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.5))
+                    .fill(idx < routingService.questManager.currentLegIndex ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.5))
                     .frame(width: 20, height: 3)
             }
         }

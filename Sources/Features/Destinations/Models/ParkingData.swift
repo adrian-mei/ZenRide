@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 extension Notification.Name {
     static let zenRideParkingRoute = Notification.Name("zenRideParkingRoute")
@@ -25,6 +26,17 @@ class ParkingStore: ObservableObject {
 
     init() {
         loadSpots()
+    }
+
+    func spotsNearest(to coordinate: CLLocationCoordinate2D, count: Int = 5) -> [ParkingSpot] {
+        let refLat = coordinate.latitude
+        let refLng = coordinate.longitude
+        let sorted = spots.sorted {
+            let d0 = ($0.latitude - refLat) * ($0.latitude - refLat) + ($0.longitude - refLng) * ($0.longitude - refLng)
+            let d1 = ($1.latitude - refLat) * ($1.latitude - refLat) + ($1.longitude - refLng) * ($1.longitude - refLng)
+            return d0 < d1
+        }
+        return Array(sorted.prefix(count))
     }
 
     private func loadSpots() {

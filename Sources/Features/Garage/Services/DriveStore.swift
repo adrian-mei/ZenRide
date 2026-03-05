@@ -12,8 +12,8 @@ class DriveStore: ObservableObject {
     private let key = "DriveStoreRecords_v1"
     private let context: ModelContext
 
-    init() {
-        self.context = SharedModelContainer.shared.mainContext
+    init(context: ModelContext? = nil) {
+        self.context = context ?? SharedModelContainer.shared.mainContext
         migrateIfNecessary()
         load()
     }
