@@ -4,6 +4,8 @@ struct ReroutePromptOverlay: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var locationProvider: LocationProvider
 
+    @State private var appear = false
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.4)
@@ -12,47 +14,51 @@ struct ReroutePromptOverlay: View {
             VStack(spacing: 20) {
                 Image(systemName: "arrow.triangle.swap")
                     .font(.system(size: 40, weight: .bold))
-                    .foregroundColor(Color(hex: "007AFF")) // Navigation Blue
+                    .foregroundColor(Theme.Colors.acSky)
 
                 Text("Rerouting!")
-                    .font(.system(size: 24, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
+                    .font(Theme.Typography.title)
+                    .foregroundColor(Theme.Colors.acTextDark)
 
                 Text("We are calculating a new route for you. Do you want to stick with your current route filters (e.g. avoid tolls, highways)?")
-                    .font(.system(size: 16, weight: .medium, design: .default))
-                    .foregroundColor(Color.white.opacity(0.8))
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextDark.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
                 VStack(spacing: 12) {
                     Button(action: dismiss) {
                         Text("Stick to Filters")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.button)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Color(hex: "007AFF"))
-                            .foregroundColor(.white)
+                            .background(Theme.Colors.acLeaf)
+                            .foregroundColor(Theme.Colors.acCream)
                             .clipShape(Capsule())
                     }
 
                     Button(action: removeFiltersAndRecalculate) {
                         Text("Remove Filters")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.button)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Color.white.opacity(0.15))
-                            .foregroundColor(.white)
+                            .background(Theme.Colors.acTextDark.opacity(0.1))
+                            .foregroundColor(Theme.Colors.acTextDark)
                             .clipShape(Capsule())
                     }
                 }
                 .padding(.top, 10)
             }
-            .padding(24)
-            .background(Color(hex: "1C1C1E"))
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.white.opacity(0.15), lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.4), radius: 15, x: 0, y: 8)
+            .acCardStyle(padding: 24)
+            .scaleEffect(appear ? 1.0 : 0.8)
+            .opacity(appear ? 1.0 : 0.0)
             .padding(32)
+        }
+        .onAppear {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                appear = true
+            }
         }
     }
 

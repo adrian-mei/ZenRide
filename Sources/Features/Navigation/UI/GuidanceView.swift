@@ -9,8 +9,8 @@ struct GuidanceView: View {
     private let haptic500 = UINotificationFeedbackGenerator()
     private let haptic100 = UIImpactFeedbackGenerator(style: .heavy)
 
-    // A nice dark teal color similar to Waze top banner
-    private let bannerColor = Color(hex: "0B5B56")
+    // A nice thematic color for the top banner
+    private let bannerColor = Theme.Colors.acLeaf
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,7 +23,8 @@ struct GuidanceView: View {
                 }
                 .background(bannerColor)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                .shadow(color: Theme.Colors.acTextDark.opacity(0.15), radius: 8, x: 0, y: 4)
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.Colors.acField.opacity(0.3), lineWidth: 2))
                 .padding(.horizontal, 12)
                 .padding(.top, 12)
                 // Navigation Logic
@@ -43,7 +44,8 @@ struct GuidanceView: View {
             currentInstructionIndex = routingService.currentInstructionIndex
         }
         .onChange(of: routingService.currentInstructionIndex) { _, newValue in
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 currentInstructionIndex = newValue
             }
         }
@@ -56,13 +58,13 @@ struct GuidanceView: View {
             VStack(spacing: 2) {
                 Image(systemName: instruction.turnType.icon)
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.Colors.acCream)
                     .scaleEffect(isApproachingTurn ? 1.15 : 1.0)
                     .frame(height: 40)
 
                 Text(formatDistance(instruction: instruction))
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.acCream)
                     .contentTransition(.numericText())
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.6), value: isApproachingTurn)
@@ -71,8 +73,8 @@ struct GuidanceView: View {
             // Instruction Text
             VStack(alignment: .leading, spacing: 4) {
                 Text(instruction.text)
-                    .font(.system(size: 24, weight: .semibold, design: .default))
-                    .foregroundColor(.white)
+                    .font(Theme.Typography.title)
+                    .foregroundColor(Theme.Colors.acCream)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
@@ -82,15 +84,16 @@ struct GuidanceView: View {
 
             // Right side replay icon
             Button(action: {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 SpeechService.shared.speak(instruction.text)
             }) {
                 Circle()
-                    .fill(Color.white.opacity(0.2))
+                    .fill(Theme.Colors.acCream.opacity(0.2))
                     .frame(width: 44, height: 44)
                     .overlay(
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.Colors.acCream)
                     )
             }
         }
@@ -105,21 +108,21 @@ struct GuidanceView: View {
             if nextInst.turnType != .arrive {
                 VStack(spacing: 0) {
                     Divider()
-                        .background(Color.white.opacity(0.3))
+                        .background(Theme.Colors.acCream.opacity(0.3))
 
                     HStack(spacing: 12) {
                         Text("THEN")
-                            .font(.system(size: 11, weight: .black, design: .rounded))
-                            .foregroundColor(Color.white.opacity(0.7))
+                            .font(Theme.Typography.caption)
+                            .foregroundColor(Theme.Colors.acCream.opacity(0.8))
                             .kerning(0.5)
 
                         Image(systemName: nextInst.turnType.icon)
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(Theme.Colors.acCream)
 
                         Text(nextInst.text)
-                            .font(.system(size: 15, weight: .medium, design: .default))
-                            .foregroundColor(.white)
+                            .font(Theme.Typography.body)
+                            .foregroundColor(Theme.Colors.acCream)
                             .lineLimit(1)
 
                         Spacer()

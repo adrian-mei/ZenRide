@@ -41,14 +41,14 @@ struct NavigationBottomPanel: View {
             ZStack(alignment: .leading) {
                 Rectangle()
                     .fill(Color.white.opacity(0.15))
-                    .frame(height: 4)
+                    .frame(height: 6)
 
                 Rectangle()
-                    .fill(Color(hex: "007AFF")) // Navigation blue
-                    .frame(width: geo.size.width * max(0, min(1.0, routeProgress)), height: 4)
+                    .fill(Theme.Colors.acLeaf) // Replaced Navigation blue with acLeaf
+                    .frame(width: geo.size.width * max(0, min(1.0, routeProgress)), height: 6)
             }
         }
-        .frame(height: 4)
+        .frame(height: 6)
     }
 
     var body: some View {
@@ -81,14 +81,14 @@ struct NavigationBottomPanel: View {
                 HStack {
                     Text("Almost there!")
                         .font(Theme.Typography.title)
-                        .foregroundColor(Color(hex: "4CAF50"))
+                        .foregroundColor(Theme.Colors.acLeaf)
                         .opacity(vm.arrivingPulse ? 1.0 : 0.5)
                     Spacer()
                     Button(action: onEnd) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 16, weight: .black))
                             .frame(width: 44, height: 44)
-                            .background(Color(hex: "FF3B30"))
+                            .background(Theme.Colors.acCoral)
                             .foregroundColor(.white)
                             .clipShape(Circle())
                     }
@@ -101,23 +101,23 @@ struct NavigationBottomPanel: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(vm.remainingMinutes(routeTimeSeconds: routeTimeSeconds, routeDistanceMeters: routeDistanceMeters, distanceTraveledMeters: distanceTraveledMeters))")
-                                .font(.system(size: 34, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(hex: "4CD964")) // Bright green ETA
+                                .font(.system(size: 34, weight: .black, design: .rounded))
+                                .foregroundColor(Theme.Colors.acLeaf) // Bright green ETA
                             Text("min")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color(hex: "4CD964"))
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.acLeaf)
                         }
 
                         HStack(spacing: 6) {
                             Text("\(vm.distanceValue(routeDistanceMeters: routeDistanceMeters, distanceTraveledMeters: distanceTraveledMeters)) \(vm.distanceUnit(routeDistanceMeters: routeDistanceMeters, distanceTraveledMeters: distanceTraveledMeters))")
-                                .font(.system(size: 16, weight: .medium, design: .default))
-                                .foregroundColor(Color.white.opacity(0.7))
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.acTextDark.opacity(0.8))
                             Text("•")
-                                .font(.system(size: 16, weight: .medium, design: .default))
-                                .foregroundColor(Color.white.opacity(0.7))
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.acTextDark.opacity(0.8))
                             Text("\(vm.arrivalTime(routeTimeSeconds: routeTimeSeconds, routeDistanceMeters: routeDistanceMeters, distanceTraveledMeters: distanceTraveledMeters))")
-                                .font(.system(size: 16, weight: .medium, design: .default))
-                                .foregroundColor(Color.white.opacity(0.7))
+                                .font(Theme.Typography.body)
+                                .foregroundColor(Theme.Colors.acTextDark.opacity(0.8))
                         }
                     }
 
@@ -128,27 +128,27 @@ struct NavigationBottomPanel: View {
                             onSetDestination?()
                         }) {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: 20, weight: .bold))
                                 .frame(width: 50, height: 50)
-                                .background(Color.white.opacity(0.15))
-                                .foregroundColor(.white)
+                                .background(Theme.Colors.acTextDark.opacity(0.1))
+                                .foregroundColor(Theme.Colors.acTextDark)
                                 .clipShape(Circle())
                         }
 
                         ShareLink(item: "I'm on my way! My ETA is \(vm.arrivalTime(routeTimeSeconds: routeTimeSeconds, routeDistanceMeters: routeDistanceMeters, distanceTraveledMeters: distanceTraveledMeters)).") {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: 20, weight: .bold))
                                 .frame(width: 50, height: 50)
-                                .background(Color.white.opacity(0.15))
-                                .foregroundColor(.white)
+                                .background(Theme.Colors.acTextDark.opacity(0.1))
+                                .foregroundColor(Theme.Colors.acTextDark)
                                 .clipShape(Circle())
                         }
 
                         Button(action: onEnd) {
                             Text("Exit")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .font(Theme.Typography.button)
                                 .frame(width: 60, height: 50)
-                                .background(Color(hex: "FF3B30")) // Bright red standard exit
+                                .background(Theme.Colors.acCoral)
                                 .foregroundColor(.white)
                                 .clipShape(Capsule())
                         }
@@ -158,9 +158,10 @@ struct NavigationBottomPanel: View {
                 .padding(.vertical, 16)
             }
         }
-        .background(Color(hex: "1C1C1E")) // Dark mode background
+        .background(Theme.Colors.acCream) // Changed to acCream for light woodsy feel
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+        .shadow(color: Theme.Colors.acTextDark.opacity(0.15), radius: 10, x: 0, y: 5)
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Theme.Colors.acBorder, lineWidth: 2))
         .padding(.horizontal, 12)
         .padding(.bottom, 12)
         .onReceive(clock) { vm.now = $0 }

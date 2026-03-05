@@ -17,8 +17,8 @@ struct ZenMapView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
-        mapView.delegate = context.coordinator as! ZenMapCoordinator
-        (context.coordinator as! ZenMapCoordinator).mapView = mapView
+        mapView.delegate = context.coordinator
+        context.coordinator.mapView = mapView
 
         mapView.showsUserLocation = true
         mapView.showsTraffic = true
@@ -39,14 +39,14 @@ struct ZenMapView: UIViewRepresentable {
         )
 
         // Add tap gesture recognizer for toggling UI
-        let tapGesture = UITapGestureRecognizer(target: context.coordinator as ZenMapCoordinator, action: #selector(Coordinator.handleTap(_:)))
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(ZenMapCoordinator.handleTap(_:)))
         mapView.addGestureRecognizer(tapGesture)
 
         return mapView
     }
 
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        let coordinator = context.coordinator as! ZenMapCoordinator
+        let coordinator = context.coordinator
 
         let shouldShowNativeGPS = (routeState == .search)
         if uiView.showsUserLocation != shouldShowNativeGPS {

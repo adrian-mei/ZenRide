@@ -150,10 +150,10 @@ class ZenMapCoordinator: NSObject, MKMapViewDelegate {
         let r = MKPolylineRenderer(polyline: poly)
         if poly.subtitle == "selected" {
             if poly.isBorder {
-                r.strokeColor = UIColor(red: 0.1, green: 0.3, blue: 0.7, alpha: 1.0)
+                r.strokeColor = UIColor(Theme.Colors.acBorder)
                 r.lineWidth = 18
             } else {
-                r.strokeColor = UIColor(red: 0.2, green: 0.5, blue: 1.0, alpha: 1.0)
+                r.strokeColor = UIColor(Theme.Colors.acSky)
                 r.lineWidth = 10
             }
         } else {
