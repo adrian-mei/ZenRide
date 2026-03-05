@@ -19,4 +19,17 @@ extension UserDefaults {
             return nil
         }
     }
+
+    /// Loads a `RawRepresentable` enum whose raw value is a `String`.
+    func loadRawValue<E: RawRepresentable>(_ type: E.Type, forKey key: String) -> E?
+        where E.RawValue == String {
+        guard let raw = string(forKey: key) else { return nil }
+        return E(rawValue: raw)
+    }
+
+    /// Loads a `UUID` stored as a plain string.
+    func loadUUID(forKey key: String) -> UUID? {
+        guard let str = string(forKey: key) else { return nil }
+        return UUID(uuidString: str)
+    }
 }

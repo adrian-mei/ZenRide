@@ -162,10 +162,7 @@ class PlayerStore: ObservableObject {
     private func load() {
         totalXP = UserDefaults.standard.integer(forKey: xpKey)
         selectedCharacterId = UserDefaults.standard.string(forKey: charKey) ?? "camper_fox"
-        if let modeStr = UserDefaults.standard.string(forKey: modeKey),
-           let mode = ZenMode(rawValue: modeStr) {
-            currentMode = mode
-        }
+        currentMode = UserDefaults.standard.loadRawValue(ZenMode.self, forKey: modeKey) ?? .standard
         calculateLevel()
     }
 }

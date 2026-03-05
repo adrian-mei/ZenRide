@@ -212,7 +212,7 @@ struct PendingDriveSession {
     let routeDurationSeconds: Int
 
     func toSession(mood: String? = nil) -> DriveSession {
-        let hour = Calendar.current.component(.hour, from: departureTime)
+        let hour = departureTime.hour
 
         var savedCount = 0
         for event in cameraZoneEvents {

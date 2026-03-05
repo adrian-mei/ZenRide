@@ -191,8 +191,7 @@ class VehicleStore: ObservableObject {
             save()
             Log.info("VehicleStore", "Created default bike")
         } else {
-            if let str = UserDefaults.standard.string(forKey: selectedKey),
-               let uuid = UUID(uuidString: str),
+            if let uuid = UserDefaults.standard.loadUUID(forKey: selectedKey),
                vehicles.contains(where: { $0.id == uuid }) {
                 selectedVehicleId = uuid
             } else {

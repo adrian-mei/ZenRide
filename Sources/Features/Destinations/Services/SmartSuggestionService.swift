@@ -3,14 +3,13 @@ import Foundation
 struct SmartSuggestionService {
     @MainActor
     static func suggestions(from store: SavedRoutesStore) -> [SavedRoute] {
-        let hour = Calendar.current.component(.hour, from: Date())
+        let hour = Date().hour
         return store.suggestions(for: hour)
     }
 
-    static func promptText(for route: SavedRoute) -> String {
+    static func promptText(for route: SavedRoute, hour: Int = Date().hour) -> String {
         let name = route.destinationName
         let nameLower = name.lowercased()
-        let hour = Calendar.current.component(.hour, from: Date())
 
         if nameLower == "home" || nameLower.hasSuffix("home") {
             return "Time to head home?"

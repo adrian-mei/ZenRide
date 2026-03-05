@@ -316,12 +316,13 @@ class SavedRoutesStore: ObservableObject {
             }
         }
 
-        if let idx = routes.firstIndex(where: { $0.id == id }) {
-            routes[idx].category = category
-            routes[idx].slotIndex = index
-            routes[idx].isPinned = true
-            routes[idx].contactIdentifier = contactId
-            routes[idx].customIcon = customIcon
+        if routes.update(id: id, {
+            $0.category = category
+            $0.slotIndex = index
+            $0.isPinned = true
+            $0.contactIdentifier = contactId
+            $0.customIcon = customIcon
+        }) {
             save()
         }
     }
