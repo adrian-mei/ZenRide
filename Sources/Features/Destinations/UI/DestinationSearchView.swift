@@ -41,8 +41,8 @@ struct DestinationSearchView: View {
                     } else {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 24) {
-                                bookmarksSection
-                                recentsSection
+                                BookmarksSection(category: category, categoryColor: categoryColor, onSelectDestination: { n, c in selectDestination(name: n, coordinate: c, placemark: nil) })
+                                RecentsSection(onSelectDestination: { n, c in selectDestination(name: n, coordinate: c, placemark: nil) })
                             }
                             .padding(.top, 8)
                         }
@@ -129,80 +129,6 @@ struct DestinationSearchView: View {
         .clipShape(Capsule())
         .padding(.horizontal)
         .padding(.bottom, 8)
-    }
-
-    private var bookmarksSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ACSectionHeader(title: "BOOKMARKS", icon: "bookmark.fill", color: Theme.Colors.acCoral)
-                .padding(.horizontal)
-
-            let pinned = savedRoutes.pinnedRoutes.filter { route in
-                if let cat = category {
-                    return route.category == cat
-                }
-                return true
-            }
-
-            if pinned.isEmpty {
-                Text(category != nil ? "No bookmarked \(category!.displayName) yet." : "No bookmarked spots yet.")
-                    .font(Theme.Typography.body)
-                    .foregroundColor(Theme.Colors.acTextMuted)
-                    .padding(.horizontal)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(pinned.prefix(8).enumerated()), id: \.offset) { idx, route in
-                        SavedRouteRow(
-                            systemIcon: route.category?.icon ?? "mappin.circle.fill",
-                            iconColor: categoryColor(route.category),
-                            title: route.destinationName,
-                            subtitle: route.category?.displayName ?? "Saved Place"
-                        ) {
-                            selectDestination(name: route.destinationName, coordinate: CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude))
-                        }
-
-                        if idx < min(pinned.count, 8) - 1 {
-                            ACSectionDivider(leadingInset: 64)
-                        }
-                    }
-                }
-                .acCardStyle(padding: 0)
-                .padding(.horizontal)
-            }
-        }
-    }
-
-    private var recentsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ACSectionHeader(title: "RECENT SEARCHES", icon: "clock.fill", color: Theme.Colors.acTextMuted)
-                .padding(.horizontal)
-
-            let recents = savedRoutes.recentSearches
-            if recents.isEmpty {
-                Text("Your recent destinations will appear here.")
-                    .font(Theme.Typography.body)
-                    .foregroundColor(Theme.Colors.acTextMuted)
-                    .padding(.horizontal)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(recents.prefix(5).enumerated()), id: \.offset) { idx, recent in
-                        SavedRouteRow(
-                            systemIcon: "clock.fill",
-                            iconColor: Theme.Colors.acTextMuted,
-                            title: recent.name,
-                            subtitle: recent.subtitle
-                        ) {
-                            selectDestination(name: recent.name, coordinate: CLLocationCoordinate2D(latitude: recent.latitude, longitude: recent.longitude))
-                        }
-
-                        if idx < min(recents.count, 5) - 1 {
-                            ACSectionDivider(leadingInset: 64)
-                        }
-                    }
-                }
-                .acCardStyle(padding: 0)
-                .padding(.horizontal)
-            }
-        }
     }
 
     private var searchResultsList: some View {
