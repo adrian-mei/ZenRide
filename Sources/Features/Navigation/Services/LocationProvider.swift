@@ -17,10 +17,6 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     private let geocoder = CLGeocoder()
     private var lastGeocodeLocation: CLLocation?
-    private var simulationTimer: Timer?
-    private var simulationRoute: [CLLocationCoordinate2D] = []
-    private var currentSimulationCoord: CLLocationCoordinate2D?
-    private var nextSimulationIndex: Int = 1
 
     private var lastSpeedUpdateDate: Date?
     private var lastSpeedValueMPH: Double?
@@ -77,111 +73,34 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     // MARK: - Simulation
 
+    private let simulationEngine = SimulationEngine()
+
     func simulateDrive(along route: [CLLocationCoordinate2D], speedMPH: Double = 35) {
         guard route.count > 1 else { return }
-
         locationManager.stopUpdatingLocation()
 
-        DispatchQueue.main.async {
-            self.isSimulating = true
-            self.simulationPaused = false
-            self.simulationSpeedMultiplier = 1.0
-            self.currentSimulationIndex = 0
-            self.distanceTraveledInSimulationMeters = 0
-            self.simulationCompletedNaturally = false
-        }
+        isSimulating = true
+        simulationPaused = false
+        simulationSpeedMultiplier = 1.0
+        currentSimulationIndex = 0
+        distanceTraveledInSimulationMeters = 0
+        simulationCompletedNaturally = false
 
-        self.simulationRoute = route
-        self.currentSimulationCoord = route[0]
-        self.nextSimulationIndex = 1
-        var distanceTraveledMeters: Double = 0
-
-        let targetSpeedMPH: Double = speedMPH
-
-        let tickInterval: TimeInterval = 0.1 // Increase tick rate from 0.5s to 0.1s for 10FPS map updates
-
-        simulationTimer?.invalidate()
-        simulationTimer = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            guard !self.simulationPaused else { return }
-            guard let currentCoord = self.currentSimulationCoord else { return }
-
-            // Apply speed multiplier
-            let targetSpeedMPS = (targetSpeedMPH / Constants.mpsToMph) * self.simulationSpeedMultiplier
-            let distancePerTick = targetSpeedMPS * tickInterval
-
-            // Reached destination logic
-            if self.nextSimulationIndex >= self.simulationRoute.count {
-                DispatchQueue.main.async {
-                    self.simulationCompletedNaturally = true
-                    self.stopSimulation()
-                }
-                return
-            }
-
-            let targetCoord = self.simulationRoute[self.nextSimulationIndex]
-
-            // Math helper logic to avoid 'distance' not found error (using CLLocation distance logic)
-            let distanceToTarget = currentCoord.distance(to: targetCoord)
-
-            let bearing = currentCoord.bearing(to: targetCoord)
-
-            var newCoord = currentCoord
-
-            if distanceToTarget <= distancePerTick {
-                // Arrived at next node
-                distanceTraveledMeters += distanceToTarget
-                newCoord = targetCoord
-
-                DispatchQueue.main.async {
-                    self.currentSimulationIndex = self.nextSimulationIndex
-                    self.distanceTraveledInSimulationMeters = distanceTraveledMeters
-                }
-                self.nextSimulationIndex += 1
-
-                // If we reach the end exactly on this tick
-                if self.nextSimulationIndex >= self.simulationRoute.count {
-                    let mockLocation = CLLocation(
-                        coordinate: newCoord,
-                        altitude: 0,
-                        horizontalAccuracy: 5,
-                        verticalAccuracy: 5,
-                        course: bearing,
-                        speed: targetSpeedMPS,
-                        timestamp: Date()
-                    )
-                    self.processSimulatedLocation(mockLocation)
-
-                    DispatchQueue.main.async {
-                        self.simulationCompletedNaturally = true
-                        self.stopSimulation()
-                    }
-                    return
-                }
-            } else {
-                // Move towards target
-                distanceTraveledMeters += distancePerTick
-                newCoord = currentCoord.coordinate(offsetBy: distancePerTick, bearingDegrees: bearing)
-                DispatchQueue.main.async {
-                    self.distanceTraveledInSimulationMeters = distanceTraveledMeters
-                }
-            }
-
-            self.currentSimulationCoord = newCoord
-
-            let mockLocation = CLLocation(
-                coordinate: newCoord,
-                altitude: 0,
-                horizontalAccuracy: 5,
-                verticalAccuracy: 5,
-                course: bearing,
-                speed: targetSpeedMPS,
-                timestamp: Date()
-            )
+        simulationEngine.onTick = { [weak self] mockLocation, distanceTraveled, index in
+            guard let self = self, !self.simulationPaused else { return }
+            self.distanceTraveledInSimulationMeters = distanceTraveled
+            self.currentSimulationIndex = index
             self.processSimulatedLocation(mockLocation)
         }
-    }
+        
+        simulationEngine.onComplete = { [weak self] in
+            guard let self = self else { return }
+            self.simulationCompletedNaturally = true
+            self.stopSimulation()
+        }
 
+        simulationEngine.start(route: route, speedMPH: speedMPH, speedMultiplier: simulationSpeedMultiplier)
+    }
     private func processSimulatedLocation(_ location: CLLocation) {
         let speedMPS = max(0, location.speed)
         let newSpeedMph = speedMPS * Constants.mpsToMph
@@ -239,8 +158,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
 
     func stopSimulation() {
-        simulationTimer?.invalidate()
-        simulationTimer = nil
+        simulationEngine.stop()
 
         DispatchQueue.main.async {
             self.isSimulating = false
