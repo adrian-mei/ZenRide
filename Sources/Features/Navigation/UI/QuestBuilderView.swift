@@ -52,12 +52,14 @@ struct QuestBuilderView: View {
                 }
         }
         .sheet(isPresented: $showAddStop) {
-            AddStopSheet { waypoint in
+            DestinationSearchView { name, coord in
+                let waypoint = QuestWaypoint(name: name, coordinate: coord, icon: "mappin.circle.fill")
                 if addStopMode == .start {
                     startLocation = .custom(waypoint)
                 } else {
                     waypoints.append(waypoint)
                 }
+                showAddStop = false
             }
         }
         .onAppear {
