@@ -70,7 +70,7 @@ struct CampCruiseSetupSheet: View {
                         .fill(Theme.Colors.acSky.opacity(0.15))
                         .frame(width: 36, height: 36)
                     Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: 20))
+                        .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.acSky)
                 }
                 VStack(alignment: .leading, spacing: 2) {
@@ -121,7 +121,7 @@ struct CampCruiseSetupSheet: View {
                 showInviteSheet = true
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "link.badge.plus").font(.system(size: 16))
+                    Image(systemName: "link.badge.plus").font(Theme.Typography.body)
                     Text("Invite Friends").font(Theme.Typography.button)
                 }
                 .foregroundColor(Theme.Colors.acWood)
@@ -142,7 +142,7 @@ struct CampCruiseSetupSheet: View {
             beginCruise()
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "tent.fill").font(.system(size: 18))
+                Image(systemName: "tent.fill").font(Theme.Typography.title3)
                 Text("Start Cruise").font(Theme.Typography.button)
             }
         }

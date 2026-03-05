@@ -45,23 +45,23 @@ struct AvatarSelectionView: View {
 
                                             if isUnlocked {
                                                 Image(systemName: character.icon)
-                                                    .font(.system(size: 32))
+                                                    .font(Theme.Typography.largeTitle)
                                                     .foregroundColor(Color(hex: character.colorHex))
                                             } else {
                                                 Image(systemName: "lock.fill")
-                                                    .font(.system(size: 24))
+                                                    .font(Theme.Typography.title2)
                                                     .foregroundColor(Theme.Colors.acTextMuted)
                                             }
                                         }
 
                                         VStack(spacing: 2) {
                                             Text(character.name)
-                                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                                .font(Theme.Typography.button)
                                                 .foregroundColor(isUnlocked ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
 
                                             if !isUnlocked {
                                                 Text("Lv \(character.unlockLevel)")
-                                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                                    .font(Theme.Typography.label)
                                                     .foregroundColor(Theme.Colors.acWood)
                                             }
                                         }
@@ -85,7 +85,7 @@ struct AvatarSelectionView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
-                        .font(.body.bold())
+                        .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acWood)
                 }
             }

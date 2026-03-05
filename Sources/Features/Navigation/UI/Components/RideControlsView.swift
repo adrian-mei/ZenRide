@@ -17,10 +17,10 @@ struct RideControlsView: View {
                 }
             } label: {
                 Image(systemName: mapMode == .turnByTurn ? "map.fill" : "location.north.fill")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(Theme.Typography.headline)
                     .frame(width: 48, height: 48)
-                    .foregroundColor(.black)
-                    .background(Color.white)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .background(Theme.Colors.acCream)
                     .clipShape(Circle())
                     .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
             }
@@ -31,10 +31,10 @@ struct RideControlsView: View {
                 bunnyPolice.isMuted.toggle()
             } label: {
                 Image(systemName: bunnyPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(Theme.Typography.headline)
                     .frame(width: 48, height: 48)
-                    .foregroundColor(bunnyPolice.isMuted ? Color.red : Color.black)
-                    .background(Color.white)
+                    .foregroundColor(bunnyPolice.isMuted ? Theme.Colors.acError : Theme.Colors.acTextDark)
+                    .background(Theme.Colors.acCream)
                     .clipShape(Circle())
                     .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
             }
@@ -46,10 +46,10 @@ struct RideControlsView: View {
                 onRecenter()
             } label: {
                 Image(systemName: isTracking ? "location.fill" : "location")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(Theme.Typography.headline)
                     .frame(width: 48, height: 48)
-                    .foregroundColor(.black)
-                    .background(Color.white)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .background(Theme.Colors.acCream)
                     .clipShape(Circle())
                     .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
             }
@@ -60,10 +60,10 @@ struct RideControlsView: View {
                 onReportHazard() 
             } label: {
                 Image(systemName: "exclamationmark.bubble.fill")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(Theme.Typography.headline)
                     .frame(width: 48, height: 48)
-                    .foregroundColor(.black)
-                    .background(Color.white)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .background(Theme.Colors.acCream)
                     .clipShape(Circle())
                     .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
             }

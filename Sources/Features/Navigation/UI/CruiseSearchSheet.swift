@@ -17,7 +17,7 @@ struct CruiseSearchSheet: View {
         VStack(spacing: 0) {
             // Handle
             Capsule()
-                .fill(Color.white.opacity(0.3))
+                .fill(Theme.Colors.acBorder.opacity(0.5))
                 .frame(width: 40, height: 5)
                 .padding(.top, 12)
                 .padding(.bottom, 20)
@@ -25,29 +25,29 @@ struct CruiseSearchSheet: View {
             // Header
             VStack(spacing: 4) {
                 Image(systemName: "magnifyingglass.circle.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(Color(hex: "007AFF"))
+                    .font(Theme.Typography.largeTitle)
+                    .foregroundStyle(Theme.Colors.acAction)
                 Text("Find a Place")
-                    .font(.system(size: 24, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
+                    .font(Theme.Typography.title2)
+                    .foregroundStyle(Theme.Colors.acTextDark)
                 Text("Navigate there without ending your drive")
-                    .font(.system(size: 16, weight: .medium, design: .default))
-                    .foregroundStyle(Color.white.opacity(0.7))
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(Theme.Colors.acTextMuted)
             }
             .padding(.bottom, 20)
 
             // Search bar
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(Color.white.opacity(0.5))
-                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Theme.Colors.acTextMuted)
+                    .font(Theme.Typography.button)
 
                 TextField("Coffee, parking, gas station…", text: $searcher.searchQuery)
                     .focused($focused)
                     .autocorrectionDisabled()
-                    .font(.system(size: 16, weight: .medium, design: .default))
-                    .foregroundColor(.white)
-                    .tint(Color(hex: "007AFF"))
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .tint(Theme.Colors.acAction)
                     .submitLabel(.search)
                     .onChange(of: searcher.searchQuery) { _, query in
                         searcher.scheduleSearch(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
@@ -65,25 +65,25 @@ struct CruiseSearchSheet: View {
                         focused = true
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(Color.white.opacity(0.5))
+                            .foregroundColor(Theme.Colors.acTextMuted)
                     }
                 }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.1))
+            .background(Theme.Colors.acField)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.2), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 1))
             .padding(.horizontal, 16)
 
             // Results
             ScrollView {
                 if searcher.isSearching {
                     VStack(spacing: 8) {
-                        ProgressView().tint(.white).padding(.top, 32)
+                        ProgressView().tint(Theme.Colors.acAction).padding(.top, 32)
                         Text("Searching nearby…")
-                            .font(.system(size: 16, weight: .medium, design: .default))
-                            .foregroundStyle(Color.white.opacity(0.7))
+                            .font(Theme.Typography.body)
+                            .foregroundStyle(Theme.Colors.acTextMuted)
                     }
                     .frame(maxWidth: .infinity)
                 } else if !searcher.searchResults.isEmpty {
@@ -97,28 +97,29 @@ struct CruiseSearchSheet: View {
                                 HStack(spacing: 12) {
                                     ZStack {
                                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(Color(hex: "007AFF").opacity(0.2))
+                                            .fill(Theme.Colors.acAction.opacity(0.1))
                                             .frame(width: 40, height: 40)
                                         Image(systemName: "mappin.circle.fill")
-                                            .font(.system(size: 20))
-                                            .foregroundStyle(Color(hex: "007AFF"))
+                                            .font(Theme.Typography.headline)
+                                            .foregroundStyle(Theme.Colors.acAction)
                                     }
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(item.name ?? "Unknown")
-                                            .font(.system(size: 16, weight: .bold, design: .default))
-                                            .foregroundStyle(.white)
+                                            .font(Theme.Typography.body)
+                                            .bold()
+                                            .foregroundStyle(Theme.Colors.acTextDark)
                                             .lineLimit(2)
                                             .fixedSize(horizontal: false, vertical: true)
                                         Text(item.placemark.zenFormattedAddress)
-                                            .font(.system(size: 13, weight: .medium, design: .default))
-                                            .foregroundStyle(Color.white.opacity(0.6))
+                                            .font(Theme.Typography.caption)
+                                            .foregroundStyle(Theme.Colors.acTextMuted)
                                             .lineLimit(2)
                                             .fixedSize(horizontal: false, vertical: true)
                                     }
                                     Spacer()
                                     Image(systemName: "arrow.turn.up.right")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundStyle(Color(hex: "007AFF"))
+                                        .font(Theme.Typography.button)
+                                        .foregroundStyle(Theme.Colors.acAction)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 12)
@@ -127,32 +128,32 @@ struct CruiseSearchSheet: View {
                             .buttonStyle(.plain)
 
                             if idx < min(searcher.searchResults.count, 10) - 1 {
-                                Divider().background(Color.white.opacity(0.2)).padding(.leading, 68)
+                                Divider().background(Theme.Colors.acBorder.opacity(0.5)).padding(.leading, 68)
                             }
                         }
                     }
-                    .background(Color.white.opacity(0.05))
+                    .background(Theme.Colors.acCream)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.15), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 1))
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 } else if !searcher.searchQuery.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Color.white.opacity(0.5))
+                            .font(Theme.Typography.title)
+                            .foregroundStyle(Theme.Colors.acTextMuted)
                             .padding(.top, 32)
                         Text("No results for \"\(searcher.searchQuery)\"")
-                            .font(.system(size: 16, weight: .medium, design: .default))
-                            .foregroundStyle(Color.white.opacity(0.7))
+                            .font(Theme.Typography.body)
+                            .foregroundStyle(Theme.Colors.acTextMuted)
                     }
                     .frame(maxWidth: .infinity)
                 } else {
                     // Quick category chips
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Quick finds")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.6))
+                            .font(Theme.Typography.button)
+                            .foregroundStyle(Theme.Colors.acWood)
                             .padding(.horizontal, 16)
 
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -171,7 +172,7 @@ struct CruiseSearchSheet: View {
             }
             .padding(.top, 8)
         }
-        .background(Color(hex: "1C1C1E"))
+        .background(Theme.Colors.acCream)
         .onAppear { focused = true }
     }
 
@@ -184,11 +185,11 @@ struct CruiseSearchSheet: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(Theme.Typography.caption)
                     .foregroundStyle(color)
                 Text(label)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .font(Theme.Typography.button)
+                    .foregroundStyle(Theme.Colors.acTextDark)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 9)

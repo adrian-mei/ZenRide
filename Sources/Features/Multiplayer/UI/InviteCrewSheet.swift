@@ -15,13 +15,13 @@ struct InviteCrewSheet: View {
                     // Invite code display
                     VStack(spacing: 12) {
                         Text("YOUR INVITE CODE")
-                            .font(.system(size: 12, weight: .black, design: .rounded))
+                            .font(Theme.Typography.caption)
                             .foregroundColor(Theme.Colors.acTextMuted)
                             .kerning(2)
 
                         if let code = multiplayerService.inviteCode {
                             Text(code)
-                                .font(.system(size: 52, weight: .black, design: .rounded))
+                                .font(Theme.Typography.display)
                                 .foregroundColor(Theme.Colors.acLeaf)
                                 .tracking(8)
 
@@ -35,7 +35,7 @@ struct InviteCrewSheet: View {
                             } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: codeCopied ? "checkmark.circle.fill" : "doc.on.doc")
-                                        .font(.system(size: 15))
+                                        .font(Theme.Typography.body)
                                     Text(codeCopied ? "Copied!" : "Copy Code")
                                         .font(Theme.Typography.button)
                                 }
@@ -92,7 +92,7 @@ struct InviteCrewSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
-                        .font(.system(size: 16, weight: .bold))
+                        .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acWood)
                 }
             }

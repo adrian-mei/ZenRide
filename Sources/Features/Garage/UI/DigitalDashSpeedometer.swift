@@ -8,9 +8,9 @@ struct DigitalDashSpeedometer: View {
 
     var currentSpeedColor: Color {
         let s = locationProvider.currentSpeedMPH
-        if s > speedLimit + 10 { return Color.red }
-        if s > speedLimit { return Color.orange }
-        return Color.black
+        if s > speedLimit + 10 { return Theme.Colors.acError }
+        if s > speedLimit { return Theme.Colors.acGold }
+        return Theme.Colors.acTextDark
     }
 
     var isDanger: Bool {
@@ -41,13 +41,13 @@ struct DigitalDashSpeedometer: View {
 
             ecoView
         }
-        .background(Color.white)
+        .background(Theme.Colors.acCream)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isDanger ? Color.red : Color.gray.opacity(0.3), lineWidth: isDanger ? 3 : 1)
+                .stroke(isDanger ? Theme.Colors.acError : Theme.Colors.acBorder.opacity(0.3), lineWidth: isDanger ? 3 : 1)
         )
-        .shadow(color: isDanger ? Color.red.opacity(pulse ? 0.6 : 0.0) : Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+        .shadow(color: isDanger ? Theme.Colors.acError.opacity(pulse ? 0.6 : 0.0) : Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
         .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: pulse)
         .onChange(of: isDanger) { _, danger in
             if danger {
@@ -61,34 +61,34 @@ struct DigitalDashSpeedometer: View {
     private var speedLimitView: some View {
         ZStack {
             Rectangle()
-                .fill(Color.white)
+                .fill(Theme.Colors.acCream)
 
             VStack(spacing: 0) {
                 Text("SPEED")
-                    .font(.system(size: 8, weight: .bold, design: .default))
-                    .foregroundColor(.black)
+                    .font(Theme.Typography.label)
+                    .foregroundColor(Theme.Colors.acTextDark)
                 Text("LIMIT")
-                    .font(.system(size: 8, weight: .bold, design: .default))
-                    .foregroundColor(.black)
+                    .font(Theme.Typography.label)
+                    .foregroundColor(Theme.Colors.acTextDark)
                     .padding(.bottom, 2)
                 Text("\(Int(speedLimit))")
-                    .font(.system(size: 24, weight: .black, design: .default))
-                    .foregroundColor(.black)
+                    .font(Theme.Typography.title2)
+                    .foregroundColor(Theme.Colors.acTextDark)
             }
         }
         .frame(width: 50, height: 60)
-        .border(Color.black, width: 2)
+        .border(Theme.Colors.acBorder, width: 2)
         .padding(4)
-        .background(Color.white)
+        .background(Theme.Colors.acCream)
         .overlay(
             VStack {
                 if isDanger {
                     Text("OVERSPEED")
-                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .font(Theme.Typography.label)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.red)
+                        .background(Theme.Colors.acError)
                         .clipShape(Capsule())
                         .offset(y: -12)
                         .opacity(pulse ? 1.0 : 0.4)
@@ -102,16 +102,55 @@ struct DigitalDashSpeedometer: View {
     private var currentSpeedView: some View {
         VStack(spacing: -4) {
             Text("\(Int(locationProvider.currentSpeedMPH))")
-                .font(.system(size: 32, weight: .black, design: .default))
+                .font(Theme.Typography.largeTitle)
                 .foregroundColor(currentSpeedColor)
                 .contentTransition(.numericText())
 
             Text("mph")
-                .font(.system(size: 12, weight: .bold, design: .default))
-                .foregroundColor(Color.gray)
+                .font(Theme.Typography.caption)
+                .foregroundColor(Theme.Colors.acTextMuted)
         }
         .frame(width: 60, height: 60)
-        .background(Color.white)
+        .background(Theme.Colors.acCream)
+    }
+
+    private var compassView: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "location.north.fill")
+                .font(Theme.Typography.button)
+                .foregroundColor(Theme.Colors.acAction)
+                .rotationEffect(.degrees(max(0, locationProvider.currentLocation?.course ?? 0)))
+
+            Text(compassDirection)
+                .font(Theme.Typography.button)
+                .foregroundColor(Theme.Colors.acTextDark)
+        }
+        .frame(width: 40, height: 60)
+        .background(Theme.Colors.acCream)
+    }
+
+    private var ecoView: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "leaf.fill")
+                .font(Theme.Typography.button)
+                .foregroundColor(ecoColor)
+
+            Text("\(Int(locationProvider.ecoScore))")
+                .font(Theme.Typography.label)
+                .foregroundColor(Theme.Colors.acTextDark)
+        }
+        .frame(width: 40, height: 60)
+        .background(Theme.Colors.acCream)
+    }
+
+    private var ecoColor: Color {
+        let score = locationProvider.ecoScore
+        if score > 80 { return Theme.Colors.acSuccess }
+        if score > 50 { return Theme.Colors.acGold }
+        return Theme.Colors.acError
+    }
+        .frame(width: 60, height: 60)
+        .background(Theme.Colors.acCream)
     }
 
     private var compassView: some View {
@@ -126,7 +165,7 @@ struct DigitalDashSpeedometer: View {
                 .foregroundColor(.black)
         }
         .frame(width: 40, height: 60)
-        .background(Color.white)
+        .background(Theme.Colors.acCream)
     }
 
     private var ecoView: some View {
@@ -140,7 +179,7 @@ struct DigitalDashSpeedometer: View {
                 .foregroundColor(.black)
         }
         .frame(width: 40, height: 60)
-        .background(Color.white)
+        .background(Theme.Colors.acCream)
     }
 
     private var ecoColor: Color {

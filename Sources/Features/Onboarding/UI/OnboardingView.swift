@@ -42,7 +42,7 @@ struct WelcomeStep: View {
                             .frame(width: 140, height: 140)
 
                         Image(systemName: "map.fill")
-                            .font(.system(size: 64, weight: .bold))
+                            .font(Theme.Typography.display)
                             .foregroundColor(Theme.Colors.acLeaf)
                             .offset(y: appear ? 0 : 20)
                             .opacity(appear ? 1 : 0)

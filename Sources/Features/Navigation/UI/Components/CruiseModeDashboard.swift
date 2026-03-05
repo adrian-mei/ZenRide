@@ -17,30 +17,30 @@ struct CruiseModeDashboard: View {
             HStack(spacing: 0) {
                 VStack(spacing: 4) {
                     Text(elapsedFormatted)
-                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .font(Theme.Typography.title2)
                         .foregroundColor(.white)
                     Text("time")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Color.white.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
                 columnDivider
                 VStack(spacing: 4) {
                     Text(cruiseDistanceFormatted)
-                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .font(Theme.Typography.title2)
                         .foregroundColor(.white)
                     Text(cruiseDistanceUnit)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Color.white.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
                 columnDivider
                 VStack(spacing: 4) {
                     Text(currentSpeedString)
-                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .font(Theme.Typography.title2)
                         .foregroundColor(.white)
                     Text("mph")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Color.white.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
@@ -52,10 +52,10 @@ struct CruiseModeDashboard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "person.2.fill")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color(hex: "4CD964"))
+                        .foregroundStyle(Theme.Colors.acSuccess)
                     Text("\(activeSessionMembers.count) friend\(activeSessionMembers.count == 1 ? "" : "s") on the road")
                         .font(Theme.Typography.button)
-                        .foregroundStyle(Color(hex: "4CD964"))
+                        .foregroundStyle(Theme.Colors.acSuccess)
                     Spacer()
                     // Mini avatar pills
                     HStack(spacing: -6) {
@@ -64,20 +64,20 @@ struct CruiseModeDashboard: View {
                                 Circle()
                                     .fill(Theme.Colors.acMint)
                                     .frame(width: 28, height: 28)
-                                    .overlay(Circle().stroke(Color(hex: "1C1C1E"), lineWidth: 2))
+                                    .overlay(Circle().stroke(Theme.Colors.acCharcoal, lineWidth: 2))
                                 Text(member.avatarURL ?? "🐾")
-                                    .font(.system(size: 14))
+                                    .font(Theme.Typography.button)
                             }
                         }
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(Color(hex: "4CD964").opacity(0.1))
+                .background(Theme.Colors.acSuccess.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color(hex: "4CD964").opacity(0.3), lineWidth: 1.5)
+                        .stroke(Theme.Colors.acSuccess.opacity(0.3), lineWidth: 1.5)
                 )
                 .padding(.horizontal, 16)
             }
@@ -89,7 +89,7 @@ struct CruiseModeDashboard: View {
                         Image(systemName: "magnifyingglass")
                         Text("Find Place")
                     }
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(Theme.Typography.body)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(Color.white.opacity(0.15))
@@ -99,10 +99,10 @@ struct CruiseModeDashboard: View {
 
                 Button(action: onEnd) {
                     Text("End")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.body)
                         .padding(.horizontal, 28)
                         .padding(.vertical, 14)
-                        .background(Color(hex: "FF3B30"))
+                        .background(Theme.Colors.acError)
                         .foregroundColor(.white)
                         .clipShape(Capsule())
                 }

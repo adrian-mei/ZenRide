@@ -34,7 +34,7 @@ struct WindDownView: View {
                             .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
 
                         Image(systemName: "tent.fill")
-                            .font(.system(size: 60))
+                            .font(Theme.Typography.display)
                             .foregroundColor(Theme.Colors.acLeaf)
                     }
 
@@ -155,9 +155,9 @@ private struct MoodButton: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Text(emoji)
-                    .font(.system(size: 32))
+                    .font(Theme.Typography.largeTitle)
                 Text(label)
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .font(Theme.Typography.label)
                     .foregroundColor(isSelected ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
             }
             .frame(maxWidth: .infinity)

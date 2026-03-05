@@ -14,30 +14,30 @@ struct SessionRow: View {
                         .frame(width: 28, height: 28)
                         .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
                     Text("\(index)")
-                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .foregroundColor(Theme.Colors.acTextDark)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(session.timeOfDayCategory.label)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.button)
                         .foregroundColor(Theme.Colors.acTextDark)
 
                     HStack(spacing: 12) {
                         Label(String(format: "%.1f mi", session.distanceMiles), systemImage: "ruler")
                         Label(formatDuration(session.durationSeconds), systemImage: "clock")
                     }
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(Theme.Typography.caption)
                     .foregroundColor(Theme.Colors.acTextMuted)
 
                     if session.zenScore < 100 {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(Theme.Colors.acCoral)
+                                .foregroundColor(Theme.Colors.acError)
                             Text("Safety Score: \(session.zenScore)")
                                 .foregroundColor(Theme.Colors.acTextDark)
                         }
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.caption)
                         .padding(.top, 2)
                     }
                 }
@@ -47,7 +47,7 @@ struct SessionRow: View {
             if !session.speedReadings.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("SPEED PROFILE")
-                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .font(Theme.Typography.label)
                         .foregroundColor(Theme.Colors.acTextMuted)
 
                     Chart {
@@ -78,7 +78,7 @@ struct SessionRow: View {
                             AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4]))
                                 .foregroundStyle(Theme.Colors.acBorder)
                             AxisValueLabel()
-                                .font(.system(size: 10, weight: .bold))
+                                .font(Theme.Typography.label)
                                 .foregroundStyle(Theme.Colors.acTextMuted)
                         }
                     }

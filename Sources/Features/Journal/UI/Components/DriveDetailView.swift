@@ -15,7 +15,7 @@ struct DriveDetailView: View {
                         // Header
                         VStack(spacing: 8) {
                             Image(systemName: "map.fill")
-                                .font(.system(size: 40))
+                                .font(Theme.Typography.largeTitle)
                                 .foregroundColor(Theme.Colors.acLeaf)
                             Text(record.destinationName)
                                 .font(Theme.Typography.title)
@@ -70,7 +70,7 @@ struct DriveDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acWood)
                 }
             }

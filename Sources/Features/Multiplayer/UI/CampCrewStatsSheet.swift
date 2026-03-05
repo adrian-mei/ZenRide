@@ -16,7 +16,7 @@ struct CampCrewStatsSheet: View {
                             // Header
                             VStack(spacing: 8) {
                                 Text("Destination")
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .font(Theme.Typography.caption)
                                     .foregroundColor(Theme.Colors.acWood)
                                     .kerning(1.2)
                                 Text(session.destinationName)
@@ -70,7 +70,7 @@ struct CampCrewStatsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Theme.Typography.body)
                         .foregroundColor(Theme.Colors.acWood)
                 }
             }
@@ -91,9 +91,9 @@ struct CampCrewStatsSheet: View {
                 if isOffline {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.down.circle.fill")
-                            .font(.system(size: 12))
+                            .font(Theme.Typography.caption)
                         Text("Offline")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .font(Theme.Typography.caption)
                     }
                     .foregroundColor(Theme.Colors.acSky)
                     .padding(.horizontal, 8)

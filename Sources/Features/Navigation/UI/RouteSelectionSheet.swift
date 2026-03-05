@@ -35,7 +35,7 @@ struct RouteSelectionSheet: View {
                     Spacer()
                     Button(action: onCancel) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
+                            .font(Theme.Typography.title)
                             .foregroundColor(Theme.Colors.acWood)
                             .frame(width: 44, height: 44)
                     }
@@ -51,7 +51,8 @@ struct RouteSelectionSheet: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: vehicleStore.selectedVehicleMode.icon)
-                                .font(.system(size: 16, weight: .bold))
+                                .font(Theme.Typography.body)
+                                .bold()
                             Text(vehicleStore.selectedVehicleMode.displayName)
                                 .font(Theme.Typography.button)
                         }
@@ -119,7 +120,7 @@ struct RouteSelectionSheet: View {
                 VStack(spacing: 12) {
                     Button(action: onDrive) {
                         Text("Start Drive")
-                            .font(.system(size: 20, weight: .black, design: .rounded))
+                            .font(Theme.Typography.title3)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                     }
