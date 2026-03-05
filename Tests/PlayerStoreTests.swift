@@ -112,4 +112,47 @@ struct PlayerStoreTests {
         #expect(store.currentLevel == 2)
         #expect(store.xpForNextLevel() == 200)
     }
+
+    @Test func addXP_levelUp_setsShowLevelUpToast() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        store.addXP(100)
+        #expect(store.showLevelUpToast == true)
+    }
+
+    @Test func addXP_levelUp_populatesNewlyUnlockedCharacters() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        // 100 + 200 = 300 XP → level 3; scout_bear unlocks at level 3
+        store.addXP(300)
+        #expect(store.currentLevel == 3)
+        #expect(store.newlyUnlockedCharacters.contains { $0.id == "scout_bear" })
+    }
+
+    @Test func processRideEnd_atExactlySpeed15_earnsZero() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        // avgSpeed == 15.0 does NOT satisfy > 15.0
+        let xp = store.processRideEnd(durationSeconds: 600, avgSpeed: 15.0, distanceMiles: 5, questWaypointCount: 0)
+        #expect(xp == 0)
+    }
+
+    @Test func currentLevelProgress_midLevel_returnsHalf() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        store.addXP(50) // 50 out of 100 XP needed for level 2
+        let progress = store.currentLevelProgress()
+        #expect(abs(progress - 0.5) < 0.001)
+    }
+
+    @Test func addXP_multiLevel_unlocksAllSkippedCharacters() {
+        clearPlayerDefaults()
+        let store = PlayerStore()
+        // 100+200+300+400+500 = 1500 XP → level 6
+        // newlyUnlockedCharacters should include scout_bear(3) and breezy_bird(5)
+        store.addXP(1500)
+        #expect(store.currentLevel == 6)
+        #expect(store.newlyUnlockedCharacters.contains { $0.id == "scout_bear" })
+        #expect(store.newlyUnlockedCharacters.contains { $0.id == "breezy_bird" })
+    }
 }

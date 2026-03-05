@@ -125,3 +125,79 @@ struct DriveSessionTests {
         #expect(session.potentialTicketCount == 1)
     }
 }
+
+// MARK: - DriveRecord aggregate tests
+
+private func makeAggSession(avg: Double, top: Double, money: Double, dist: Double, duration: Int) -> DriveSession {
+    DriveSession(
+        date: Date(),
+        departureHour: 10,
+        avgSpeedMph: avg,
+        topSpeedMph: top,
+        speedReadings: [],
+        cameraZoneEvents: [],
+        moneySaved: money,
+        trafficDelaySeconds: 0,
+        timeOfDayCategory: .midday,
+        durationSeconds: duration,
+        distanceMiles: dist,
+        mood: nil,
+        zenScore: 80
+    )
+}
+
+private func makeRecord(sessions: [DriveSession]) -> DriveRecord {
+    DriveRecord(
+        routeFingerprint: "test",
+        destinationName: "Test",
+        originLatitude: 0,
+        originLongitude: 0,
+        destinationLatitude: 0,
+        destinationLongitude: 0,
+        sessions: sessions
+    )
+}
+
+struct DriveRecordAggregateTests {
+
+    @Test func noSessions_allAggregatesAreZero() {
+        let record = makeRecord(sessions: [])
+        #expect(record.allTimeAvgSpeedMph == 0)
+        #expect(record.allTimeTopSpeedMph == 0)
+        #expect(record.allTimeMoneySaved == 0)
+        #expect(record.totalDistanceMiles == 0)
+        #expect(record.totalTimeDrivenSeconds == 0)
+    }
+
+    @Test func singleSession_aggregatesMatchSession() {
+        let session = makeAggSession(avg: 40, top: 60, money: 100, dist: 5, duration: 600)
+        let record = makeRecord(sessions: [session])
+        #expect(record.allTimeAvgSpeedMph == 40)
+        #expect(record.allTimeTopSpeedMph == 60)
+        #expect(record.allTimeMoneySaved == 100)
+        #expect(record.totalDistanceMiles == 5)
+        #expect(record.totalTimeDrivenSeconds == 600)
+    }
+
+    @Test func twoSessions_avgSpeedIsSimpleAverage() {
+        let s1 = makeAggSession(avg: 40, top: 50, money: 0, dist: 0, duration: 0)
+        let s2 = makeAggSession(avg: 60, top: 50, money: 0, dist: 0, duration: 0)
+        let record = makeRecord(sessions: [s1, s2])
+        #expect(record.allTimeAvgSpeedMph == 50.0)
+    }
+
+    @Test func twoSessions_topSpeedIsMax() {
+        let s1 = makeAggSession(avg: 30, top: 40, money: 0, dist: 0, duration: 0)
+        let s2 = makeAggSession(avg: 30, top: 60, money: 0, dist: 0, duration: 0)
+        let record = makeRecord(sessions: [s1, s2])
+        #expect(record.allTimeTopSpeedMph == 60.0)
+    }
+
+    @Test func twoSessions_moneySavedAndDistanceSummed() {
+        let s1 = makeAggSession(avg: 30, top: 50, money: 100, dist: 3, duration: 300)
+        let s2 = makeAggSession(avg: 30, top: 50, money: 200, dist: 7, duration: 500)
+        let record = makeRecord(sessions: [s1, s2])
+        #expect(record.allTimeMoneySaved == 300)
+        #expect(record.totalDistanceMiles == 10)
+    }
+}

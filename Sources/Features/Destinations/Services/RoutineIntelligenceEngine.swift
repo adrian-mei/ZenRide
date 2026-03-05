@@ -12,11 +12,10 @@ struct RoutineIntelligenceEngine {
 
     @MainActor
     static func predictNextAdventure(from store: SavedRoutesStore, at location: CLLocationCoordinate2D?) -> Prediction? {
-        let calendar = Calendar.current
         let now = Date()
-        let currentHour = calendar.component(.hour, from: now)
-        let currentWeekday = calendar.component(.weekday, from: now)
-        let currentMonth = calendar.component(.month, from: now)
+        let currentHour = now.hour
+        let currentWeekday = now.weekday
+        let currentMonth = now.month
 
         var bestPrediction: Prediction?
         var highestScore: Double = -1.0
