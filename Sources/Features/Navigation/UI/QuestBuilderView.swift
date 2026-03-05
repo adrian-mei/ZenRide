@@ -1,20 +1,6 @@
 import SwiftUI
 import MapKit
 
-// MARK: - Start Location
-
-private enum StartLocation: Equatable {
-    case currentLocation
-    case custom(QuestWaypoint)
-
-    var displayName: String {
-        switch self {
-        case .currentLocation: return "Current Location"
-        case .custom(let wp): return wp.name
-        }
-    }
-}
-
 // MARK: - QuestBuilderView
 
 struct QuestBuilderView: View {
@@ -36,8 +22,6 @@ struct QuestBuilderView: View {
     @State private var showAddStop = false
     @State private var showChooseStart = false
     @State private var addStopMode: AddStopMode = .stop
-
-    private enum AddStopMode { case stop, start }
 
     var body: some View {
         NavigationStack {
