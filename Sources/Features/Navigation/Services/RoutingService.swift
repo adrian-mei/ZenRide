@@ -139,75 +139,22 @@ class RoutingService: ObservableObject {
 
     // MARK: - Route Selection
 
-    private func mapTurnType(from tomtomType: String?) -> TurnType {
-        guard let type = tomtomType else { return .straight }
-        if type == "TURN_LEFT" || type == "KEEP_LEFT" { return .left }
-        if type == "TURN_RIGHT" || type == "KEEP_RIGHT" { return .right }
-        if type == "ARRIVE" { return .arrive }
-        if type.contains("UTURN") { return .uturn }
-        return .straight
-    }
-
     func selectRoute(at index: Int) {
         guard index >= 0 && index < availableRoutes.count else { return }
         selectedRouteIndex = index
         let route = availableRoutes[index]
 
-        var totalCalculatedDistance = 0.0
-        coordinateDistances = [0.0]
-
-        if let firstLeg = route.legs.first {
-            let coordinates = firstLeg.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
-            activeRoute = coordinates
-
-            for i in 1..<coordinates.count {
-                let dist = coordinates[i-1].distance(to: coordinates[i])
-                totalCalculatedDistance += dist
-                coordinateDistances.append(totalCalculatedDistance)
-            }
-        }
-
-        if useMockData {
-            routeDistanceMeters = Int(totalCalculatedDistance)
-            routeTimeSeconds = Int(totalCalculatedDistance / 15.0)
-
-            if let oldInstructions = route.guidance?.instructions {
-                instructions = oldInstructions.map { inst in
-                    let trueOffset = inst.pointIndex < coordinateDistances.count ? Int(coordinateDistances[inst.pointIndex]) : Int(totalCalculatedDistance)
-                    return NavigationInstruction(
-                        text: inst.message ?? "Continue",
-                        distanceInMeters: 50,
-                        routeOffsetInMeters: trueOffset,
-                        pointIndex: inst.pointIndex,
-                        turnType: self.mapTurnType(from: inst.instructionType)
-                    )
-                }
-            } else {
-                instructions = []
-            }
-        } else {
-            routeDistanceMeters = route.summary.lengthInMeters
-            routeTimeSeconds = route.summary.travelTimeInSeconds
-            if let tomtom = route.guidance?.instructions {
-                instructions = tomtom.map { inst in
-                    NavigationInstruction(
-                        text: inst.message ?? "Continue",
-                        distanceInMeters: 50,
-                        routeOffsetInMeters: inst.routeOffsetInMeters,
-                        pointIndex: inst.pointIndex,
-                        turnType: self.mapTurnType(from: inst.instructionType)
-                    )
-                }
-            } else {
-                instructions = []
-            }
-        }
+        let result = RouteSelectionEngine.processSelection(route: route, useMockData: useMockData)
+        
+        activeRoute = result.activeRoute
+        coordinateDistances = result.coordinateDistances
+        routeDistanceMeters = result.routeDistanceMeters
+        routeTimeSeconds = result.routeTimeSeconds
+        instructions = result.instructions
+        
         currentInstructionIndex = 0
         routeProgressIndex = 0
     }
-
-
-
     func loadLeg(result: (activeRoute: [CLLocationCoordinate2D], distanceMeters: Int, timeSeconds: Int, instructions: [NavigationInstruction])) {
         self.activeRoute = result.activeRoute
         self.routeDistanceMeters = result.distanceMeters
