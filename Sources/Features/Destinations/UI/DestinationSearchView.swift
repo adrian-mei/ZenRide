@@ -23,7 +23,6 @@ struct DestinationSearchView: View {
 
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
-    @State private var justSavedIndex: Int?
 
     var body: some View {
         NavigationStack {
@@ -31,68 +30,12 @@ struct DestinationSearchView: View {
                 Theme.Colors.acField.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Search bar
-                    HStack(spacing: 12) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(Theme.Colors.acTextMuted)
-                                .font(.system(size: 16, weight: .bold))
-
-                            TextField("Where to?", text: $searcher.searchQuery)
-                                .focused($isSearchFocused)
-                                .submitLabel(.search)
-                                .autocorrectionDisabled()
-                                .font(Theme.Typography.body)
-                                .foregroundColor(Theme.Colors.acTextDark)
-                                .onChange(of: searcher.searchQuery) { _, query in
-                                    searcher.scheduleSearch(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
-                                }
-                                .onSubmit {
-                                    let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
-                                    guard !q.isEmpty else { return }
-                                    searcher.search(for: q, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
-                                }
-
-                            if !searcher.searchQuery.isEmpty {
-                                Button {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    searcher.searchQuery = ""
-                                    searcher.searchResults = []
-                                    searcher.isSearching = false
-                                    isSearchFocused = true
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(Theme.Colors.acTextMuted)
-                                        .frame(width: 36, height: 36)
-                                }
-                                .transition(.scale(scale: 0.6).combined(with: .opacity))
-                            }
-                        }
-                        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: searcher.searchQuery.isEmpty)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(Theme.Colors.acCream)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
-                    }
-                    .padding()
-
+                    searchBar
+                    
                     if let category = category {
-                        HStack {
-                            Label("Filtering for \(category.displayName)", systemImage: category.icon)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(categoryColor(category))
-                            Spacer()
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(categoryColor(category).opacity(0.12))
-                        .clipShape(Capsule())
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
+                        categoryFilterIndicator(category)
                     }
 
-                    // Content
                     if !searcher.searchQuery.isEmpty || category != nil {
                         searchResultsList
                     } else {
@@ -124,7 +67,69 @@ struct DestinationSearchView: View {
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Components
+    
+    private var searchBar: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(Theme.Colors.acTextMuted)
+                    .font(.system(size: 16, weight: .bold))
+
+                TextField("Where to?", text: $searcher.searchQuery)
+                    .focused($isSearchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.acTextDark)
+                    .onChange(of: searcher.searchQuery) { _, query in
+                        searcher.scheduleSearch(for: query, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
+                    }
+                    .onSubmit {
+                        let q = searcher.searchQuery.trimmingCharacters(in: .whitespaces)
+                        guard !q.isEmpty else { return }
+                        searcher.search(for: q, near: locationProvider.currentLocation?.coordinate, recentSearches: savedRoutes.recentSearches)
+                    }
+
+                if !searcher.searchQuery.isEmpty {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        searcher.searchQuery = ""
+                        searcher.searchResults = []
+                        searcher.isSearching = false
+                        isSearchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(Theme.Colors.acTextMuted)
+                            .frame(width: 36, height: 36)
+                    }
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                }
+            }
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: searcher.searchQuery.isEmpty)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Theme.Colors.acCream)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
+        }
+        .padding()
+    }
+    
+    private func categoryFilterIndicator(_ category: RoutineCategory) -> some View {
+        HStack {
+            Label("Filtering for \(category.displayName)", systemImage: category.icon)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(categoryColor(category))
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(categoryColor(category).opacity(0.12))
+        .clipShape(Capsule())
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
 
     private var bookmarksSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -217,9 +222,8 @@ struct DestinationSearchView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(searcher.searchResults.prefix(12).enumerated()), id: \.offset) { idx, item in
-                        let userLoc = locationProvider.currentLocation
                         let distanceString: String? = {
-                            guard let userLoc, let placeLoc = item.placemark.location else { return nil }
+                            guard let userLoc = locationProvider.currentLocation, let placeLoc = item.placemark.location else { return nil }
                             let miles = userLoc.distance(from: placeLoc) / Constants.metersPerMile
                             return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
                         }()

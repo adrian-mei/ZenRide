@@ -4,6 +4,7 @@ import CoreLocation
 
 // MARK: - Searcher
 
+@MainActor
 class DestinationSearcher: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [MKMapItem] = []
@@ -38,109 +39,80 @@ class DestinationSearcher: ObservableObject {
         searchTask?.cancel()
 
         let cleanQuery = query.trimmingCharacters(in: .whitespaces)
-        let effectiveQuery = cleanQuery.isEmpty ? (category?.displayName ?? "") : cleanQuery
+        
+        let center = location ?? CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194)
+        var userCity: String? = nil
+        let geocoder = CLGeocoder()
+        let clLoc = CLLocation(latitude: center.latitude, longitude: center.longitude)
 
-        guard !effectiveQuery.isEmpty else {
-            searchResults = []; isSearching = false; return
-        }
+        searchTask = Task {
+            isSearching = true
+            defer { isSearching = false }
 
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = effectiveQuery
+            let placemarks = try? await geocoder.reverseGeocodeLocation(clLoc)
+            userCity = placemarks?.first?.locality?.lowercased()
 
-        // Apply intelligence based on category
-        if let category = category {
-            switch category {
-            case .home, .work:
-                // User is likely searching for an address, filter out POIs to avoid "Home Depot" etc.
-                request.pointOfInterestFilter = .excludingAll
-            case .gym:
-                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.fitnessCenter])
-            case .school, .dayCare, .afterSchool:
-                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.school, .university])
-            case .dateSpot:
-                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.restaurant, .cafe, .theater, .movieTheater, .museum, .park])
-            case .holySpot:
-                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.park, .beach, .nationalPark])
-            case .grocery:
-                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.store, .foodMarket, .bakery])
-            case .coffee:
-                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.cafe])
-            default:
-                break
+            let lowerQuery = cleanQuery.lowercased()
+
+            var matchedRecents = [MKMapItem]()
+            if !lowerQuery.isEmpty {
+                matchedRecents = recentSearches
+                    .filter { $0.name.lowercased().contains(lowerQuery) }
+                    .prefix(2)
+                    .map { MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude))) }
             }
-        }
 
-        let center = location ?? Constants.sfCenter
-        request.region = MKCoordinateRegion(
-            center: center,
-            span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.5)
-        )
+            if cleanQuery.isEmpty && category != nil {
+                // Return just recents matching the category context, or empty if no query
+                // The view will handle showing the empty state or default categories
+                searchResults = matchedRecents
+                return
+            }
 
-        let lowerQuery = cleanQuery.lowercased()
-        let matchedRecents = recentSearches.filter { recent in
-            recent.name.lowercased().contains(lowerQuery) ||
-            recent.subtitle.lowercased().contains(lowerQuery)
-        }.map { recent -> MKMapItem in
-            let placemark = MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: recent.latitude, longitude: recent.longitude),
-                                        addressDictionary: ["Street": recent.subtitle])
-            let item = MKMapItem(placemark: placemark)
-            item.name = recent.name
-            return item
-        }
+            let request = MKLocalSearch.Request()
+            request.naturalLanguageQuery = cleanQuery
 
-        let search = MKLocalSearch(request: request)
-        activeSearch = search
+            if let category = category {
+                switch category {
+                case .home:
+                    request.pointOfInterestFilter = MKPointOfInterestFilter(including: []) // Address search mostly
+                case .work:
+                    request.pointOfInterestFilter = MKPointOfInterestFilter(including: [])
+                case .gym:
+                    request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.fitnessCenter])
+                case .holySpot:
+                    request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.park, .beach, .nationalPark])
+                case .school, .afterSchool:
+                    request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.school, .university])
+                case .grocery:
+                    request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.store, .foodMarket, .bakery])
+                case .coffee:
+                    request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.cafe])
+                default:
+                    request.pointOfInterestFilter = .includingAll
+                }
+            } else {
+                request.pointOfInterestFilter = .includingAll
+            }
 
-        searchTask = Task { @MainActor [weak self] in
-            guard let self = self else { return }
+            request.region = MKCoordinateRegion(center: center, latitudinalMeters: 50000, longitudinalMeters: 50000)
 
-            // Run geocoding and search concurrently
-            let clLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
+            activeSearch = MKLocalSearch(request: request)
 
-            async let geocodeResult = try? CLGeocoder().reverseGeocodeLocation(clLocation)
-            async let searchResult = try? search.start()
-
-            let (placemarks, response) = await (geocodeResult, searchResult)
-
-            if Task.isCancelled { return }
-
-            self.isSearching = false
-
-            guard let response = response else {
-                if !matchedRecents.isEmpty {
+            guard let response = try? await activeSearch?.start() else {
+                if !Task.isCancelled {
                     self.searchResults = matchedRecents
-                } else {
-                    Log.error("Search", "MKLocalSearch failed")
                 }
                 return
             }
 
-            let userCity = placemarks?.first?.locality?.lowercased()
+            if Task.isCancelled { return }
 
             let filteredNetworkResults = response.mapItems.filter { item in
-                guard let cat = self.category else { return true }
-
-                // Always allow results that strongly match the user's manual query
-                if !lowerQuery.isEmpty {
-                    let name = (item.name ?? "").lowercased()
-                    if name.contains(lowerQuery) || lowerQuery.contains(name) {
-                        return true
-                    }
-                }
-
-                switch cat {
-                case .home, .work:
-                    return item.pointOfInterestCategory == nil
+                guard let category = category else { return true }
+                switch category {
                 case .gym:
                     return item.pointOfInterestCategory == .fitnessCenter
-                case .school, .dayCare, .afterSchool:
-                    return item.pointOfInterestCategory == .school || item.pointOfInterestCategory == .university
-                case .dateSpot:
-                    let dateCategories: [MKPointOfInterestCategory] = [.restaurant, .cafe, .theater, .movieTheater, .museum, .park]
-                    if let itemCat = item.pointOfInterestCategory {
-                        return dateCategories.contains(itemCat)
-                    }
-                    return false
                 case .holySpot:
                     let zenCategories: [MKPointOfInterestCategory] = [.park, .beach, .nationalPark]
                     if let itemCat = item.pointOfInterestCategory {
@@ -215,6 +187,7 @@ class DestinationSearcher: ObservableObject {
         }
     }
 
+    nonisolated
     static func score(name: String, query: String) -> Int {
         if name == query { return 4 }
         if name.hasPrefix(query) { return 3 }
