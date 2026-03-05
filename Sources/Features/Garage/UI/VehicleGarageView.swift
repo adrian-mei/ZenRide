@@ -7,26 +7,7 @@ struct VehicleGarageView: View {
     @EnvironmentObject var playerStore: PlayerStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var hoveredId: String
-
-    init() {
-        _hoveredId = State(initialValue: "classic_sedan")
-    }
-
-    private var hoveredTemplate: VehicleTemplate {
-        VehicleTemplate.all.first { $0.id == hoveredId } ?? VehicleTemplate.all[0]
-    }
-
-    private var freeTemplates: [VehicleTemplate] {
-        VehicleTemplate.all.filter { $0.unlockLevel == 1 }
-    }
-    private var lockedTemplates: [VehicleTemplate] {
-        VehicleTemplate.all.filter { $0.unlockLevel > 1 && $0.unlockLevel < 40 }
-    }
-    private var legendaryTemplates: [VehicleTemplate] {
-        VehicleTemplate.all.filter { $0.unlockLevel >= 40 }
-    }
-
+    @StateObject private var vm = VehicleGarageViewModel()
     var body: some View {
         ZStack {
             Theme.Colors.acCream.ignoresSafeArea()
@@ -39,21 +20,21 @@ struct VehicleGarageView: View {
                         // ── FREE section ─────────────────────────────────
                         PickerSectionHeader(
                             title: "FREE",
-                            badge: "\(freeTemplates.count) rides",
+                            badge: "\(vm.freeTemplates.count) rides",
                             icon: "checkmark.circle.fill",
                             color: Theme.Colors.acLeaf
                         )
 
                         VStack(spacing: 6) {
-                            ForEach(freeTemplates) { template in
+                            ForEach(vm.freeTemplates) { template in
                                 TemplateRow(
                                     template: template,
                                     isLocked: false,
                                     isSelected: vehicleStore.selectedTemplateId == template.id,
-                                    isHovered: hoveredId == template.id,
+                                    isHovered: vm.hoveredId == template.id,
                                     onTap: {
                                         withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
-                                            hoveredId = template.id
+                                            vm.hoveredId = template.id
                                         }
                                         UISelectionFeedbackGenerator().selectionChanged()
                                     }
@@ -72,22 +53,22 @@ struct VehicleGarageView: View {
                         )
 
                         VStack(spacing: 6) {
-                            ForEach(lockedTemplates) { template in
+                            ForEach(vm.lockedTemplates) { template in
                                 let isLocked = template.unlockLevel > playerStore.currentLevel
                                 TemplateRow(
                                     template: template,
                                     isLocked: isLocked,
                                     isSelected: vehicleStore.selectedTemplateId == template.id,
-                                    isHovered: hoveredId == template.id,
+                                    isHovered: vm.hoveredId == template.id,
                                     onTap: {
                                         if !isLocked {
                                             withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
-                                                hoveredId = template.id
+                                                vm.hoveredId = template.id
                                             }
                                             UISelectionFeedbackGenerator().selectionChanged()
                                         } else {
                                             withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
-                                                hoveredId = template.id
+                                                vm.hoveredId = template.id
                                             }
                                             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                                         }
@@ -99,7 +80,7 @@ struct VehicleGarageView: View {
                         .padding(.bottom, 16)
 
                         // ── LEGENDARY section ───────────────────────────────
-                        if !legendaryTemplates.isEmpty {
+                        if !vm.legendaryTemplates.isEmpty {
                             PickerSectionHeader(
                                 title: "LEGENDARY",
                                 badge: "master XP",
@@ -108,22 +89,22 @@ struct VehicleGarageView: View {
                             )
 
                             VStack(spacing: 6) {
-                                ForEach(legendaryTemplates) { template in
+                                ForEach(vm.legendaryTemplates) { template in
                                     let isLocked = template.unlockLevel > playerStore.currentLevel
                                     TemplateRow(
                                         template: template,
                                         isLocked: isLocked,
                                         isSelected: vehicleStore.selectedTemplateId == template.id,
-                                        isHovered: hoveredId == template.id,
+                                        isHovered: vm.hoveredId == template.id,
                                         onTap: {
                                             if !isLocked {
                                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
-                                                    hoveredId = template.id
+                                                    vm.hoveredId = template.id
                                                 }
                                                 UISelectionFeedbackGenerator().selectionChanged()
                                             } else {
                                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
-                                                    hoveredId = template.id
+                                                    vm.hoveredId = template.id
                                                 }
                                                 UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                                             }
@@ -148,11 +129,11 @@ struct VehicleGarageView: View {
                         Circle()
                             .fill(Theme.Colors.acField)
                             .frame(width: 130, height: 130)
-                        Image(systemName: hoveredTemplate.type.icon)
+                        Image(systemName: vm.hoveredTemplate.type.icon)
                             .font(.system(size: 66, weight: .bold))
-                            .foregroundColor(Color(hex: hoveredTemplate.colorHex))
+                            .foregroundColor(Color(hex: vm.hoveredTemplate.colorHex))
                     }
-                    .id(hoveredId)
+                    .id(vm.hoveredId)
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.5).combined(with: .opacity),
                         removal: .scale(scale: 1.4).combined(with: .opacity)
@@ -160,10 +141,10 @@ struct VehicleGarageView: View {
                     .padding(.bottom, 14)
 
                     // Name slides in/out
-                    Text(hoveredTemplate.name)
+                    Text(vm.hoveredTemplate.name)
                         .font(.system(size: 19, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextDark)
-                        .id(hoveredId + "_name")
+                        .id(vm.hoveredId + "_name")
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom).combined(with: .opacity),
                             removal: .move(edge: .top).combined(with: .opacity)
@@ -171,11 +152,11 @@ struct VehicleGarageView: View {
 
                     // FREE badge or type label
                     HStack(spacing: 6) {
-                        Text(hoveredTemplate.type.displayName)
+                        Text(vm.hoveredTemplate.type.displayName)
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .foregroundColor(Theme.Colors.acTextMuted)
 
-                        if hoveredTemplate.unlockLevel == 1 {
+                        if vm.hoveredTemplate.unlockLevel == 1 {
                             Text("FREE")
                                 .font(.system(size: 9, weight: .black, design: .rounded))
                                 .kerning(1.2)
@@ -188,30 +169,30 @@ struct VehicleGarageView: View {
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
-                    .id(hoveredId + "_type")
+                    .id(vm.hoveredId + "_type")
                     .transition(.opacity)
                     .padding(.bottom, 18)
 
                     // Stats — bars animate to new values
                     VStack(spacing: 10) {
-                        StatRow(label: "Speed", value: hoveredTemplate.speedStat, color: Theme.Colors.acSky)
-                        StatRow(label: "Handling", value: hoveredTemplate.handlingStat, color: Theme.Colors.acGold)
-                        StatRow(label: "Safety", value: hoveredTemplate.safetyStat, color: Theme.Colors.acCoral)
+                        StatRow(label: "Speed", value: vm.hoveredTemplate.speedStat, color: Theme.Colors.acSky)
+                        StatRow(label: "Handling", value: vm.hoveredTemplate.handlingStat, color: Theme.Colors.acGold)
+                        StatRow(label: "Safety", value: vm.hoveredTemplate.safetyStat, color: Theme.Colors.acCoral)
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 16)
 
                     // Lock progress — shown only when hovering a locked template
-                    let isLocked = hoveredTemplate.unlockLevel > playerStore.currentLevel
+                    let isLocked = vm.hoveredTemplate.unlockLevel > playerStore.currentLevel
                     if isLocked {
-                        let levelsNeeded = hoveredTemplate.unlockLevel - playerStore.currentLevel
+                        let levelsNeeded = vm.hoveredTemplate.unlockLevel - playerStore.currentLevel
                         VStack(spacing: 6) {
                             HStack {
                                 Text("Your Progress")
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
                                     .foregroundColor(Theme.Colors.acTextMuted)
                                 Spacer()
-                                Text("Lv \(playerStore.currentLevel) → \(hoveredTemplate.unlockLevel)")
+                                Text("Lv \(playerStore.currentLevel) → \(vm.hoveredTemplate.unlockLevel)")
                                     .font(.system(size: 11, weight: .black, design: .rounded))
                                     .foregroundColor(Theme.Colors.acTextMuted)
                             }
@@ -237,10 +218,10 @@ struct VehicleGarageView: View {
                     // Select button
                     Button {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        vehicleStore.setTemplate(id: hoveredId)
+                        vehicleStore.setTemplate(id: vm.hoveredId)
                         dismiss()
                     } label: {
-                        Text(isLocked ? "Locked · Level \(hoveredTemplate.unlockLevel)" : "Select")
+                        Text(isLocked ? "Locked · Level \(vm.hoveredTemplate.unlockLevel)" : "Select")
                             .font(.system(size: 15, weight: .black, design: .rounded))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -263,7 +244,7 @@ struct VehicleGarageView: View {
             }
         }
         .onAppear {
-            hoveredId = vehicleStore.selectedTemplateId
+            vm.hoveredId = vehicleStore.selectedTemplateId
         }
     }
 }
