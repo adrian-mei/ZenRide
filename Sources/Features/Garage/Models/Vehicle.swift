@@ -136,8 +136,7 @@ class VehicleStore: ObservableObject {
     }
 
     func updateVehicle(_ vehicle: Vehicle) {
-        guard let idx = vehicles.firstIndex(where: { $0.id == vehicle.id }) else { return }
-        vehicles[idx] = vehicle
+        guard vehicles.update(id: vehicle.id, { $0 = vehicle }) else { return }
         save()
         Log.info("VehicleStore", "Updated '\(vehicle.name)'")
     }

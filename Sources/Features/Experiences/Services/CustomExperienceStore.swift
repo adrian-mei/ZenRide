@@ -18,11 +18,7 @@ class CustomExperienceStore: ObservableObject {
     }
 
     func saveRoute(_ route: CustomExperienceRoute) {
-        if let index = customRoutes.firstIndex(where: { $0.id == route.id }) {
-            customRoutes[index] = route
-        } else {
-            customRoutes.append(route)
-        }
+        customRoutes.upsert(route)
         save()
     }
 
@@ -31,15 +27,10 @@ class CustomExperienceStore: ObservableObject {
     }
 
     private func save() {
-        if let data = try? JSONEncoder().encode(customRoutes) {
-            UserDefaults.standard.set(data, forKey: defaultsKey)
-        }
+        UserDefaults.standard.saveJSON(customRoutes, forKey: defaultsKey)
     }
 
     private func load() {
-        if let data = UserDefaults.standard.data(forKey: defaultsKey),
-           let decoded = try? JSONDecoder().decode([CustomExperienceRoute].self, from: data) {
-            customRoutes = decoded
-        }
+        customRoutes = UserDefaults.standard.loadJSON([CustomExperienceRoute].self, forKey: defaultsKey) ?? []
     }
 }

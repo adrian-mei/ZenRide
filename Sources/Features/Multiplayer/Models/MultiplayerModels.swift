@@ -36,9 +36,7 @@ struct CampCrewMember: Identifiable, Codable {
         id = try container.decode(String.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         avatarURL = try container.decodeIfPresent(String.self, forKey: .avatarURL)
-        let lat = try container.decode(Double.self, forKey: .latitude)
-        let lng = try container.decode(Double.self, forKey: .longitude)
-        coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        coordinate = try container.decodeCoordinate(latKey: .latitude, lngKey: .longitude)
         heading = try container.decode(Double.self, forKey: .heading)
         speedMph = try container.decode(Double.self, forKey: .speedMph)
         etaSeconds = try container.decodeIfPresent(Int.self, forKey: .etaSeconds)
@@ -56,8 +54,7 @@ struct CampCrewMember: Identifiable, Codable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encodeIfPresent(avatarURL, forKey: .avatarURL)
-        try container.encode(coordinate.latitude, forKey: .latitude)
-        try container.encode(coordinate.longitude, forKey: .longitude)
+        try container.encodeCoordinate(coordinate, latKey: .latitude, lngKey: .longitude)
         try container.encode(heading, forKey: .heading)
         try container.encode(speedMph, forKey: .speedMph)
         try container.encodeIfPresent(etaSeconds, forKey: .etaSeconds)
@@ -108,21 +105,18 @@ struct CampCrewSession: Identifiable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         destinationName = try container.decode(String.self, forKey: .destinationName)
-        let lat = try container.decode(Double.self, forKey: .latitude)
-        let lng = try container.decode(Double.self, forKey: .longitude)
-        destinationCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
-        waypoints = (try? container.decode([QuestWaypoint].self, forKey: .waypoints)) ?? []
+        destinationCoordinate = try container.decodeCoordinate(latKey: .latitude, lngKey: .longitude)
+        waypoints = try container.decodeIfPresent([QuestWaypoint].self, forKey: .waypoints) ?? []
         members = try container.decode([CampCrewMember].self, forKey: .members)
         isHost = try container.decode(Bool.self, forKey: .isHost)
-        isOfflineSaved = (try? container.decode(Bool.self, forKey: .isOfflineSaved)) ?? false
+        isOfflineSaved = try container.decodeIfPresent(Bool.self, forKey: .isOfflineSaved) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(destinationName, forKey: .destinationName)
-        try container.encode(destinationCoordinate.latitude, forKey: .latitude)
-        try container.encode(destinationCoordinate.longitude, forKey: .longitude)
+        try container.encodeCoordinate(destinationCoordinate, latKey: .latitude, lngKey: .longitude)
         try container.encode(waypoints, forKey: .waypoints)
         try container.encode(members, forKey: .members)
         try container.encode(isHost, forKey: .isHost)

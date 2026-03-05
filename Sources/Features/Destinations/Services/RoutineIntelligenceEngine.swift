@@ -56,7 +56,7 @@ struct RoutineIntelligenceEngine {
         return bestPrediction
     }
 
-    private static func calculateTemporalScore(history: [VisitRecord], hour: Int, weekday: Int) -> Double {
+    static func calculateTemporalScore(history: [VisitRecord], hour: Int, weekday: Int) -> Double {
         guard !history.isEmpty else { return 0.0 }
 
         let sameWeekdayCount = history.filter { $0.weekday == weekday }.count
@@ -68,7 +68,7 @@ struct RoutineIntelligenceEngine {
         return (weekdayRatio * 0.4) + (hourRatio * 0.6)
     }
 
-    private static func calculateSeasonalScore(history: [VisitRecord], month: Int) -> Double {
+    static func calculateSeasonalScore(history: [VisitRecord], month: Int) -> Double {
         guard !history.isEmpty else { return 0.0 }
         let sameMonthCount = history.filter { $0.month == month }.count
         return Double(sameMonthCount) / Double(history.count)
