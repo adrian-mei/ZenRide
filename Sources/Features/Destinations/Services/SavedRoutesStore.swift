@@ -113,32 +113,17 @@ class SavedRoutesStore: ObservableObject {
 
     func recordVisit(destinationName: String, coordinate: CLLocationCoordinate2D,
                      durationSeconds: Int, departureTime: Date) {
-        let hour    = departureTime.hour
-        let weekday = departureTime.weekday
-        let month   = departureTime.month
-
-        let record = VisitRecord(date: departureTime, hour: hour, weekday: weekday, month: month)
+        let record = VisitHistoryEngine.generateRecord(departureTime: departureTime)
 
         if let idx = findExistingIndex(near: coordinate, name: destinationName) {
-            routes[idx].useCount += 1
-            routes[idx].lastUsedDate = departureTime
-            routes[idx].typicalDepartureHours.append(hour)
-            routes[idx].typicalDepartureHours = Array(routes[idx].typicalDepartureHours.suffix(50))
-            routes[idx].visitHistory.append(record)
-
-            let prev = routes[idx].averageDurationSeconds
-            let count = routes[idx].useCount
-            routes[idx].averageDurationSeconds = (prev * (count - 1) + durationSeconds) / count
+            VisitHistoryEngine.updateExistingRoute(routes[idx], record: record, durationSeconds: durationSeconds, departureTime: departureTime)
         } else {
-            let route = SavedRoute(
+            let route = VisitHistoryEngine.createNewRoute(
                 destinationName: destinationName,
-                latitude: coordinate.latitude,
-                longitude: coordinate.longitude,
-                useCount: 1,
-                lastUsedDate: departureTime,
-                typicalDepartureHours: [hour],
-                averageDurationSeconds: durationSeconds,
-                visitHistory: [record]
+                coordinate: coordinate,
+                record: record,
+                durationSeconds: durationSeconds,
+                departureTime: departureTime
             )
             context.insert(route)
             routes.insert(route, at: 0)
@@ -215,15 +200,7 @@ class SavedRoutesStore: ObservableObject {
     }
 
     func suggestions(for hour: Int) -> [SavedRoute] {
-        guard hour >= 5 && hour <= 23 else { return [] }
-        let nearby = hour - 1 ... hour + 1
-        return routes
-            .filter { route in
-                route.useCount >= 2 && route.typicalDepartureHours.contains { nearby.contains($0) }
-            }
-            .sorted { $0.useCount > $1.useCount }
-            .prefix(3)
-            .map { $0 }
+        VisitHistoryEngine.generateSuggestions(routes: routes, for: hour)
     }
 
     // MARK: - Private
