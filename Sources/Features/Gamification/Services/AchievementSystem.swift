@@ -43,6 +43,15 @@ struct AchievementEngine {
                 progress: min(1.0, Double(totalRides) / 10.0)
             ),
             Achievement(
+                id: "rides_50",
+                title: "Dedicated Commuter",
+                subtitle: "Complete 50 rides",
+                icon: "car.fill",
+                color: Color(red: 0.8, green: 0.3, blue: 0.3),
+                isEarned: totalRides >= 50,
+                progress: min(1.0, Double(totalRides) / 50.0)
+            ),
+            Achievement(
                 id: "zen_80",
                 title: "Gentle Breeze",
                 subtitle: "Avg Zen Score ≥ 80 over 10 rides",

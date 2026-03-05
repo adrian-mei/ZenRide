@@ -4,7 +4,7 @@ import CoreLocation
 struct QuestDashboardView: View {
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var locationProvider: LocationProvider
-    
+
     @StateObject private var experiencesStore = ExperiencesStore()
 
     @State private var selectedExperience: ExperienceRoute?
@@ -58,7 +58,7 @@ struct QuestDashboardView: View {
                 .scrollClipDisabled()
             }
         }
-        
+
         .sheet(item: $selectedExperience) { experience in
             ExperienceDetailView(experience: experience)
         }
@@ -82,9 +82,9 @@ struct QuestDashboardView: View {
 struct ExperienceDashboardCard: View {
     let summary: ExperienceSummary
     let action: () -> Void
-    
+
     @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
@@ -113,7 +113,7 @@ struct ExperienceDashboardCard: View {
                             }
                         )
                         .clipped()
-                    
+
                     // Duration Badge
                     Text("\(summary.durationMinutes) min")
                         .font(.system(size: 11, weight: .black, design: .rounded))
@@ -125,13 +125,13 @@ struct ExperienceDashboardCard: View {
                         .padding(8)
                         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text(summary.title)
                         .font(.system(size: 16, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextDark)
                         .fixedSize(horizontal: false, vertical: true)
-                    
+
                     Text(summary.subtitle)
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
@@ -139,9 +139,9 @@ struct ExperienceDashboardCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    
+
                     Spacer(minLength: 0)
-                    
+
                     HStack {
                         Spacer()
                         HStack(spacing: 4) {

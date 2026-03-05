@@ -6,21 +6,21 @@ struct ExperienceDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var locationProvider: LocationProvider
-    
+
     @StateObject private var customStore = CustomExperienceStore()
-    
+
     let experience: ExperienceRoute
-    var onStart: (() -> Void)? = nil
-    
+    var onStart: (() -> Void)?
+
     @State private var stops: [ExperienceStop]
     @State private var isCustomized: Bool = false
-    
+
     init(experience: ExperienceRoute, onStart: (() -> Void)? = nil) {
         self.onStart = onStart
         self.experience = experience
         self._stops = State(initialValue: experience.stops.sorted(by: { $0.order < $1.order }))
     }
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -43,7 +43,7 @@ struct ExperienceDetailView: View {
                         .stroke(Theme.Colors.acLeaf, lineWidth: 4)
                 }
                 .frame(height: 250)
-                    
+
                     // Gradient overlay to blend map into content
                     LinearGradient(
                         gradient: Gradient(colors: [.clear, Theme.Colors.acField.opacity(0.8), Theme.Colors.acField]),
@@ -52,7 +52,7 @@ struct ExperienceDetailView: View {
                     )
                     .frame(height: 40)
                 }
-                
+
                 // Content Section
                 List {
                     Section {
@@ -61,14 +61,14 @@ struct ExperienceDetailView: View {
                                 .font(.system(size: 18, weight: .medium, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .fixedSize(horizontal: false, vertical: true)
-                                
+
                             Text(experience.description)
                                 .font(.system(size: 15, weight: .regular, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextMuted)
                                 .lineSpacing(4)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, 4)
-                                
+
                             HStack(spacing: 16) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "clock.fill")
@@ -88,7 +88,7 @@ struct ExperienceDetailView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 16, trailing: 16))
                     }
-                    
+
                     Section {
                         ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
                             VStack(alignment: .leading, spacing: 8) {
@@ -104,21 +104,21 @@ struct ExperienceDetailView: View {
                                             .foregroundColor(Theme.Colors.acWood)
                                     }
                                     .padding(.top, 2)
-                                    
+
                                     // Content
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(stop.name)
                                             .font(.system(size: 18, weight: .black, design: .rounded))
                                             .foregroundColor(Theme.Colors.acTextDark)
                                             .fixedSize(horizontal: false, vertical: true)
-                                        
+
                                         Text(stop.description)
                                             .font(.system(size: 14, weight: .medium, design: .rounded))
                                             .foregroundColor(Theme.Colors.acTextMuted)
                                             .lineSpacing(2)
                                             .fixedSize(horizontal: false, vertical: true)
                                             .padding(.bottom, 4)
-                                        
+
                                         // Start Button
                                         Button {
                                             startExperience(from: index)
@@ -137,7 +137,7 @@ struct ExperienceDetailView: View {
                                         }
                                         .buttonStyle(.plain)
                                     }
-                                    
+
                                     Spacer(minLength: 0)
                                 }
                             }
@@ -153,9 +153,9 @@ struct ExperienceDetailView: View {
                                 .font(.system(size: 18, weight: .black, design: .rounded))
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .textCase(nil)
-                            
+
                             Spacer()
-                            
+
                             if isCustomized {
                                 Button {
                                     withAnimation {
@@ -179,7 +179,7 @@ struct ExperienceDetailView: View {
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
                 .background(Theme.Colors.acField)
-                
+
                 // Bottom Button
                 VStack {
                     Button {
@@ -223,12 +223,12 @@ struct ExperienceDetailView: View {
             }
         }
     }
-    
+
     private func moveStops(from source: IndexSet, to destination: Int) {
         stops.move(fromOffsets: source, toOffset: destination)
         isCustomized = true
     }
-    
+
     private func saveCustomOrder() {
         let custom = CustomExperienceRoute(
             id: UUID().uuidString,
@@ -239,7 +239,7 @@ struct ExperienceDetailView: View {
         customStore.saveRoute(custom)
         isCustomized = false
     }
-    
+
     private func startExperience(from startIndex: Int) {
         let remainingStops = Array(stops[startIndex...])
         let waypoints = remainingStops.map { stop in

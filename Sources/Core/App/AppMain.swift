@@ -19,6 +19,7 @@ struct ZenMapApp: App {
     @StateObject private var questStore = QuestStore()
     @StateObject private var playerStore = PlayerStore()
     @StateObject private var memoryStore = MemoryStore()
+    @StateObject private var parkedCarStore = ParkedCarStore()
 
     var body: some Scene {
         WindowGroup {
@@ -36,6 +37,7 @@ struct ZenMapApp: App {
                 .environmentObject(questStore)
                 .environmentObject(playerStore)
                 .environmentObject(memoryStore)
+                .environmentObject(parkedCarStore)
                 .onAppear {
                     bunnyPolice.cameras = cameraStore.cameras
                 }

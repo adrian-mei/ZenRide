@@ -4,7 +4,7 @@ import UIKit
 /// ZenMap (Animal Crossing / Camp) Theme Engine
 /// Ports the exact CSS palette from the `fashoda` web app ecosystem.
 public struct Theme {
-    
+
     // MARK: - Colors (Camping / Animal Crossing Palette)
     public struct Colors {
         public static let acLeaf = Color(hex: "5BAD6F")
@@ -18,12 +18,12 @@ public struct Theme {
         public static let acWood = Color(hex: "C68642")
         public static let acGrass = Color(hex: "4CAF50")
         public static let acLavender = Color(hex: "C3B1E1")
-        
+
         // Deep wood color for text on light backgrounds
         public static let acTextDark = Color(hex: "5C4A1E")
         public static let acTextMuted = Color(hex: "8B6914")
     }
-    
+
     // MARK: - Typography
     public struct Typography {
         /// Heavy, rounded title font mimicking Quicksand/Nunito black
@@ -33,216 +33,5 @@ public struct Theme {
         public static let button = Font.system(size: 14, weight: .black, design: .rounded)
         public static let caption = Font.system(size: 12, weight: .bold, design: .rounded)
         public static let label = Font.system(size: 10, weight: .black, design: .rounded)
-    }
-}
-
-// MARK: - Geometry Utilities
-
-public struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-    public func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners,
-                                cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
-    }
-}
-
-public extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
-
-// MARK: - Hex Color Support
-public extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue:  Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
-
-// MARK: - Modifiers (ACCard)
-
-public struct ACTextureOverlay: View {
-    public var body: some View {
-        GeometryReader { geo in
-            Path { path in
-                let step: CGFloat = 12
-                for x in stride(from: 0, through: geo.size.width, by: step) {
-                    for y in stride(from: 0, through: geo.size.height, by: step) {
-                        path.addEllipse(in: CGRect(x: x, y: y, width: 1.5, height: 1.5))
-                    }
-                }
-            }
-            .fill(Theme.Colors.acBorder.opacity(0.15))
-        }
-    }
-}
-
-public struct ACCardModifier: ViewModifier {
-    var padding: CGFloat = 16
-    var isInteractive: Bool = false
-    var hasTexture: Bool = true
-    @State private var isPressed: Bool = false
-
-    @ViewBuilder
-    public func body(content: Content) -> some View {
-        let base = content
-            .padding(padding)
-            .background(
-                ZStack {
-                    Theme.Colors.acCream
-                    if hasTexture {
-                        ACTextureOverlay()
-                    }
-                }
-            )
-            // Wood border
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Theme.Colors.acBorder.opacity(0.8), lineWidth: 2.5)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            // 3D Drop Shadow effect that "presses" down
-            .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: isPressed ? 0 : 8)
-            // Slight vertical shift to complete the physical press illusion
-            .offset(y: isPressed ? 8 : 0)
-
-        if isInteractive {
-            base.simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
-                            isPressed = true
-                        }
-                    }
-                    .onEnded { _ in
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                            isPressed = false
-                        }
-                    }
-            )
-        } else {
-            base
-        }
-    }
-}
-
-extension View {
-    /// Applies the Animal Crossing card style (textured cream bg, wood border, chunky 8pt shadow)
-    func acCardStyle(padding: CGFloat = 16, interactive: Bool = false, hasTexture: Bool = true) -> some View {
-        self.modifier(ACCardModifier(padding: padding, isInteractive: interactive, hasTexture: hasTexture))
-    }
-    
-    /// Bouncy, slightly rotating spring animation for that squishy AC feel.
-    func acWobble(isPressed: Bool) -> some View {
-        self.scaleEffect(isPressed ? 0.94 : 1.0)
-            .rotationEffect(.degrees(isPressed ? -2 : 0))
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
-    }
-}
-
-// MARK: - ACButton Styles
-
-public struct ACButtonStyle: ButtonStyle {
-    public enum Variant {
-        case primary // Green
-        case secondary // Field / Cream
-        case largePrimary // Green, cornerRadius 28, label provides own layout
-        case largeSecondary // Field/tan, cornerRadius 28, label provides own layout
-    }
-
-    var variant: Variant
-
-    public func makeBody(configuration: Configuration) -> some View {
-        let liftY: CGFloat = configuration.isPressed ? 0 : 6
-        let radius: CGFloat = isLarge ? 28 : 22
-
-        ZStack {
-            // Bottom depth slab (stationary — creates the chunky 3D base)
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .fill(shadowColor)
-
-            // Top face + Label
-            Group {
-                if isLarge {
-                    configuration.label
-                } else {
-                    configuration.label
-                        .font(Theme.Typography.button)
-                        .foregroundColor(textColor)
-                        .padding(.horizontal, 24)
-                }
-            }
-            .frame(maxWidth: isLarge ? .infinity : nil)
-            .frame(minHeight: isLarge ? 84 : 56)
-            .background(
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(backgroundColor(isPressed: configuration.isPressed))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.2), lineWidth: 1.5)
-                    )
-            )
-            .offset(y: -liftY)
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-        .rotationEffect(.degrees(configuration.isPressed ? -1 : 0))
-        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
-    }
-
-    private var isLarge: Bool {
-        variant == .largePrimary || variant == .largeSecondary
-    }
-    
-    private func backgroundColor(isPressed: Bool) -> Color {
-        switch variant {
-        case .primary, .largePrimary:
-            return isPressed ? Theme.Colors.acLeaf.opacity(0.8) : Theme.Colors.acLeaf
-        case .secondary, .largeSecondary:
-            return isPressed ? Theme.Colors.acCream : Theme.Colors.acField
-        }
-    }
-
-    private var textColor: Color {
-        switch variant {
-        case .primary, .largePrimary: return .white
-        case .secondary, .largeSecondary: return Theme.Colors.acTextDark
-        }
-    }
-
-    private var borderColor: Color {
-        switch variant {
-        case .primary, .largePrimary: return Color(hex: "388E3C")
-        case .secondary, .largeSecondary: return Theme.Colors.acBorder
-        }
-    }
-
-    private var shadowColor: Color {
-        switch variant {
-        case .primary, .largePrimary: return Color(hex: "388E3C")
-        case .secondary, .largeSecondary: return Theme.Colors.acBorder
-        }
     }
 }

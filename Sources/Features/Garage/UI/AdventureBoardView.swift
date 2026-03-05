@@ -99,15 +99,15 @@ struct AdventureBoardView: View {
     private var visibleCategories: [RoutineCategory] {
         switch playerStore.currentMode {
         case .standard:
-            return [.home, .work, .gym, .partyMember, .holySpot]
+            return [.home, .work, .gym, .partyMember, .holySpot, .grocery, .coffee]
         case .family:
-            return [.home, .dayCare, .school, .afterSchool, .partyMember]
+            return [.home, .dayCare, .school, .afterSchool, .partyMember, .grocery]
         case .newDriver:
-            return [.home, .school, .work, .gym, .holySpot]
+            return [.home, .school, .work, .gym, .holySpot, .coffee]
         case .motorcycle:
-            return [.home, .holySpot, .partyMember] // Moto riders love their holy spots and crew
+            return [.home, .holySpot, .partyMember, .coffee] // Moto riders love their holy spots and crew
         case .singleDude:
-            return [.home, .dateSpot, .gym, .partyMember, .holySpot]
+            return [.home, .dateSpot, .gym, .partyMember, .holySpot, .coffee]
         }
     }
 
@@ -122,6 +122,8 @@ struct AdventureBoardView: View {
         case .school: return Theme.Colors.acSky
         case .afterSchool: return Theme.Colors.acCoral
         case .dateSpot: return Theme.Colors.acCoral
+        case .grocery: return Theme.Colors.acLeaf
+        case .coffee: return Theme.Colors.acWood
         }
     }
 

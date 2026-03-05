@@ -5,25 +5,33 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var vehicleStore: VehicleStore
     @EnvironmentObject var driveStore: DriveStore
-    
+    @EnvironmentObject var playerStore: PlayerStore
+
     @State private var email = "rider@zenride.app"
     @State private var name = "Zen Rider"
     @State private var subscription = "Pro Rider"
-    
+
     @State private var showGarage = false
     @State private var showDriveHistory = false
     @State private var showExperiences = false
     @State private var showPrivacyAlert = false
     @State private var showSignOutAlert = false
+    @State private var showAvatarSelection = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     // User Header
-                    UserHeaderView(name: name, email: email, subscription: subscription)
-                        .padding(.horizontal)
-                        .padding(.top, 16)
+                    Button {
+                        showAvatarSelection = true
+                    } label: {
+                        UserHeaderView(name: name, email: email, subscription: subscription)
+                            .environmentObject(playerStore)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                    .padding(.top, 16)
 
                     // Bike Cards Section
                     VStack(alignment: .leading, spacing: 12) {
@@ -125,12 +133,18 @@ struct ProfileView: View {
                     .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showExperiences) {
-                ExperiencesCatalogView { route in
+                ExperiencesCatalogView { _ in
                     // In a profile view context, we might just dismiss or we could inject it
                     // For now, selecting it from the profile could just dismiss the catalog.
                     // Typically, you'd navigate back to the map and load it.
                     dismiss()
                 }
+            }
+            .sheet(isPresented: $showAvatarSelection) {
+                AvatarSelectionView()
+                    .environmentObject(playerStore)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .alert("Privacy", isPresented: $showPrivacyAlert) {
                 Button("OK", role: .cancel) {}
@@ -160,27 +174,29 @@ struct UserHeaderView: View {
     let email: String
     let subscription: String
     @EnvironmentObject var driveStore: DriveStore
-    
+    @EnvironmentObject var playerStore: PlayerStore
+
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Theme.Colors.acCream)
+                    .fill(Color(hex: playerStore.selectedCharacter.colorHex).opacity(0.2))
                     .frame(width: 72, height: 72)
-                    .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                Text("🦊")
-                    .font(.system(size: 40))
+                    .overlay(Circle().stroke(Color(hex: playerStore.selectedCharacter.colorHex), lineWidth: 2))
+                Image(systemName: playerStore.selectedCharacter.icon)
+                    .font(.system(size: 32))
+                    .foregroundColor(Color(hex: playerStore.selectedCharacter.colorHex))
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
-                Text("Villager \(name)")
+                Text("Lv \(playerStore.currentLevel) \(playerStore.selectedCharacter.name)")
                     .font(Theme.Typography.title)
                     .foregroundColor(Theme.Colors.acTextDark)
-                
+
                 Text(email)
                     .font(.subheadline)
                     .foregroundColor(Theme.Colors.acTextMuted)
-                
+
                 HStack {
                     ACBadge(
                         text: "Camp Resident",
@@ -203,7 +219,7 @@ struct UserHeaderView: View {
 
 struct BikePassCard: View {
     let vehicle: Vehicle
-    
+
     var body: some View {
         VStack(alignment: .leading) {
             // Header
@@ -225,9 +241,9 @@ struct BikePassCard: View {
                         .foregroundColor(.white)
                 }
             }
-            
+
             Spacer()
-            
+
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("LICENSE PLATE")
@@ -237,9 +253,9 @@ struct BikePassCard: View {
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                 }
-                
+
                 Spacer()
-                
+
                 // QR Code
                 Image(uiImage: generateQRCode(from: vehicle.id.uuidString))
                     .interpolation(.none)
@@ -267,7 +283,7 @@ struct BikePassCard: View {
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.Colors.acBorder, lineWidth: 2))
         .shadow(color: Color(hex: vehicle.colorHex).opacity(0.3), radius: 8, x: 0, y: 4)
     }
-    
+
     private func generateQRCode(from string: String) -> UIImage {
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
@@ -309,7 +325,7 @@ struct SettingsRow: View {
     let icon: String
     let title: String
     let color: Color
-    
+
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
@@ -320,13 +336,13 @@ struct SettingsRow: View {
                     .foregroundColor(.white)
                     .font(.system(size: 14, weight: .semibold))
             }
-            
+
             Text(title)
                 .font(.body)
                 .foregroundColor(.primary)
-            
+
             Spacer()
-            
+
             Image(systemName: "chevron.right")
                 .foregroundColor(.secondary)
                 .font(.system(size: 14, weight: .semibold))
@@ -334,5 +350,100 @@ struct SettingsRow: View {
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - AvatarSelectionView
+
+struct AvatarSelectionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var playerStore: PlayerStore
+
+    let columns = [GridItem(.adaptive(minimum: 100), spacing: 16)]
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.Colors.acField.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 24) {
+                        Text("Choose Your Character")
+                            .font(Theme.Typography.title)
+                            .foregroundColor(Theme.Colors.acTextDark)
+                            .padding(.top, 16)
+
+                        LazyVGrid(columns: columns, spacing: 20) {
+                            ForEach(Character.all) { character in
+                                let isUnlocked = character.unlockLevel <= playerStore.currentLevel
+                                let isSelected = character.id == playerStore.selectedCharacterId
+
+                                Button {
+                                    if isUnlocked {
+                                        UISelectionFeedbackGenerator().selectionChanged()
+                                        playerStore.selectCharacter(character)
+                                    } else {
+                                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                                    }
+                                } label: {
+                                    VStack(spacing: 8) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(isUnlocked ? Color(hex: character.colorHex).opacity(0.15) : Theme.Colors.acCream)
+                                                .frame(width: 72, height: 72)
+                                                .overlay(
+                                                    Circle().stroke(
+                                                        isSelected ? Color(hex: character.colorHex) : Theme.Colors.acBorder,
+                                                        lineWidth: isSelected ? 4 : 2
+                                                    )
+                                                )
+
+                                            if isUnlocked {
+                                                Image(systemName: character.icon)
+                                                    .font(.system(size: 32))
+                                                    .foregroundColor(Color(hex: character.colorHex))
+                                            } else {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.system(size: 24))
+                                                    .foregroundColor(Theme.Colors.acTextMuted)
+                                            }
+                                        }
+
+                                        VStack(spacing: 2) {
+                                            Text(character.name)
+                                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                                .foregroundColor(isUnlocked ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
+
+                                            if !isUnlocked {
+                                                Text("Lv \(character.unlockLevel)")
+                                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                                    .foregroundColor(Theme.Colors.acWood)
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(isSelected ? Color(hex: character.colorHex).opacity(0.05) : Color.clear)
+                                    .cornerRadius(16)
+                                    .scaleEffect(isSelected ? 1.05 : 1.0)
+                                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 32)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(.body.bold())
+                        .foregroundColor(Theme.Colors.acWood)
+                }
+            }
+        }
     }
 }

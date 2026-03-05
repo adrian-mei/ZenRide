@@ -6,7 +6,7 @@ enum TurnType {
     case straight
     case uturn
     case arrive
-    
+
     var icon: String {
         switch self {
         case .left: return "arrow.turn.up.left"
@@ -24,7 +24,7 @@ struct NavigationInstruction {
     let routeOffsetInMeters: Int
     let pointIndex: Int
     let turnType: TurnType
-    
+
     // Compatibility bridges for existing UI
     var message: String { text }
     var street: String? { nil } // Simplified for now

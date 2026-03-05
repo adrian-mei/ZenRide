@@ -41,7 +41,7 @@ struct ExperienceStop: Codable, Identifiable {
     let imageUrls: [String]?
     let isSkippable: Bool
     let canNavigateDirectly: Bool
-    
+
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }

@@ -12,8 +12,8 @@ struct NavigationBottomPanel: View {
     @EnvironmentObject var multiplayerService: MultiplayerService
 
     var onEnd: () -> Void
-    var onSetDestination: (() -> Void)? = nil
-    var departureTime: Date? = nil
+    var onSetDestination: (() -> Void)?
+    var departureTime: Date?
     var cruiseOdometerMiles: Double = 0
 
     @State private var arrivingPulse = false
@@ -89,74 +89,120 @@ struct NavigationBottomPanel: View {
         String(format: "%.0f", max(0, locationProvider.currentSpeedMPH))
     }
 
+    // Global Progress Bar
+    var routeProgressBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Color.white.opacity(0.15))
+                    .frame(height: 4)
+
+                Rectangle()
+                    .fill(Color(hex: "007AFF")) // Navigation blue
+                    .frame(width: geo.size.width * max(0, min(1.0, routeProgress)), height: 4)
+            }
+        }
+        .frame(height: 4)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            if !isCruiseMode {
+                routeProgressBar
+            }
+
             if let quest = routingService.activeQuest {
                 questProgressRibbon(quest: quest)
             }
-            
+
             if isCruiseMode {
                 cruiseModeContent
             } else if isArriving {
                 HStack {
                     Text("Almost there!")
                         .font(Theme.Typography.title)
-                        .foregroundColor(Theme.Colors.acLeaf)
+                        .foregroundColor(Color(hex: "4CAF50"))
                         .opacity(arrivingPulse ? 1.0 : 0.5)
                     Spacer()
                     Button(action: onEnd) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .bold))
                             .frame(width: 44, height: 44)
-                            .background(Theme.Colors.acCoral)
+                            .background(Color(hex: "FF3B30"))
                             .foregroundColor(.white)
                             .clipShape(Circle())
                     }
                     .accessibilityLabel("End Route")
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             } else {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(arrivalTime)
-                            .font(.system(size: 22, weight: .black, design: .rounded))
-                            .foregroundColor(Theme.Colors.acTextDark)
-                        HStack(spacing: 4) {
-                            Text("\(remainingMinutes) min")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(Theme.Colors.acTextMuted)
-                            Text("•")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(Theme.Colors.acTextMuted)
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(remainingMinutes)")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .foregroundColor(Color(hex: "4CD964")) // Bright green ETA
+                            Text("min")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(hex: "4CD964"))
+                        }
+
+                        HStack(spacing: 6) {
                             Text("\(distanceValue) \(distanceUnit)")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(Theme.Colors.acTextMuted)
+                                .font(.system(size: 16, weight: .medium, design: .default))
+                                .foregroundColor(Color.white.opacity(0.7))
+                            Text("•")
+                                .font(.system(size: 16, weight: .medium, design: .default))
+                                .foregroundColor(Color.white.opacity(0.7))
+                            Text("\(arrivalTime)")
+                                .font(.system(size: 16, weight: .medium, design: .default))
+                                .foregroundColor(Color.white.opacity(0.7))
                         }
                     }
-                    
+
                     Spacer(minLength: 12)
-                    
-                    Button(action: onEnd) {
-                        Text("End")
-                            .font(Theme.Typography.button)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(Theme.Colors.acCoral)
-                            .foregroundColor(.white)
-                            .clipShape(Capsule())
+
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            onSetDestination?()
+                        }) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 20, weight: .semibold))
+                                .frame(width: 50, height: 50)
+                                .background(Color.white.opacity(0.15))
+                                .foregroundColor(.white)
+                                .clipShape(Circle())
+                        }
+
+                        ShareLink(item: "I'm on my way! My ETA is \(arrivalTime).") {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 20, weight: .semibold))
+                                .frame(width: 50, height: 50)
+                                .background(Color.white.opacity(0.15))
+                                .foregroundColor(.white)
+                                .clipShape(Circle())
+                        }
+
+                        Button(action: onEnd) {
+                            Text("Exit")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .frame(width: 60, height: 50)
+                                .background(Color(hex: "FF3B30")) // Bright red standard exit
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+                        }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }
         }
-        .background(Theme.Colors.acField)
+        .background(Color(hex: "1C1C1E")) // Dark mode background
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
-        .shadow(color: Theme.Colors.acBorder.opacity(0.3), radius: 6, x: 0, y: 4)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 16)
+        .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
         .onReceive(clock) { now = $0 }
         .onChange(of: isArriving) { _, arriving in
             if !isCruiseMode && arriving {
@@ -171,7 +217,7 @@ struct NavigationBottomPanel: View {
     }
 
     // MARK: - Quest Progress
-    
+
     @ViewBuilder
     private func questProgressRibbon(quest: DailyQuest) -> some View {
         VStack(spacing: 6) {
@@ -183,52 +229,52 @@ struct NavigationBottomPanel: View {
                         .font(.system(size: 10, weight: .black, design: .rounded))
                         .kerning(1.0)
                 }
-                .foregroundColor(Theme.Colors.acWood.opacity(0.6))
-                
+                .foregroundColor(Color.white.opacity(0.6))
+
                 Spacer()
-                
+
                 Text("STOP \(routingService.currentStopNumber) OF \(routingService.totalStopsInQuest)")
                     .font(.system(size: 10, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acLeaf)
+                    .foregroundColor(Color(hex: "4CD964"))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Theme.Colors.acLeaf.opacity(0.12))
+                    .background(Color(hex: "4CD964").opacity(0.12))
                     .clipShape(Capsule())
             }
             .padding(.horizontal, 16)
-            
+
             // Progress Bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Theme.Colors.acBorder.opacity(0.3))
+                        .fill(Color.white.opacity(0.15))
                         .frame(height: 4)
-                    
+
                     let total = Double(routingService.totalStopsInQuest)
                     let current = Double(routingService.currentStopNumber)
                     let legProgress = routeProgress / total
                     let overallProgress = (max(0, current - 1) / total) + legProgress
-                    
+
                     Capsule()
-                        .fill(Theme.Colors.acLeaf)
+                        .fill(Color(hex: "4CD964"))
                         .frame(width: geo.size.width * min(1.0, overallProgress), height: 4)
                 }
             }
             .frame(height: 4)
             .padding(.horizontal, 16)
-            
+
             if !routingService.currentStopName.isEmpty {
                 Text("Next: \(routingService.currentStopName)")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(Theme.Colors.acTextDark)
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
                     .padding(.top, 2)
             }
         }
         .padding(.vertical, 12)
-        .background(Theme.Colors.acField.opacity(0.5))
-        ACSectionDivider(leadingInset: 0)
+        .background(Color.white.opacity(0.05))
+        Divider().background(Color.white.opacity(0.15))
     }
 
     // MARK: - Cruise Mode
@@ -241,30 +287,30 @@ struct NavigationBottomPanel: View {
                 VStack(spacing: 4) {
                     Text(elapsedFormatted)
                         .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(Theme.Colors.acTextDark)
+                        .foregroundColor(.white)
                     Text("time")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(Theme.Colors.acTextMuted)
+                        .foregroundColor(Color.white.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
                 columnDivider
                 VStack(spacing: 4) {
                     Text(cruiseDistanceFormatted)
                         .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(Theme.Colors.acTextDark)
+                        .foregroundColor(.white)
                     Text(cruiseDistanceUnit)
                         .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(Theme.Colors.acTextMuted)
+                        .foregroundColor(Color.white.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
                 columnDivider
                 VStack(spacing: 4) {
                     Text(currentSpeedString)
                         .font(.system(size: 20, weight: .black, design: .rounded))
-                        .foregroundColor(Theme.Colors.acTextDark)
+                        .foregroundColor(.white)
                     Text("mph")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(Theme.Colors.acTextMuted)
+                        .foregroundColor(Color.white.opacity(0.6))
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -275,10 +321,10 @@ struct NavigationBottomPanel: View {
                 HStack(spacing: 8) {
                     Image(systemName: "person.2.fill")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.Colors.acLeaf)
+                        .foregroundStyle(Color(hex: "4CD964"))
                     Text("\(session.members.count) friend\(session.members.count == 1 ? "" : "s") on the road")
                         .font(Theme.Typography.button)
-                        .foregroundStyle(Theme.Colors.acLeaf)
+                        .foregroundStyle(Color(hex: "4CD964"))
                     Spacer()
                     // Mini avatar pills
                     HStack(spacing: -6) {
@@ -287,7 +333,7 @@ struct NavigationBottomPanel: View {
                                 Circle()
                                     .fill(Theme.Colors.acMint)
                                     .frame(width: 28, height: 28)
-                                    .overlay(Circle().stroke(Theme.Colors.acField, lineWidth: 2))
+                                    .overlay(Circle().stroke(Color(hex: "1C1C1E"), lineWidth: 2))
                                 Text(member.avatarURL ?? "🐾")
                                     .font(.system(size: 14))
                             }
@@ -296,11 +342,11 @@ struct NavigationBottomPanel: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(Theme.Colors.acLeaf.opacity(0.1))
+                .background(Color(hex: "4CD964").opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Theme.Colors.acLeaf.opacity(0.3), lineWidth: 1.5)
+                        .stroke(Color(hex: "4CD964").opacity(0.3), lineWidth: 1.5)
                 )
                 .padding(.horizontal, 16)
             }
@@ -312,21 +358,20 @@ struct NavigationBottomPanel: View {
                         Image(systemName: "magnifyingglass")
                         Text("Find Place")
                     }
-                    .font(Theme.Typography.button)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.Colors.acCream)
-                    .foregroundColor(Theme.Colors.acTextDark)
+                    .padding(.vertical, 14)
+                    .background(Color.white.opacity(0.15))
+                    .foregroundColor(.white)
                     .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Theme.Colors.acBorder, lineWidth: 2))
                 }
-                
+
                 Button(action: onEnd) {
                     Text("End")
-                        .font(Theme.Typography.button)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Theme.Colors.acCoral)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 14)
+                        .background(Color(hex: "FF3B30"))
                         .foregroundColor(.white)
                         .clipShape(Capsule())
                 }
@@ -341,7 +386,7 @@ struct NavigationBottomPanel: View {
 
     private var columnDivider: some View {
         Rectangle()
-            .fill(Theme.Colors.acBorder.opacity(0.4))
-            .frame(width: 2, height: 44)
+            .fill(Color.white.opacity(0.15))
+            .frame(width: 1, height: 44)
     }
 }

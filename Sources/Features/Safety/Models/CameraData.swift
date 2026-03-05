@@ -14,25 +14,25 @@ struct SpeedCamera: Codable, Identifiable {
     let speed_limit_mph: Int
     let lat: Double
     let lng: Double
-    
+
     // Convert 50m radius around camera to a bounding box for TomTom API
     var boundingBoxForRouting: String {
         let latDelta = 50.0 / 111111.0
         let lngDelta = 50.0 / (111111.0 * cos(lat * .pi / 180.0))
-        
+
         let minLat = lat - latDelta
         let maxLat = lat + latDelta
         let minLng = lng - abs(lngDelta)
         let maxLng = lng + abs(lngDelta)
-        
+
         // TomTom format: minLon,minLat,maxLon,maxLat
         return "\(minLng),\(minLat),\(maxLng),\(maxLat)"
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id, street, from_cross_street, to_cross_street, speed_limit_mph, lat, lng
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let idInt = try? container.decode(Int.self, forKey: .id) {
@@ -54,11 +54,11 @@ struct SpeedCamera: Codable, Identifiable {
 class CameraStore: ObservableObject {
     @Published var cameras: [SpeedCamera] = []
     private var hasGeneratedMocks = false
-    
+
     init() {
         loadCameras()
     }
-    
+
     private func loadCameras() {
         guard let url = Bundle.main.url(forResource: "sf_speed_cameras", withExtension: "json") else {
             Log.error("CameraStore", "sf_speed_cameras.json not found in bundle")
@@ -74,27 +74,27 @@ class CameraStore: ObservableObject {
             Log.error("CameraStore", "Failed to load cameras: \(error)")
         }
     }
-    
+
     func generateGlobalMockCameras(around location: CLLocationCoordinate2D) {
         guard !hasGeneratedMocks else { return }
-        
+
         // If we are in SF, don't generate mocks, rely on real data
         let sfLoc = Constants.sfCenter
         let distanceToSF = location.distance(to: sfLoc)
         if distanceToSF < 50000 { // within ~50km of SF
             return
         }
-        
+
         hasGeneratedMocks = true
         var mockCameras: [SpeedCamera] = []
-        
+
         // Generate 30 random cameras within a ~5km radius of the user
         let radiusDeg = 5000.0 / Constants.metersPerDegree
-        
+
         for i in 1...30 {
             let randLatOffset = Double.random(in: -radiusDeg...radiusDeg)
             let randLngOffset = Double.random(in: -radiusDeg...radiusDeg)
-            
+
             let mockCamera = SpeedCamera(
                 id: "mock_camera_\(i)",
                 street: "Local Patrol \(i)",
@@ -106,7 +106,7 @@ class CameraStore: ObservableObject {
             )
             mockCameras.append(mockCamera)
         }
-        
+
         DispatchQueue.main.async {
             self.cameras.append(contentsOf: mockCameras)
             Log.info("CameraStore", "Generated \(mockCameras.count) dynamic mock cameras for global support")

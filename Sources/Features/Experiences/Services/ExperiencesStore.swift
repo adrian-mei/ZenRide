@@ -2,11 +2,11 @@ import Foundation
 
 class ExperiencesStore: ObservableObject {
     @Published var experiences: [ExperienceSummary] = []
-    
+
     init() {
         loadCatalog()
     }
-    
+
     func loadCatalog() {
         guard let url = Bundle.main.url(forResource: "experiences_catalog", withExtension: "json") else {
             Log.error("ExperiencesStore", "Failed to find experiences_catalog.json in bundle")

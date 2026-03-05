@@ -3,7 +3,7 @@ import SwiftUI
 /// Sleek horizontal timeline for Quest progress
 struct QuestProgressView: View {
     @EnvironmentObject var routingService: RoutingService
-    
+
     var body: some View {
         if let quest = routingService.activeQuest {
             VStack(alignment: .leading, spacing: 10) {
@@ -12,14 +12,14 @@ struct QuestProgressView: View {
                     Image(systemName: "map.fill")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(Theme.Colors.acLeaf)
-                    
+
                     Text(quest.title.uppercased())
                         .font(.system(size: 12, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextDark)
                         .kerning(1.0)
-                    
+
                     Spacer()
-                    
+
                     Text("\(routingService.currentStopNumber)/\(routingService.totalStopsInQuest)")
                         .font(.system(size: 11, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
@@ -29,7 +29,7 @@ struct QuestProgressView: View {
                         .clipShape(Capsule())
                 }
                 .padding(.horizontal, 4)
-                
+
                 // Timeline
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -63,12 +63,12 @@ struct QuestProgressView: View {
             .padding(.leading, 16)
         }
     }
-    
+
     @ViewBuilder
     private func waypointNode(idx: Int, waypoint: QuestWaypoint) -> some View {
         let isPast = idx <= routingService.currentLegIndex
         let isTarget = idx == routingService.currentLegIndex + 1
-        
+
         HStack(spacing: 0) {
             // Connector line (left)
             if idx > 0 {
@@ -76,7 +76,7 @@ struct QuestProgressView: View {
                     .fill(isPast ? Theme.Colors.acLeaf : Theme.Colors.acBorder.opacity(0.5))
                     .frame(width: 20, height: 3)
             }
-            
+
             // The Circle
             VStack(spacing: 6) {
                 ZStack {
@@ -84,7 +84,7 @@ struct QuestProgressView: View {
                         .fill(isPast ? Theme.Colors.acLeaf : (isTarget ? Theme.Colors.acGold : Theme.Colors.acField))
                         .frame(width: 28, height: 28)
                         .shadow(color: isTarget ? Theme.Colors.acGold.opacity(0.4) : Color.clear, radius: 4)
-                    
+
                     Image(systemName: isPast ? "checkmark" : waypoint.icon)
                         .font(.system(size: 12, weight: .black))
                         .foregroundColor(isPast || isTarget ? .white : Theme.Colors.acTextMuted)
@@ -93,7 +93,7 @@ struct QuestProgressView: View {
                     Circle()
                         .stroke(isTarget ? Theme.Colors.acGold : Theme.Colors.acBorder, lineWidth: isTarget ? 2 : 1)
                 )
-                
+
                 Text(waypoint.name)
                     .font(.system(size: 9, weight: isTarget ? .bold : .medium, design: .rounded))
                     .foregroundColor(isTarget ? Theme.Colors.acTextDark : Theme.Colors.acTextMuted)
@@ -101,7 +101,7 @@ struct QuestProgressView: View {
                     .frame(width: 50)
             }
             .scaleEffect(isTarget ? 1.1 : 1.0)
-            
+
             // Connector line (right)
             if idx < (routingService.activeQuest?.waypoints.count ?? 0) - 1 {
                 Rectangle()

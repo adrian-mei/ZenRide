@@ -42,3 +42,4 @@ Package.pins
 # Secrets
 .env.local
 Sources/Core/Utilities/Secrets.swift
+*.xcodeproj

@@ -35,12 +35,12 @@ struct WelcomeStep: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 32) {
                     Spacer(minLength: 40)
-                    
+
                     ZStack {
                         Circle()
                             .fill(Theme.Colors.acLeaf.opacity(0.15))
                             .frame(width: 140, height: 140)
-                        
+
                         Image(systemName: "map.fill")
                             .font(.system(size: 64, weight: .bold))
                             .foregroundColor(Theme.Colors.acLeaf)

@@ -10,10 +10,10 @@ struct ContentView: View {
     }()
 
     @State private var initialDestinationName: String = ""
-    @State private var lastRideContext: RideContext? = nil
-    @State private var pendingSession: PendingDriveSession? = nil
-    @State private var postRideInfo: PostRideInfo? = nil
-    @State private var pendingMoodSave: ((String) -> Void)? = nil
+    @State private var lastRideContext: RideContext?
+    @State private var pendingSession: PendingDriveSession?
+    @State private var postRideInfo: PostRideInfo?
+    @State private var pendingMoodSave: ((String) -> Void)?
 
     @EnvironmentObject var bunnyPolice: BunnyPolice
     @EnvironmentObject var locationProvider: LocationProvider
@@ -133,7 +133,7 @@ struct ContentView: View {
             if let loc = loc {
                 // If the user isn't in SF, give them some dynamic speed cameras to avoid!
                 cameraStore.generateGlobalMockCameras(around: loc.coordinate)
-                
+
                 // Keep the radar system in sync with any newly generated cameras
                 if bunnyPolice.cameras.count != cameraStore.cameras.count {
                     bunnyPolice.cameras = cameraStore.cameras

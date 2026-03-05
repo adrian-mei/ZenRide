@@ -8,8 +8,8 @@ class DestinationSearcher: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [MKMapItem] = []
     @Published var isSearching = false
-    
-    var category: RoutineCategory? = nil
+
+    var category: RoutineCategory?
 
     private var activeSearch: MKLocalSearch?
     private var searchTask: Task<Void, Never>?
@@ -36,17 +36,17 @@ class DestinationSearcher: ObservableObject {
     func search(for query: String, near location: CLLocationCoordinate2D? = nil, recentSearches: [RecentSearch] = []) {
         activeSearch?.cancel()
         searchTask?.cancel()
-        
+
         let cleanQuery = query.trimmingCharacters(in: .whitespaces)
         let effectiveQuery = cleanQuery.isEmpty ? (category?.displayName ?? "") : cleanQuery
-        
+
         guard !effectiveQuery.isEmpty else {
             searchResults = []; isSearching = false; return
         }
-        
+
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = effectiveQuery
-        
+
         // Apply intelligence based on category
         if let category = category {
             switch category {
@@ -61,6 +61,10 @@ class DestinationSearcher: ObservableObject {
                 request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.restaurant, .cafe, .theater, .movieTheater, .museum, .park])
             case .holySpot:
                 request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.park, .beach, .nationalPark])
+            case .grocery:
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.store, .foodMarket, .bakery])
+            case .coffee:
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: [.cafe])
             default:
                 break
             }
@@ -71,7 +75,7 @@ class DestinationSearcher: ObservableObject {
             center: center,
             span: MKCoordinateSpan(latitudeDelta: 0.5, longitudeDelta: 0.5)
         )
-        
+
         let lowerQuery = cleanQuery.lowercased()
         let matchedRecents = recentSearches.filter { recent in
             recent.name.lowercased().contains(lowerQuery) ||
@@ -86,22 +90,22 @@ class DestinationSearcher: ObservableObject {
 
         let search = MKLocalSearch(request: request)
         activeSearch = search
-        
+
         searchTask = Task { @MainActor [weak self] in
             guard let self = self else { return }
-            
+
             // Run geocoding and search concurrently
             let clLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
-            
+
             async let geocodeResult = try? CLGeocoder().reverseGeocodeLocation(clLocation)
             async let searchResult = try? search.start()
-            
+
             let (placemarks, response) = await (geocodeResult, searchResult)
-            
+
             if Task.isCancelled { return }
-            
+
             self.isSearching = false
-            
+
             guard let response = response else {
                 if !matchedRecents.isEmpty {
                     self.searchResults = matchedRecents
@@ -110,12 +114,12 @@ class DestinationSearcher: ObservableObject {
                 }
                 return
             }
-            
+
                 let userCity = placemarks?.first?.locality?.lowercased()
-                
+
                 let filteredNetworkResults = response.mapItems.filter { item in
                     guard let cat = self.category else { return true }
-                    
+
                     // Always allow results that strongly match the user's manual query
                     if !lowerQuery.isEmpty {
                         let name = (item.name ?? "").lowercased()
@@ -143,6 +147,14 @@ class DestinationSearcher: ObservableObject {
                             return zenCategories.contains(itemCat)
                         }
                         return false
+                    case .grocery:
+                        let groceryCategories: [MKPointOfInterestCategory] = [.store, .foodMarket, .bakery]
+                        if let itemCat = item.pointOfInterestCategory {
+                            return groceryCategories.contains(itemCat)
+                        }
+                        return false
+                    case .coffee:
+                        return item.pointOfInterestCategory == .cafe
                     default:
                         return true
                     }
@@ -152,57 +164,57 @@ class DestinationSearcher: ObservableObject {
 
                 let name1 = (item1.name ?? "").lowercased()
                 let name2 = (item2.name ?? "").lowercased()
-                
+
                 let score1 = Self.score(name: name1, query: lowerQuery)
                 let score2 = Self.score(name: name2, query: lowerQuery)
-                
+
                 if score1 != score2 {
                     return score1 > score2
                 }
-                
+
                 if let userCity = userCity {
                     let city1 = item1.placemark.locality?.lowercased()
                     let city2 = item2.placemark.locality?.lowercased()
-                    
+
                     let isCity1Match = city1 == userCity
                     let isCity2Match = city2 == userCity
-                    
+
                     if isCity1Match && !isCity2Match {
                         return true
                     } else if !isCity1Match && isCity2Match {
                         return false
                     }
                 }
-                
+
                 guard let loc1 = item1.placemark.location, let loc2 = item2.placemark.location else {
                     return false
                 }
                 let centerLoc = CLLocation(latitude: center.latitude, longitude: center.longitude)
                 return loc1.distance(from: centerLoc) < loc2.distance(from: centerLoc)
             }
-            
+
             var finalResults = matchedRecents
             var seenCoordinates = Set<String>()
-            
+
             // Keep track of coordinates we've already added (from recents)
             for r in matchedRecents {
                 let coordStr = "\(String(format: "%.4f", r.placemark.coordinate.latitude)),\(String(format: "%.4f", r.placemark.coordinate.longitude))"
                 seenCoordinates.insert(coordStr)
             }
-            
+
             for item in sortedNetworkResults {
                 let coordStr = "\(String(format: "%.4f", item.placemark.coordinate.latitude)),\(String(format: "%.4f", item.placemark.coordinate.longitude))"
-                
+
                 if !seenCoordinates.contains(coordStr) {
                     finalResults.append(item)
                     seenCoordinates.insert(coordStr)
                 }
             }
-            
+
             self.searchResults = finalResults
         }
     }
-    
+
     private static func score(name: String, query: String) -> Int {
         if name == query { return 4 }
         if name.hasPrefix(query) { return 3 }
@@ -232,13 +244,13 @@ struct DestinationSearchView: View {
 
     @StateObject private var searcher = DestinationSearcher()
     @FocusState private var isSearchFocused: Bool
-    @State private var justSavedIndex: Int? = nil
+    @State private var justSavedIndex: Int?
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.Colors.acField.ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
                     // Search bar
                     HStack(spacing: 12) {
@@ -346,7 +358,7 @@ struct DestinationSearchView: View {
                 }
                 return true
             }
-            
+
             if pinned.isEmpty {
                 Text(category != nil ? "No bookmarked \(category!.displayName) yet." : "No bookmarked spots yet.")
                     .font(Theme.Typography.body)
@@ -363,7 +375,7 @@ struct DestinationSearchView: View {
                         ) {
                             selectDestination(name: route.destinationName, coordinate: CLLocationCoordinate2D(latitude: route.latitude, longitude: route.longitude))
                         }
-                        
+
                         if idx < min(pinned.count, 8) - 1 {
                             ACSectionDivider(leadingInset: 64)
                         }
@@ -397,7 +409,7 @@ struct DestinationSearchView: View {
                         ) {
                             selectDestination(name: recent.name, coordinate: CLLocationCoordinate2D(latitude: recent.latitude, longitude: recent.longitude))
                         }
-                        
+
                         if idx < min(recents.count, 5) - 1 {
                             ACSectionDivider(leadingInset: 64)
                         }
@@ -432,7 +444,7 @@ struct DestinationSearchView: View {
                             let miles = userLoc.distance(from: placeLoc) / Constants.metersPerMile
                             return miles < 0.1 ? "Nearby" : String(format: "%.1f mi", miles)
                         }()
-                        
+
                         SearchResultRow(
                             item: item,
                             isSaved: savedRoutes.isPlaceSaved(name: item.name ?? "", coordinate: item.placemark.coordinate),
@@ -469,16 +481,16 @@ struct DestinationSearchView: View {
 
     private func selectDestination(name: String, coordinate: CLLocationCoordinate2D, placemark: MKPlacemark? = nil) {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        
+
         // Save to recents
         let subtitle = placemark?.zenFormattedAddress ?? "Saved Destination"
-        
+
         if let category = category, let slotIndex = slotIndex {
             savedRoutes.saveAndAssignToRoutine(name: name, coordinate: coordinate, category: category, index: slotIndex)
         } else {
             savedRoutes.addRecentSearch(name: name, subtitle: subtitle, coordinate: coordinate)
         }
-        
+
         // Start navigation directly (single destination mission)
         onDestinationSelected(name, coordinate)
         dismiss()
@@ -496,6 +508,8 @@ struct DestinationSearchView: View {
         case .school: return Theme.Colors.acSky
         case .afterSchool: return Theme.Colors.acCoral
         case .dateSpot: return Theme.Colors.acCoral
+        case .grocery: return Theme.Colors.acLeaf
+        case .coffee: return Theme.Colors.acWood
         }
     }
 }
@@ -578,7 +592,7 @@ struct SearchResultRow: View {
                                 .foregroundStyle(Theme.Colors.acWood)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
-                            
+
                             if let dist = distanceString {
                                 Text(dist)
                                     .font(.system(size: 11, weight: .bold, design: .rounded))
@@ -642,15 +656,13 @@ extension MKPlacemark {
         var street = ""
         if let subThoroughfare = self.subThoroughfare { street += subThoroughfare + " " }
         if let thoroughfare = self.thoroughfare { street += thoroughfare }
-        
-        if !street.isEmpty { components.append(street) }
-        else if let title = self.title {
+
+        if !street.isEmpty { components.append(street) } else if let title = self.title {
             return title
         }
-        
-        if let city = self.locality { components.append(city) }
-        else if let area = self.administrativeArea { components.append(area) }
-        
+
+        if let city = self.locality { components.append(city) } else if let area = self.administrativeArea { components.append(area) }
+
         return components.isEmpty ? "Unknown Address" : components.joined(separator: ", ")
     }
 }

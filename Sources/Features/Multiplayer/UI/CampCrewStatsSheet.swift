@@ -168,7 +168,7 @@ private struct CrewMemberRow: View {
     let etaSeconds: Int?
     let distanceMeters: Int?
     let isHost: Bool
-    
+
     var body: some View {
         HStack(spacing: 16) {
             ZStack {
@@ -176,10 +176,10 @@ private struct CrewMemberRow: View {
                     .fill(Theme.Colors.acCream)
                     .frame(width: 50, height: 50)
                     .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                
+
                 Text(emoji)
                     .font(.system(size: 28))
-                
+
                 if isHost {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 12))
@@ -187,18 +187,18 @@ private struct CrewMemberRow: View {
                         .offset(x: 16, y: -16)
                 }
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(name)
                     .font(Theme.Typography.headline)
                     .foregroundColor(Theme.Colors.acTextDark)
-                
+
                 HStack(spacing: 12) {
                     HStack(spacing: 4) {
                         Image(systemName: "speedometer")
                         Text(String(format: "%.0f mph", speedMph))
                     }
-                    
+
                     if let eta = etaSeconds {
                         HStack(spacing: 4) {
                             Image(systemName: "clock")
@@ -209,9 +209,9 @@ private struct CrewMemberRow: View {
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundColor(Theme.Colors.acTextMuted)
             }
-            
+
             Spacer()
-            
+
             if let dist = distanceMeters {
                 let miles = Double(dist) * 0.000621371
                 Text(String(format: "%.1f mi", miles))
@@ -225,7 +225,7 @@ private struct CrewMemberRow: View {
         }
         .acCardStyle(padding: 16)
     }
-    
+
     private func formatDuration(_ seconds: Int) -> String {
         let m = seconds / 60
         if m < 60 { return "\(m)m" }

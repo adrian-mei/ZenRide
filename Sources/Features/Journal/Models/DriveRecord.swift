@@ -95,7 +95,7 @@ final class DriveSession {
     var savedCameraCount: Int {
         cameraZoneEvents.filter { $0.outcome == .saved }.count
     }
-    
+
     var potentialTicketCount: Int {
         cameraZoneEvents.filter { $0.outcome == .potentialTicket }.count
     }
@@ -130,7 +130,7 @@ final class DriveRecord {
     var destinationLatitude: Double
     var destinationLongitude: Double
     var isBookmarked: Bool
-    
+
     @Relationship(deleteRule: .cascade) var sessions: [DriveSession]
 
     var sessionCount: Int
@@ -172,13 +172,13 @@ final class DriveRecord {
     func updateComputedAggregates() {
         sessionCount = sessions.count
         lastDrivenDate = sessions.compactMap { $0.date }.max() ?? Date()
-        
+
         var avgSpd: Double = 0
         var topSpd: Double = 0
         var money: Double = 0
         var dist: Double = 0
         var time: Int = 0
-        
+
         for session in sessions {
             avgSpd += session.avgSpeedMph
             if session.topSpeedMph > topSpd { topSpd = session.topSpeedMph }
@@ -186,7 +186,7 @@ final class DriveRecord {
             dist += session.distanceMiles
             time += session.durationSeconds
         }
-        
+
         allTimeAvgSpeedMph = sessions.isEmpty ? 0 : avgSpd / Double(sessions.count)
         allTimeTopSpeedMph = topSpd
         allTimeMoneySaved = money
@@ -213,13 +213,13 @@ struct PendingDriveSession {
 
     func toSession(mood: String? = nil) -> DriveSession {
         let hour = Calendar.current.component(.hour, from: departureTime)
-        
+
         var savedCount = 0
         for event in cameraZoneEvents {
             if event.outcome == .saved { savedCount += 1 }
         }
         let moneySaved = Double(savedCount) * 100
-        
+
         let trafficDelay = max(0, actualDurationSeconds - routeDurationSeconds)
         return DriveSession(
             date: departureTime,

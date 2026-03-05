@@ -4,20 +4,27 @@ import CoreLocation
 class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var currentLocation: CLLocation?
     @Published var currentSpeedMPH: Double = 0
-    
+    @Published var ecoScore: Double = 100.0
+
     @Published var isSimulating: Bool = false
     @Published var simulationPaused: Bool = false
     @Published var simulationSpeedMultiplier: Double = 1.0
     @Published var simulationCompletedNaturally: Bool = false
     @Published var currentSimulationIndex: Int = 0
     @Published var distanceTraveledInSimulationMeters: Double = 0
-    
+    @Published var currentStreetName: String?
+
     private let locationManager = CLLocationManager()
+    private let geocoder = CLGeocoder()
+    private var lastGeocodeLocation: CLLocation?
     private var simulationTimer: Timer?
     private var simulationRoute: [CLLocationCoordinate2D] = []
     private var currentSimulationCoord: CLLocationCoordinate2D?
     private var nextSimulationIndex: Int = 1
-    
+
+    private var lastSpeedUpdateDate: Date?
+    private var lastSpeedValueMPH: Double?
+
     override init() {
         super.init()
         locationManager.delegate = self
@@ -29,16 +36,16 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
         #endif
         locationManager.requestAlwaysAuthorization()
     }
-    
+
     func startUpdatingLocation() {
         guard !isSimulating else { return }
         locationManager.startUpdatingLocation()
     }
-    
+
     func stopUpdatingLocation() {
         locationManager.stopUpdatingLocation()
     }
-    
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
@@ -49,28 +56,32 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
             break
         }
     }
-    
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard !isSimulating else { return }
         guard let location = locations.last else { return }
         processLiveLocation(location)
     }
-    
+
     private func processLiveLocation(_ location: CLLocation) {
         let speedMPS = max(0, location.speed)
+        let newSpeedMph = speedMPS * Constants.mpsToMph
+        updateEcoScore(newSpeedMph: newSpeedMph)
+
         DispatchQueue.main.async {
             self.currentLocation = location
-            self.currentSpeedMPH = speedMPS * Constants.mpsToMph
+            self.currentSpeedMPH = newSpeedMph
         }
+        updateStreetName(for: location)
     }
-    
+
     // MARK: - Simulation
-    
+
     func simulateDrive(along route: [CLLocationCoordinate2D], speedMPH: Double = 35) {
         guard route.count > 1 else { return }
-        
+
         locationManager.stopUpdatingLocation()
-        
+
         DispatchQueue.main.async {
             self.isSimulating = true
             self.simulationPaused = false
@@ -79,26 +90,26 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
             self.distanceTraveledInSimulationMeters = 0
             self.simulationCompletedNaturally = false
         }
-        
+
         self.simulationRoute = route
         self.currentSimulationCoord = route[0]
         self.nextSimulationIndex = 1
         var distanceTraveledMeters: Double = 0
-        
+
         let targetSpeedMPH: Double = speedMPH
-        
+
         let tickInterval: TimeInterval = 0.1 // Increase tick rate from 0.5s to 0.1s for 10FPS map updates
-        
+
         simulationTimer?.invalidate()
         simulationTimer = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             guard !self.simulationPaused else { return }
             guard let currentCoord = self.currentSimulationCoord else { return }
-            
+
             // Apply speed multiplier
             let targetSpeedMPS = (targetSpeedMPH / Constants.mpsToMph) * self.simulationSpeedMultiplier
             let distancePerTick = targetSpeedMPS * tickInterval
-            
+
             // Reached destination logic
             if self.nextSimulationIndex >= self.simulationRoute.count {
                 DispatchQueue.main.async {
@@ -107,27 +118,27 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
                 }
                 return
             }
-            
+
             let targetCoord = self.simulationRoute[self.nextSimulationIndex]
-            
+
             // Math helper logic to avoid 'distance' not found error (using CLLocation distance logic)
             let distanceToTarget = currentCoord.distance(to: targetCoord)
-            
+
             let bearing = currentCoord.bearing(to: targetCoord)
-            
+
             var newCoord = currentCoord
-            
+
             if distanceToTarget <= distancePerTick {
                 // Arrived at next node
                 distanceTraveledMeters += distanceToTarget
                 newCoord = targetCoord
-                
+
                 DispatchQueue.main.async {
                     self.currentSimulationIndex = self.nextSimulationIndex
                     self.distanceTraveledInSimulationMeters = distanceTraveledMeters
                 }
                 self.nextSimulationIndex += 1
-                
+
                 // If we reach the end exactly on this tick
                 if self.nextSimulationIndex >= self.simulationRoute.count {
                     let mockLocation = CLLocation(
@@ -140,7 +151,7 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
                         timestamp: Date()
                     )
                     self.processSimulatedLocation(mockLocation)
-                    
+
                     DispatchQueue.main.async {
                         self.simulationCompletedNaturally = true
                         self.stopSimulation()
@@ -155,9 +166,9 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
                     self.distanceTraveledInSimulationMeters = distanceTraveledMeters
                 }
             }
-            
+
             self.currentSimulationCoord = newCoord
-            
+
             let mockLocation = CLLocation(
                 coordinate: newCoord,
                 altitude: 0,
@@ -170,19 +181,67 @@ class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
             self.processSimulatedLocation(mockLocation)
         }
     }
-    
+
     private func processSimulatedLocation(_ location: CLLocation) {
         let speedMPS = max(0, location.speed)
+        let newSpeedMph = speedMPS * Constants.mpsToMph
+        updateEcoScore(newSpeedMph: newSpeedMph)
+
         DispatchQueue.main.async {
             self.currentLocation = location
-            self.currentSpeedMPH = speedMPS * Constants.mpsToMph
+            self.currentSpeedMPH = newSpeedMph
+        }
+        updateStreetName(for: location)
+    }
+
+    private func updateEcoScore(newSpeedMph: Double) {
+        let now = Date()
+        if let lastT = lastSpeedUpdateDate, let lastV = lastSpeedValueMPH {
+            let dt = now.timeIntervalSince(lastT)
+            if dt > 0.5 {
+                let dv = newSpeedMph - lastV
+                let accel = dv / dt // mph per second
+                var newScore = ecoScore
+
+                if accel > 4.0 || accel < -5.0 { // Hard accel or braking
+                    newScore -= 2.0
+                } else if abs(accel) < 1.0 && newSpeedMph > 10.0 { // Smooth driving
+                    newScore += 0.5
+                }
+
+                let clampedScore = max(0.0, min(100.0, newScore))
+
+                DispatchQueue.main.async {
+                    self.ecoScore = clampedScore
+                }
+
+                lastSpeedUpdateDate = now
+                lastSpeedValueMPH = newSpeedMph
+            }
+        } else {
+            lastSpeedUpdateDate = now
+            lastSpeedValueMPH = newSpeedMph
         }
     }
-    
+
+    private func updateStreetName(for location: CLLocation) {
+        if let lastLoc = lastGeocodeLocation, location.distance(from: lastLoc) < 50 {
+            return
+        }
+        lastGeocodeLocation = location
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
+            if let placemark = placemarks?.first, let street = placemark.thoroughfare {
+                DispatchQueue.main.async {
+                    self?.currentStreetName = street
+                }
+            }
+        }
+    }
+
     func stopSimulation() {
         simulationTimer?.invalidate()
         simulationTimer = nil
-        
+
         DispatchQueue.main.async {
             self.isSimulating = false
             self.currentSpeedMPH = 0

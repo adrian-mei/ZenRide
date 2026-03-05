@@ -1,12 +1,12 @@
-# Agent Instructions: ZenRide (iOS SwiftUI Project)
+# Agent Instructions: ZenMap (iOS SwiftUI Project)
 
-Welcome! This document provides instructions for AI coding agents operating within the ZenRide repository. Please adhere strictly to these guidelines to maintain code quality, consistency, and a functional build pipeline.
+Welcome! This document provides instructions for AI coding agents operating within the ZenMap repository. Please adhere strictly to these guidelines to maintain code quality, consistency, and a functional build pipeline.
 
 ## 1. Project Overview & Setup
 
-*   **Tech Stack:** ZenRide is an iOS application built entirely with **SwiftUI** and Swift.
+*   **Tech Stack:** ZenMap is an iOS application built entirely with **SwiftUI** and Swift.
 *   **Project Management:** It uses `XcodeGen` to manage the Xcode project file. 
-*   **Source Control Rules:** The `ZenRide.xcodeproj` directory is typically generated and should not be manually edited.
+*   **Source Control Rules:** The `ZenMap.xcodeproj` directory is typically generated and should not be manually edited.
 *   **Adding Files:** If you add new source files, place them inside the `Sources/` directory. If you add assets, place them in `Resources/`. Because `project.yml` includes these entire directories, you usually just need to regenerate the project.
 
 ### Core Commands
@@ -22,7 +22,7 @@ As an agent, you must verify your work. Use the following `xcodebuild` commands.
 
 *   **Build the App:**
     ```bash
-    xcodebuild -project ZenRide.xcodeproj -scheme ZenRide -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+    xcodebuild -project ZenMap.xcodeproj -scheme ZenMap -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
     ```
 
 *   **Clean, Build, and Launch on Simulator:**
@@ -33,12 +33,12 @@ As an agent, you must verify your work. Use the following `xcodebuild` commands.
 
 *   **Run All Tests:**
     ```bash
-    xcodebuild -project ZenRide.xcodeproj -scheme ZenRide -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+    xcodebuild -project ZenMap.xcodeproj -scheme ZenMap -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
     ```
 
 *   **Run a Single Test Class or Method (Crucial for TDD and targeted fixes):**
     ```bash
-    xcodebuild -project ZenRide.xcodeproj -scheme ZenRide -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:ZenRideTests/YourTestClassName/testYourSpecificMethodName
+    xcodebuild -project ZenMap.xcodeproj -scheme ZenMap -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:ZenMapTests/YourTestClassName/testYourSpecificMethodName
     ```
 
 *   **Linting (if SwiftLint is available):**

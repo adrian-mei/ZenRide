@@ -340,10 +340,10 @@ struct RoutingServiceEdgeCaseTests {
 
     @Test func modeDefaults() {
         let service = RoutingService()
-        
+
         service.vehicleMode = .car
         #expect(service.avoidSpeedCameras == false)
-        
+
         service.vehicleMode = .motorcycle
         #expect(service.avoidSpeedCameras == true)
     }
@@ -354,14 +354,14 @@ struct RoutingServiceEdgeCaseTests {
         let decoded = try! JSONDecoder().decode(TomTomRouteResponse.self, from: data)
         service.availableRoutes = decoded.routes
         service.selectRoute(at: 0)
-        
+
         #expect(service.selectedRouteIndex == 0)
-        
+
         let farLoc = CLLocation(latitude: 0, longitude: 0)
         service.checkReroute(currentLocation: farLoc)
-        
+
         try await Task.sleep(nanoseconds: 200_000_000)
-        
+
         #expect(service.selectedRouteIndex == 1)
     }
 
@@ -371,42 +371,42 @@ struct RoutingServiceEdgeCaseTests {
         let decoded = try! JSONDecoder().decode(TomTomRouteResponse.self, from: data)
         service.availableRoutes = decoded.routes
         service.selectRoute(at: 0)
-        
+
         service.routeProgressIndex = service.activeRoute.count - 1
-        
+
         let endCoord = service.activeRoute.last!
         let loc = CLLocation(latitude: endCoord.latitude, longitude: endCoord.longitude)
-        
+
         service.checkReroute(currentLocation: loc)
-        
+
         try await Task.sleep(nanoseconds: 100_000_000)
-        
+
         #expect(service.selectedRouteIndex == 0)
     }
 
     @Test func cameraCounting() {
         let service = RoutingService()
-        
+
         let p1 = TomTomPoint(latitude: 37.0, longitude: -122.0)
         let p2 = TomTomPoint(latitude: 37.001, longitude: -122.0)
         let leg = TomTomLeg(points: [p1, p2])
         let summary = TomTomSummary(lengthInMeters: 111, travelTimeInSeconds: 10)
         let route = TomTomRoute(summary: summary, tags: nil, legs: [leg], guidance: nil)
-        
+
         let cam1 = SpeedCamera(id: "1", street: "St", from_cross_street: nil, to_cross_street: nil, speed_limit_mph: 30, lat: 37.0, lng: -122.0)
         let cam2 = SpeedCamera(id: "2", street: "St", from_cross_street: nil, to_cross_street: nil, speed_limit_mph: 30, lat: 0.0, lng: 0.0)
-        let cam3 = SpeedCamera(id: "3", street: "St", from_cross_street: nil, to_cross_street: nil, speed_limit_mph: 30, lat: 37.001, lng: -122.0005) 
-        
+        let cam3 = SpeedCamera(id: "3", street: "St", from_cross_street: nil, to_cross_street: nil, speed_limit_mph: 30, lat: 37.001, lng: -122.0005)
+
         let cameras = [cam1, cam2, cam3]
         let count = service.countCameras(on: route, cameras: cameras)
-        
+
         #expect(count == 2)
     }
 
     @Test func missingAPIKey() async throws {
         let service = RoutingService()
         service.useMockData = false
-        
+
         await service.calculateSafeRoute(
             from: CLLocationCoordinate2D(latitude: 0, longitude: 0),
             to: CLLocationCoordinate2D(latitude: 1, longitude: 1),

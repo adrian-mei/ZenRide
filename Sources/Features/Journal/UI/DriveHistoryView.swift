@@ -1,14 +1,15 @@
 import SwiftUI
+import Charts
 
 struct DriveHistoryView: View {
     @EnvironmentObject var driveStore: DriveStore
-    @State private var selectedRecord: DriveRecord? = nil
+    @State private var selectedRecord: DriveRecord?
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.Colors.acField.ignoresSafeArea()
-                
+
                 if driveStore.records.isEmpty {
                     EmptyHistoryView()
                 } else {
@@ -16,7 +17,7 @@ struct DriveHistoryView: View {
                         VStack(spacing: 24) {
                             RiderStatsBanner()
                                 .padding(.horizontal)
-                            
+
                             // Scrapbook Mementos
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
@@ -28,13 +29,13 @@ struct DriveHistoryView: View {
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.top, 16)
-                                
+
                                 AchievementsShelf()
                                     .padding(.bottom, 16)
                             }
                             .acCardStyle(padding: 0)
                             .padding(.horizontal)
-                            
+
                             // Drive History List
                             VStack(spacing: 16) {
                                 ForEach(driveStore.records) { record in
@@ -64,11 +65,11 @@ private struct EmptyHistoryView: View {
             Image(systemName: "book.closed.fill")
                 .font(.system(size: 64))
                 .foregroundColor(Theme.Colors.acWood.opacity(0.5))
-            
+
             Text("Your Journal is empty.")
                 .font(Theme.Typography.title)
                 .foregroundColor(Theme.Colors.acTextDark)
-            
+
             Text("Take your first road trip to start collecting stamps and memories!")
                 .font(Theme.Typography.body)
                 .foregroundColor(Theme.Colors.acTextMuted)
@@ -84,36 +85,47 @@ private struct RiderStatsBanner: View {
     @EnvironmentObject var driveStore: DriveStore
 
     var body: some View {
-        HStack(spacing: 12) {
-            let streak = driveStore.currentStreak
-            ACStatBox(
-                title: "Day Streak",
-                value: "\(streak)",
-                icon: streak > 0 ? "flame.fill" : "flame",
-                iconColor: streak > 0 ? Theme.Colors.acCoral : Theme.Colors.acTextMuted,
-                padding: 12
-            )
-            ACStatBox(
-                title: "Miles",
-                value: String(format: "%.0f", driveStore.totalDistanceMiles),
-                icon: "map.fill",
-                iconColor: Theme.Colors.acSky,
-                padding: 12
-            )
-            ACStatBox(
-                title: "Avg Score",
-                value: String(format: "%.0f", driveStore.avgZenScore),
-                icon: "star.circle.fill",
-                iconColor: Theme.Colors.acGold,
-                padding: 12
-            )
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                let streak = driveStore.currentStreak
+                ACStatBox(
+                    title: "Day Streak",
+                    value: "\(streak)",
+                    icon: streak > 0 ? "flame.fill" : "flame",
+                    iconColor: streak > 0 ? Theme.Colors.acCoral : Theme.Colors.acTextMuted,
+                    padding: 12
+                )
+                ACStatBox(
+                    title: "Miles",
+                    value: String(format: "%.0f", driveStore.totalDistanceMiles),
+                    icon: "map.fill",
+                    iconColor: Theme.Colors.acSky,
+                    padding: 12
+                )
+            }
+            HStack(spacing: 12) {
+                ACStatBox(
+                    title: "Avg Score",
+                    value: String(format: "%.0f", driveStore.avgZenScore),
+                    icon: "star.circle.fill",
+                    iconColor: Theme.Colors.acGold,
+                    padding: 12
+                )
+                ACStatBox(
+                    title: "Saved",
+                    value: "$\(Int(driveStore.totalSavedAllTime))",
+                    icon: "leaf.circle.fill",
+                    iconColor: Theme.Colors.acLeaf,
+                    padding: 12
+                )
+            }
         }
     }
 }
 
 private struct DriveRecordCard: View {
     let record: DriveRecord
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -128,7 +140,7 @@ private struct DriveRecordCard: View {
                         .foregroundColor(Theme.Colors.acCoral)
                 }
             }
-            
+
             HStack {
                 Label(shortDate(record.sessions.first?.date ?? Date()), systemImage: "calendar")
                 Spacer()
@@ -136,7 +148,7 @@ private struct DriveRecordCard: View {
             }
             .font(.system(size: 13, weight: .bold, design: .rounded))
             .foregroundColor(Theme.Colors.acTextMuted)
-            
+
             if record.sessions.count > 1 {
                 Text("\(record.sessions.count) stops on this trip")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -146,7 +158,7 @@ private struct DriveRecordCard: View {
         }
         .acCardStyle(interactive: true)
     }
-    
+
     private func shortDate(_ date: Date) -> String {
         let fmt = DateFormatter()
         fmt.dateStyle = .medium
@@ -162,12 +174,12 @@ struct DriveDetailView: View {
     let record: DriveRecord
     @EnvironmentObject var driveStore: DriveStore
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.Colors.acField.ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 24) {
                         // Header
@@ -179,7 +191,7 @@ struct DriveDetailView: View {
                                 .font(Theme.Typography.title)
                                 .foregroundColor(Theme.Colors.acTextDark)
                                 .multilineTextAlignment(.center)
-                            
+
                             HStack(spacing: 16) {
                                 Label(String(format: "%.1f mi", record.totalDistanceMiles), systemImage: "ruler")
                                 Label("\(record.sessions.count) stops", systemImage: "car.fill")
@@ -188,7 +200,7 @@ struct DriveDetailView: View {
                             .foregroundColor(Theme.Colors.acTextMuted)
                         }
                         .padding(.top, 24)
-                        
+
                         // Action buttons
                         HStack(spacing: 16) {
                             Button {
@@ -201,18 +213,18 @@ struct DriveDetailView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(ACButtonStyle(variant: record.isBookmarked ? .primary : .secondary))
-                            
+
                             ACDangerButton(title: "Delete", icon: "trash") {
                                 driveStore.deleteRecord(id: record.id)
                                 dismiss()
                             }
                         }
                         .padding(.horizontal)
-                        
+
                         // Legs / Sessions
                         VStack(alignment: .leading, spacing: 16) {
                             ACSectionHeader(title: "TRIP LEGS", icon: "list.bullet")
-                            
+
                             ForEach(Array(record.sessions.enumerated()), id: \.element.id) { index, session in
                                 SessionRow(session: session, index: index + 1)
                             }
@@ -239,47 +251,93 @@ struct DriveDetailView: View {
 private struct SessionRow: View {
     let session: DriveSession
     let index: Int
-    
+
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Theme.Colors.acCream)
-                    .frame(width: 28, height: 28)
-                    .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                Text("\(index)")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(Theme.Colors.acTextDark)
-            }
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text(session.timeOfDayCategory.label)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(Theme.Colors.acTextDark)
-                
-                HStack(spacing: 12) {
-                    Label(String(format: "%.1f mi", session.distanceMiles), systemImage: "ruler")
-                    Label(formatDuration(session.durationSeconds), systemImage: "clock")
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.Colors.acCream)
+                        .frame(width: 28, height: 28)
+                        .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
+                    Text("\(index)")
+                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextDark)
                 }
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(Theme.Colors.acTextMuted)
-                
-                if session.zenScore < 100 {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(Theme.Colors.acCoral)
-                        Text("Safety Score: \(session.zenScore)")
-                            .foregroundColor(Theme.Colors.acTextDark)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(session.timeOfDayCategory.label)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextDark)
+
+                    HStack(spacing: 12) {
+                        Label(String(format: "%.1f mi", session.distanceMiles), systemImage: "ruler")
+                        Label(formatDuration(session.durationSeconds), systemImage: "clock")
                     }
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .padding(.top, 2)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(Theme.Colors.acTextMuted)
+
+                    if session.zenScore < 100 {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(Theme.Colors.acCoral)
+                            Text("Safety Score: \(session.zenScore)")
+                                .foregroundColor(Theme.Colors.acTextDark)
+                        }
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .padding(.top, 2)
+                    }
                 }
+                Spacer()
             }
-            Spacer()
+
+            if !session.speedReadings.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("SPEED PROFILE")
+                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .foregroundColor(Theme.Colors.acTextMuted)
+
+                    Chart {
+                        ForEach(Array(session.speedReadings.enumerated()), id: \.offset) { i, speed in
+                            AreaMark(
+                                x: .value("Time", i),
+                                y: .value("Speed", speed)
+                            )
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Theme.Colors.acSky.opacity(0.5), Theme.Colors.acSky.opacity(0.0)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+
+                            LineMark(
+                                x: .value("Time", i),
+                                y: .value("Speed", speed)
+                            )
+                            .foregroundStyle(Theme.Colors.acSky)
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+                        }
+                    }
+                    .chartXAxis(.hidden)
+                    .chartYAxis {
+                        AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { _ in
+                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4]))
+                                .foregroundStyle(Theme.Colors.acBorder)
+                            AxisValueLabel()
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Theme.Colors.acTextMuted)
+                        }
+                    }
+                    .frame(height: 80)
+                }
+                .padding(.top, 8)
+                .padding(.leading, 44) // Align with text
+            }
         }
         .padding(.vertical, 8)
     }
-    
+
     private func formatDuration(_ seconds: Int) -> String {
         let m = seconds / 60
         if m < 60 { return "\(m)m" }

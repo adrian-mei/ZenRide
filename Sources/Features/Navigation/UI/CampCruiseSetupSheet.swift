@@ -361,7 +361,7 @@ private struct CruiseStopPickerSheet: View {
         } else {
             let pinned = savedRoutes.pinnedRoutes
             let recents = savedRoutes.recentSearches
-            
+
             if pinned.isEmpty && recents.isEmpty {
                 Spacer()
                 Image(systemName: "mappin.and.ellipse").font(.system(size: 48)).foregroundStyle(Theme.Colors.acBorder)
@@ -380,7 +380,7 @@ private struct CruiseStopPickerSheet: View {
                             }
                         }
                     }
-                    
+
                     if !recents.isEmpty {
                         Section("Recent Searches") {
                             ForEach(recents) { recent in
@@ -401,4 +401,3 @@ private struct CruiseStopPickerSheet: View {
 }
 
 // MARK: - InviteCrewSheet
-

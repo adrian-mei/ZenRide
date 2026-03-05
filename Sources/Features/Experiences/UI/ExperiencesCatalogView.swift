@@ -3,20 +3,20 @@ import SwiftUI
 struct ExperiencesCatalogView: View {
     @StateObject private var store = ExperiencesStore()
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedExperience: ExperienceRoute? = nil
-    
+    @State private var selectedExperience: ExperienceRoute?
+
     // Callbacks to start the trip
     var onSelectExperience: (ExperienceRoute) -> Void
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.Colors.acField.ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 24) {
                         headerSection
-                        
+
                         if store.experiences.isEmpty {
                             ProgressView()
                                 .padding(.top, 100)
@@ -60,7 +60,7 @@ struct ExperiencesCatalogView: View {
             }
         }
     }
-    
+
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
@@ -68,7 +68,7 @@ struct ExperiencesCatalogView: View {
                     Text("Curated Journeys")
                         .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acWood)
-                    
+
                     Text("Select a journey to start exploring.")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
@@ -79,7 +79,7 @@ struct ExperiencesCatalogView: View {
                     .foregroundColor(Theme.Colors.acWood.opacity(0.2))
                     .rotationEffect(.degrees(-15))
             }
-            
+
             HStack(spacing: 8) {
                 Label("Verified Spots", systemImage: "checkmark.seal.fill")
                 Text("•")
@@ -101,9 +101,9 @@ struct ExperiencesCatalogView: View {
 struct ExperienceCard: View {
     let summary: ExperienceSummary
     let action: () -> Void
-    
+
     @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 0) {
@@ -132,7 +132,7 @@ struct ExperienceCard: View {
                             }
                         )
                         .clipped()
-                    
+
                     // Duration Badge
                     Text("\(summary.durationMinutes) min")
                         .font(.system(size: 13, weight: .black, design: .rounded))
@@ -144,19 +144,19 @@ struct ExperienceCard: View {
                         .padding(12)
                         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text(summary.title)
                         .font(.system(size: 20, weight: .black, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextDark)
-                    
+
                     Text(summary.subtitle)
                         .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
-                    
+
                     HStack {
                         Spacer()
                         HStack(spacing: 4) {

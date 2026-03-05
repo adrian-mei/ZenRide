@@ -8,9 +8,9 @@ struct WindDownView: View {
     var onComplete: (String) -> Void
 
     @State private var dismissCountdown = 10
-    @State private var timer: Timer? = nil
+    @State private var timer: Timer?
     @State private var timerPaused = false
-    @State private var selectedMood: String? = nil
+    @State private var selectedMood: String?
 
     var moneySaved: Double {
         let fromEvents = cameraZoneEvents.reduce(0) { $0 + $1.moneySaved }
@@ -32,7 +32,7 @@ struct WindDownView: View {
                             .fill(Theme.Colors.acLeaf.opacity(0.15))
                             .frame(width: 120, height: 120)
                             .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                        
+
                         Image(systemName: "tent.fill")
                             .font(.system(size: 60))
                             .foregroundColor(Theme.Colors.acLeaf)
@@ -78,7 +78,7 @@ struct WindDownView: View {
                         Text("How was the vibe?")
                             .font(Theme.Typography.headline)
                             .foregroundColor(Theme.Colors.acTextDark)
-                        
+
                         HStack(spacing: 12) {
                             MoodButton(emoji: "☀️", label: "Sunny", isSelected: selectedMood == "Sunny") { selectMood("Sunny") }
                             MoodButton(emoji: "🌧️", label: "Moody", isSelected: selectedMood == "Moody") { selectMood("Moody") }
@@ -116,7 +116,7 @@ struct WindDownView: View {
             timer?.invalidate()
         }
     }
-    
+
     private func selectMood(_ mood: String) {
         selectedMood = mood
         timerPaused = true
@@ -137,7 +137,7 @@ struct WindDownView: View {
         timer?.invalidate()
         onComplete(selectedMood ?? "Cozy")
     }
-    
+
     private func formatDuration(_ seconds: Int) -> String {
         let m = seconds / 60
         if m < 60 { return "\(m)m" }
@@ -145,13 +145,12 @@ struct WindDownView: View {
     }
 }
 
-
 private struct MoodButton: View {
     let emoji: String
     let label: String
     let isSelected: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 6) {

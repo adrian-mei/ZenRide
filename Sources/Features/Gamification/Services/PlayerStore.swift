@@ -10,11 +10,14 @@ struct Character: Identifiable, Codable, Equatable {
     var unlockLevel: Int
 
     static let all: [Character] = [
-        Character(id: "camper_fox",   name: "Camper Fox",   icon: "pawprint.fill",  colorHex: "FF8C00", unlockLevel: 1),
-        Character(id: "scout_bear",   name: "Scout Bear",   icon: "tortoise.fill",  colorHex: "8B4513", unlockLevel: 3),
-        Character(id: "breezy_bird",  name: "Breezy Bird",  icon: "bird.fill",      colorHex: "4169E1", unlockLevel: 5),
-        Character(id: "racer_rabbit", name: "Racer Rabbit", icon: "hare.fill",      colorHex: "FF69B4", unlockLevel: 10),
-        Character(id: "zen_frog",     name: "Zen Frog",     icon: "leaf.fill",      colorHex: "32CD32", unlockLevel: 15)
+        Character(id: "camper_fox", name: "Camper Fox", icon: "pawprint.fill", colorHex: "FF8C00", unlockLevel: 1),
+        Character(id: "scout_bear", name: "Scout Bear", icon: "tortoise.fill", colorHex: "8B4513", unlockLevel: 3),
+        Character(id: "breezy_bird", name: "Breezy Bird", icon: "bird.fill", colorHex: "4169E1", unlockLevel: 5),
+        Character(id: "racer_rabbit", name: "Racer Rabbit", icon: "hare.fill", colorHex: "FF69B4", unlockLevel: 10),
+        Character(id: "zen_frog", name: "Zen Frog", icon: "leaf.fill", colorHex: "32CD32", unlockLevel: 15),
+        Character(id: "moon_owl", name: "Moon Owl", icon: "moon.stars.fill", colorHex: "9370DB", unlockLevel: 20),
+        Character(id: "sun_lion", name: "Sun Lion", icon: "sun.max.fill", colorHex: "FFD700", unlockLevel: 30),
+        Character(id: "star_dragon", name: "Star Dragon", icon: "sparkles", colorHex: "FF00FF", unlockLevel: 50)
     ]
 }
 
@@ -26,7 +29,7 @@ enum ZenMode: String, Codable, CaseIterable {
     case newDriver = "newDriver"
     case motorcycle = "motorcycle"
     case singleDude = "singleDude"
-    
+
     var icon: String {
         switch self {
         case .standard: return "leaf.fill"
@@ -36,7 +39,7 @@ enum ZenMode: String, Codable, CaseIterable {
         case .singleDude: return "person.fill.viewfinder"
         }
     }
-    
+
     var displayName: String {
         switch self {
         case .standard: return "Zen Mode"
@@ -57,7 +60,7 @@ class PlayerStore: ObservableObject {
     @Published var selectedCharacterId: String = "camper_fox"
     @Published var showLevelUpToast: Bool = false
     @Published var newlyUnlockedCharacters: [Character] = []
-    @Published var newlyEarnedAchievement: Achievement? = nil
+    @Published var newlyEarnedAchievement: Achievement?
     @Published var currentMode: ZenMode = .standard
 
     private let xpKey = UserDefaultsKeys.playerXP

@@ -1,11 +1,11 @@
 # ZenMap
 
-This app is called **ZenMap** (repo folder: ZenRide).
+This app is called **ZenMap**.
 It is an iOS SwiftUI app — a gamified, cozy Animal Crossing-themed driving companion.
 
 ## Key Facts
 - Build tool: `xcodegen generate` → `xcodebuild`
-- Scheme: `ZenRide`, target: `iPhone 17 Pro` simulator
+- Scheme: `ZenMap`, target: `iPhone 17 Pro` simulator
 - All logging via `Log.*` — never `print()` or `NSLog()`
 - Persistence: SwiftData (drives) + UserDefaults (player XP, vehicles, quests)
 - No remote backend — fully local

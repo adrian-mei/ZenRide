@@ -17,14 +17,14 @@ struct RideView: View {
     @State private var destinationName: String
     @State private var uiVisible = true
     @State private var showTapHint = false
-    @State private var departureTime: Date? = nil
-    @State private var navigationStartTime: Date? = nil
+    @State private var departureTime: Date?
+    @State private var navigationStartTime: Date?
     @State private var isTracking: Bool = true
     @State private var mapMode: MapMode = .turnByTurn
     @State private var cruiseOdometerMiles: Double = 0
-    @State private var cruiseLastLocation: CLLocation? = nil
+    @State private var cruiseLastLocation: CLLocation?
     @State private var showCruiseSearch = false
-    @State private var celebrationStopName: String? = nil
+    @State private var celebrationStopName: String?
     @State private var flashTriggered = false
 
     init(initialDestinationName: String, onStop: @escaping (RideContext?, PendingDriveSession?) -> Void) {
@@ -111,7 +111,7 @@ struct RideView: View {
         ZStack {
             if routeState == .navigating && uiVisible {
                 // Top Left: Guidance / Quests
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .center, spacing: 12) {
                     if routingService.activeQuest != nil {
                         QuestProgressView()
                     }
@@ -119,25 +119,23 @@ struct RideView: View {
                     Spacer()
                 }
                 .padding(.top, 16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
+                .frame(maxWidth: .infinity, alignment: .top)
+
                 // Top Right: Controls
                 VStack(alignment: .trailing) {
                     controlsColumn
                     Spacer()
                 }
-                .padding(.top, 70)
+                .padding(.top, 130)
                 .frame(maxWidth: .infinity, alignment: .trailing)
-                
+
                 // Bottom Left: Speedometer
                 VStack {
                     Spacer()
                     HStack {
                         DigitalDashSpeedometer()
-                            .scaleEffect(0.55)
-                            .frame(width: 80, height: 80)
-                            .padding(.leading, 8)
-                            .padding(.bottom, 110)
+                            .padding(.leading, 12)
+                            .padding(.bottom, 150)
                         Spacer()
                     }
                 }
@@ -159,90 +157,90 @@ struct RideView: View {
     }
 
     private var turnByTurnHUD: some View {
-        GuidanceView()
-            .transition(.move(edge: .leading).combined(with: .opacity))
+        VStack(spacing: 12) {
+            if routingService.activeRoute.isEmpty {
+                if let streetName = locationProvider.currentStreetName {
+                    HStack {
+                        Image(systemName: "car.fill")
+                            .foregroundColor(.white)
+                        Text(streetName)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color(hex: "0B5B56"))
+                    .clipShape(Capsule())
+                    .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            } else {
+                GuidanceView()
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
     }
 
     private var controlsColumn: some View {
         VStack(alignment: .trailing, spacing: 12) {
-            // Memory Capture Button (Pictures with our eyes)
-            Button {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                flashTriggered = true
-                let loc = locationProvider.currentLocation?.coordinate ?? Constants.sfCenter
-                let name = destinationName.isEmpty ? "Unknown Spot" : destinationName
-                memoryStore.capture(at: loc, name: name)
-            } label: {
-                VStack(spacing: 2) {
-                    Image(systemName: "eye.fill")
-                        .font(.system(size: 20, weight: .black))
-                    Text("MEMORIZE")
-                        .font(Theme.Typography.label)
-                }
-                .frame(width: 64, height: 64)
-                .foregroundColor(.white)
-                .background(Theme.Colors.acGold)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2.5))
-                .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: 5)
-            }
-            .padding(.bottom, 8)
-            .acWobble(isPressed: flashTriggered)
 
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
+            VStack(spacing: 8) {
+                // Map Mode
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        mapMode = (mapMode == .turnByTurn) ? .overview : .turnByTurn
+                    }
+                } label: {
+                    Image(systemName: mapMode == .turnByTurn ? "map.fill" : "location.north.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .frame(width: 48, height: 48)
+                        .foregroundColor(.black)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                 }
-            } label: {
-                Image(systemName: mapMode == .turnByTurn ? "map.fill" : "location.north.fill")
-                    .font(.system(size: 20, weight: .bold))
-                    .frame(width: 48, height: 48)
-                    .foregroundColor(Theme.Colors.acTextDark)
-                    .background(Theme.Colors.acCream)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Theme.Colors.acBorder, lineWidth: 2))
-                    .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
-            }
-            
-            VStack(spacing: 0) {
+
+                // Audio Toggle
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     bunnyPolice.isMuted.toggle()
                 } label: {
                     Image(systemName: bunnyPolice.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 20, weight: .semibold))
                         .frame(width: 48, height: 48)
-                        .foregroundColor(bunnyPolice.isMuted ? Theme.Colors.acCoral : Theme.Colors.acTextDark)
+                        .foregroundColor(bunnyPolice.isMuted ? Color.red : Color.black)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                 }
 
-                Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
-
+                // Recenter
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     isTracking = true
                     NotificationCenter.default.post(name: AppNotification.recenterMap, object: nil)
                 } label: {
                     Image(systemName: isTracking ? "location.fill" : "location")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 20, weight: .semibold))
                         .frame(width: 48, height: 48)
-                        .foregroundColor(Theme.Colors.acTextDark)
+                        .foregroundColor(.black)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                 }
 
-                Divider().background(Theme.Colors.acBorder.opacity(0.3)).padding(.horizontal, 10)
-
+                // Report Hazard
                 Button { reportHazard() } label: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 22, weight: .black))
+                    Image(systemName: "exclamationmark.bubble.fill")
+                        .font(.system(size: 20, weight: .semibold))
                         .frame(width: 48, height: 48)
-                        .foregroundColor(Theme.Colors.acGold)
+                        .foregroundColor(.black)
+                        .background(Color.white)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                 }
             }
-            .frame(width: 48)
-            .background(Theme.Colors.acCream)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.Colors.acBorder, lineWidth: 2))
-            .shadow(color: Theme.Colors.acBorder.opacity(0.5), radius: 0, x: 0, y: 4)
         }
         .padding(.trailing, 16)
         .transition(.opacity)
@@ -287,7 +285,7 @@ struct RideView: View {
         .presentationBackgroundInteraction(.enabled)
         .interactiveDismissDisabled()
     }
-    
+
     private func handleOnAppear() {
         if initialDestinationName.isEmpty {
             departureTime = Date()
@@ -300,7 +298,7 @@ struct RideView: View {
             }
         }
     }
-    
+
     private func handleRouteStateChange(_ state: RouteState) {
         if state == .navigating {
             UIApplication.shared.isIdleTimerDisabled = true
@@ -309,7 +307,7 @@ struct RideView: View {
             withAnimation { uiVisible = true }
         }
     }
-    
+
     private func handleLocationChange(_ location: CLLocation?) {
         guard routeState == .navigating, let loc = location else { return }
         routingService.checkReroute(currentLocation: loc)
@@ -331,14 +329,14 @@ struct RideView: View {
             cruiseLastLocation = loc
         }
     }
-    
+
     private func handleSimulationCompletion(_ completed: Bool) {
         guard completed && routeState == .navigating else { return }
-        
+
         if let quest = routingService.activeQuest {
             let reachedStopName = quest.waypoints[routingService.currentStopNumber].name
             celebrationStopName = reachedStopName
-            
+
             if let loc = locationProvider.currentLocation?.coordinate {
                 let advanced = routingService.advanceToNextLeg(currentLocation: loc)
                 if advanced {
@@ -420,7 +418,7 @@ struct RideView: View {
             onStop(context, pending)
         }
     }
-    
+
     private func prefetchTTS(for destinationName: String) {
         var prefetchTexts = [String]()
         let dest = destinationName.isEmpty ? "your destination" : destinationName

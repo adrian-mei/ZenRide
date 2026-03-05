@@ -34,28 +34,28 @@ final class SpeechService: NSObject, ObservableObject {
     /// Try specifically for premium female human voices (excluding Siri).
     private var preferredHumanVoice: AVSpeechSynthesisVoice? {
         let voices = availableHumanVoices
-        
+
         // 1. Look for any premium female English voice
-        if let premiumFemale = voices.first(where: { 
-            $0.quality == .premium && 
-            $0.gender == .female && 
+        if let premiumFemale = voices.first(where: {
+            $0.quality == .premium &&
+            $0.gender == .female &&
             $0.language.hasPrefix("en") &&
-            !$0.name.lowercased().contains("siri") && 
+            !$0.name.lowercased().contains("siri") &&
             !$0.identifier.lowercased().contains("siri")
         }) {
             return premiumFemale
         }
-        
+
         // 2. Fallback to any female English voice (excluding Siri)
-        if let anyFemale = voices.first(where: { 
-            $0.gender == .female && 
+        if let anyFemale = voices.first(where: {
+            $0.gender == .female &&
             $0.language.hasPrefix("en") &&
-            !$0.name.lowercased().contains("siri") && 
+            !$0.name.lowercased().contains("siri") &&
             !$0.identifier.lowercased().contains("siri")
         }) {
             return anyFemale
         }
-        
+
         return nil
     }
 
@@ -63,7 +63,7 @@ final class SpeechService: NSObject, ObservableObject {
     var availableHumanVoices: [AVSpeechSynthesisVoice] {
         let allVoices = AVSpeechSynthesisVoice.speechVoices()
         let supportedVoices = allVoices.filter { $0.language.hasPrefix("en") || $0.language.hasPrefix("zh") }
-        
+
         var humanVoices = supportedVoices.filter { voice in
             // Exclude Siri voices completely as per request
             guard !voice.name.lowercased().contains("siri") && !voice.identifier.lowercased().contains("siri") else {
@@ -71,7 +71,7 @@ final class SpeechService: NSObject, ObservableObject {
             }
             return voice.quality != .default || voice.identifier == AVSpeechSynthesisVoiceIdentifierAlex
         }
-        
+
         // Safety fallback
         if !humanVoices.contains(where: { $0.language.hasPrefix("en") }) {
             humanVoices.append(contentsOf: supportedVoices.filter { $0.language.hasPrefix("en") && !$0.name.lowercased().contains("siri") })
@@ -82,10 +82,10 @@ final class SpeechService: NSObject, ObservableObject {
         if !humanVoices.contains(where: { $0.language == "zh-HK" }) {
             humanVoices.append(contentsOf: supportedVoices.filter { $0.language == "zh-HK" && !$0.name.lowercased().contains("siri") })
         }
-        
+
         // Deduplicate in case of overlap
         let uniqueDict = Dictionary(grouping: humanVoices, by: { $0.identifier }).compactMapValues { $0.first }
-        
+
         return Array(uniqueDict.values).sorted { lhs, rhs in
             if lhs.quality.rawValue != rhs.quality.rawValue {
                 return lhs.quality.rawValue > rhs.quality.rawValue
@@ -104,7 +104,7 @@ final class SpeechService: NSObject, ObservableObject {
         } else {
             selectedVoiceId = UserDefaults.standard.string(forKey: voiceIdKey)
         }
-        
+
         configureAudioSession()
         Log.info("SpeechService", "Initialized. Selected voice ID: \(selectedVoiceId ?? "none")")
     }
@@ -128,7 +128,7 @@ final class SpeechService: NSObject, ObservableObject {
     }
 
     // MARK: - Tests Detection
-    
+
     private var isRunningTests: Bool {
         return ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
@@ -137,7 +137,7 @@ final class SpeechService: NSObject, ObservableObject {
 
     func speak(_ text: String, rate: Float = 0.5, pitch: Float = 1.0) {
         guard !isRunningTests else { return }
-        
+
         if selectedVoiceId?.starts(with: "google-tts") == true {
             // Use Google TTS
             GoogleTTSClient.shared.speak(text) { [weak self] in
@@ -151,10 +151,10 @@ final class SpeechService: NSObject, ObservableObject {
             speakWithApple(text, rate: rate, pitch: pitch)
         }
     }
-    
+
     private func speakWithApple(_ text: String, rate: Float, pitch: Float) {
         guard !isRunningTests else { return }
-        
+
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = self.selectedAppleVoice
         utterance.rate = rate
@@ -165,12 +165,12 @@ final class SpeechService: NSObject, ObservableObject {
     /// Plays a short sample phrase through the given voice ID so the user can preview it.
     func previewVoice(id: String) {
         guard !isRunningTests else { return }
-        
+
         synthesizer.stopSpeaking(at: .immediate)
         GoogleTTSClient.shared.stopSpeaking()
-        
+
         let sampleText = "This is how your GPS guide will sound on the road."
-        
+
         if id.starts(with: "google-tts") {
             GoogleTTSClient.shared.speak(sampleText) { [weak self] in
                 self?.speakWithApple(sampleText, rate: 0.5, pitch: 1.0)
@@ -184,7 +184,7 @@ final class SpeechService: NSObject, ObservableObject {
             } else {
                 localizedSample = sampleText
             }
-            
+
             let utterance = AVSpeechUtterance(string: localizedSample)
             utterance.voice = voice
             utterance.rate = 0.5
@@ -197,12 +197,12 @@ final class SpeechService: NSObject, ObservableObject {
         synthesizer.stopSpeaking(at: .immediate)
         GoogleTTSClient.shared.stopSpeaking()
     }
-    
+
     /// Prefetches a list of texts for offline or delayed playback.
     /// Only works if the selected voice is a Google TTS voice, as Apple voices synthesize on device instantly.
     func prefetch(texts: [String]) {
         guard !isRunningTests else { return }
-        
+
         if selectedVoiceId?.starts(with: "google-tts") == true {
             for text in texts {
                 GoogleTTSClient.shared.prefetch(text)

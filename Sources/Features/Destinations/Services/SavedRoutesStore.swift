@@ -12,7 +12,9 @@ public enum RoutineCategory: String, Codable, CaseIterable {
     case school = "school"
     case afterSchool = "afterschool"
     case dateSpot = "datespot"
-    
+    case grocery = "grocery"
+    case coffee = "coffee"
+
     var icon: String {
         switch self {
         case .home: return "house.fill"
@@ -24,9 +26,11 @@ public enum RoutineCategory: String, Codable, CaseIterable {
         case .school: return "figure.and.child.holdinghands"
         case .afterSchool: return "soccerball"
         case .dateSpot: return "heart.fill"
+        case .grocery: return "cart.fill"
+        case .coffee: return "cup.and.saucer.fill"
         }
     }
-    
+
     var displayName: String {
         switch self {
         case .home: return "Home"
@@ -38,6 +42,8 @@ public enum RoutineCategory: String, Codable, CaseIterable {
         case .school: return "School"
         case .afterSchool: return "Afterschool"
         case .dateSpot: return "Date Spot"
+        case .grocery: return "Groceries"
+        case .coffee: return "Coffee"
         }
     }
 }
@@ -60,16 +66,16 @@ final class SavedRoute {
     var typicalDepartureHours: [Int]   // capped at 50
     var averageDurationSeconds: Int
     var isPinned: Bool
-    
+
     // Routine Slotting
     var category: RoutineCategory?
     var slotIndex: Int? // 0, 1, 2
     var contactIdentifier: String? // For party members
     var customIcon: String? // For holy spots
-    
+
     // History for intelligence
     var visitHistory: [VisitRecord] = []
-    
+
     @Attribute(.externalStorage) var offlineRouteData: Data?
 
     @Transient var offlineRoute: TomTomRoute? {
@@ -137,7 +143,7 @@ extension Notification.Name {
 class SavedRoutesStore: ObservableObject {
     @Published var routes: [SavedRoute] = []
     @Published var recentSearches: [RecentSearch] = []
-    
+
     private let key = UserDefaultsKeys.savedRoutes
     private let recentSearchesKey = UserDefaultsKeys.recentSearches
     private let defaults: UserDefaults = .standard
@@ -151,11 +157,11 @@ class SavedRoutesStore: ObservableObject {
     }
 
     // MARK: - Recent Searches
-    
+
     func addRecentSearch(name: String, subtitle: String, coordinate: CLLocationCoordinate2D) {
         let nameTrimmed = name.trimmingCharacters(in: .whitespaces)
         guard !nameTrimmed.isEmpty else { return }
-        
+
         recentSearches.removeAll { $0.name.lowercased() == nameTrimmed.lowercased() }
         let newSearch = RecentSearch(
             name: nameTrimmed,
@@ -165,7 +171,7 @@ class SavedRoutesStore: ObservableObject {
             timestamp: Date()
         )
         recentSearches.insert(newSearch, at: 0)
-        
+
         if recentSearches.count > 10 {
             recentSearches.removeLast()
         }
@@ -250,16 +256,16 @@ class SavedRoutesStore: ObservableObject {
         let hour = calendar.component(.hour, from: departureTime)
         let weekday = calendar.component(.weekday, from: departureTime)
         let month = calendar.component(.month, from: departureTime)
-        
+
         let record = VisitRecord(date: departureTime, hour: hour, weekday: weekday, month: month)
-        
+
         if let idx = findExistingIndex(near: coordinate, name: destinationName) {
             routes[idx].useCount += 1
             routes[idx].lastUsedDate = departureTime
             routes[idx].typicalDepartureHours.append(hour)
             routes[idx].typicalDepartureHours = Array(routes[idx].typicalDepartureHours.suffix(50))
             routes[idx].visitHistory.append(record)
-            
+
             let prev = routes[idx].averageDurationSeconds
             let count = routes[idx].useCount
             routes[idx].averageDurationSeconds = (prev * (count - 1) + durationSeconds) / count
@@ -312,7 +318,7 @@ class SavedRoutesStore: ObservableObject {
         }
         save()
     }
-    
+
     func assignToRoutine(id: UUID, category: RoutineCategory, index: Int, contactId: String? = nil, customIcon: String? = nil) {
         // Clear existing slot if any
         for i in 0..<routes.count {
@@ -321,7 +327,7 @@ class SavedRoutesStore: ObservableObject {
                 routes[i].slotIndex = nil
             }
         }
-        
+
         if let idx = routes.firstIndex(where: { $0.id == id }) {
             routes[idx].category = category
             routes[idx].slotIndex = index
@@ -331,7 +337,7 @@ class SavedRoutesStore: ObservableObject {
             save()
         }
     }
-    
+
     func routeForSlot(category: RoutineCategory, index: Int) -> SavedRoute? {
         routes.first { $0.category == category && $0.slotIndex == index }
     }
@@ -391,7 +397,7 @@ class SavedRoutesStore: ObservableObject {
             Log.error("SavedRoutesStore", "Failed to load routes from SwiftData: \(error)")
         }
     }
-    
+
     // Fallback struct for JSON migration
     struct OldSavedRoute: Codable {
         let destinationName: String

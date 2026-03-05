@@ -27,7 +27,7 @@ struct QuestBuilderView: View {
 
     var preloadedWaypoints: [QuestWaypoint] = []
     var preloadedTitle: String = ""
-    var onStartTrip: ((String, CLLocationCoordinate2D) -> Void)? = nil
+    var onStartTrip: ((String, CLLocationCoordinate2D) -> Void)?
 
     @State private var questName = "My Cozy Commute"
     @State private var waypoints: [QuestWaypoint] = []
@@ -370,7 +370,7 @@ private struct AddStopSheet: View {
                     } else {
                         let pinned = savedRoutes.pinnedRoutes
                         let recents = savedRoutes.recentSearches
-                        
+
                         if pinned.isEmpty && recents.isEmpty {
                             Spacer()
                             Image(systemName: "mappin.and.ellipse")
@@ -394,7 +394,7 @@ private struct AddStopSheet: View {
                                         }
                                     }
                                 }
-                                
+
                                 if !recents.isEmpty {
                                     Section("Recent Searches") {
                                         ForEach(recents) { recent in

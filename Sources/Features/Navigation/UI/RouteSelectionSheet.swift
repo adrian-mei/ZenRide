@@ -13,7 +13,7 @@ struct RouteSelectionSheet: View {
 
     @EnvironmentObject var routingService: RoutingService
     @EnvironmentObject var vehicleStore: VehicleStore
-    @State private var activeSheet: RouteActiveSheet? = nil
+    @State private var activeSheet: RouteActiveSheet?
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -224,7 +224,7 @@ private struct AvoidPreferencesSheet: View {
         NavigationStack {
             ZStack {
                 Theme.Colors.acField.ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 24) {
                         VStack(alignment: .leading, spacing: 0) {
@@ -235,9 +235,9 @@ private struct AvoidPreferencesSheet: View {
                             ACToggleRow(title: "Avoid Speed Cameras", icon: "camera.fill", isOn: $routingService.avoidSpeedCameras)
                         }
                         .acCardStyle(padding: 0)
-                        
+
                         Spacer(minLength: 20)
-                        
+
                         Button("Apply Options") {
                             Task { await routingService.recalculate() }
                             dismiss()
@@ -262,4 +262,3 @@ private struct AvoidPreferencesSheet: View {
         }
     }
 }
-

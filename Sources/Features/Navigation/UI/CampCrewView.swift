@@ -3,7 +3,7 @@ import SwiftUI
 struct CampCrewView: View {
     @EnvironmentObject var multiplayerService: MultiplayerService
     @State private var showStatsSheet = false
-    
+
     var body: some View {
         Button(action: {
             showStatsSheet = true
@@ -13,17 +13,17 @@ struct CampCrewView: View {
                     .font(.system(size: 10, weight: .black, design: .rounded))
                     .foregroundColor(Theme.Colors.acTextDark.opacity(0.6))
                     .padding(.leading, 4)
-                
+
                 if let session = multiplayerService.activeSession {
                     HStack(spacing: -8) {
                         // Local user (host/self)
                         crewAvatar("🦊", zIndex: Double(session.members.count + 1))
-                        
+
                         // Connected friends
                         ForEach(Array(session.members.enumerated()), id: \.element.id) { index, member in
                             crewAvatar(member.avatarURL ?? "🐶", zIndex: Double(session.members.count - index))
                         }
-                        
+
                         // Small plus indicator
                         ZStack {
                             Circle()
@@ -33,7 +33,7 @@ struct CampCrewView: View {
                                     Circle()
                                         .stroke(Theme.Colors.acBorder, style: StrokeStyle(lineWidth: 2, dash: [4]))
                                 )
-                            
+
                             Image(systemName: "plus")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(Theme.Colors.acTextMuted)
@@ -61,7 +61,7 @@ struct CampCrewView: View {
                 .presentationDragIndicator(.visible)
         }
     }
-    
+
     private func crewAvatar(_ emoji: String, zIndex: Double) -> some View {
         ZStack {
             Circle()
@@ -71,7 +71,7 @@ struct CampCrewView: View {
                     Circle()
                         .stroke(Theme.Colors.acBorder, lineWidth: 2)
                 )
-            
+
             Text(emoji)
                 .font(.system(size: 20))
         }

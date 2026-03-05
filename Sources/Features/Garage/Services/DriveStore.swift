@@ -102,7 +102,7 @@ class DriveStore: ObservableObject {
         var topSpeed: Double = 0
         var totalZen: Int = 0
         var sessionCount: Int = 0
-        
+
         for record in records {
             saved += record.allTimeMoneySaved
             rides += record.sessionCount
@@ -115,13 +115,13 @@ class DriveStore: ObservableObject {
                 sessionCount += 1
             }
         }
-        
+
         self.totalSavedAllTime = saved
         self.totalRideCount = rides
         self.totalDistanceMiles = distance
         self.allTimeTopSpeedMph = topSpeed
         self.avgZenScore = sessionCount > 0 ? totalZen / sessionCount : 0
-        
+
         let calendar = Calendar.current
         let allDays = records.flatMap(\.sessions).compactMap { $0.date }.map { calendar.startOfDay(for: $0) }
         let uniqueDays = Array(Set(allDays)).sorted(by: >)
@@ -138,7 +138,7 @@ class DriveStore: ObservableObject {
             }
         }
         self.currentStreak = streak
-        
+
         self.todayMiles = records
             .flatMap(\.sessions)
             .filter { calendar.isDateInToday($0.date) }
@@ -165,7 +165,7 @@ class DriveStore: ObservableObject {
             Log.error("DriveStore", "Failed to load records from SwiftData: \(error)")
         }
     }
-    
+
     // Fallback struct for JSON migration
     struct OldDriveRecord: Codable {
         let routeFingerprint: String
@@ -200,7 +200,7 @@ class DriveStore: ObservableObject {
         let didSlowDown: Bool
         let outcome: CameraOutcome
     }
-    
+
     private func migrateIfNecessary() {
         guard let data = UserDefaults.standard.data(forKey: key) else { return }
         Log.info("DriveStore", "Migrating old UserDefaults data to SwiftData...")
@@ -213,7 +213,7 @@ class DriveStore: ObservableObject {
                     }
                     return DriveSession(date: oldSession.date, departureHour: oldSession.departureHour, avgSpeedMph: oldSession.avgSpeedMph, topSpeedMph: oldSession.topSpeedMph, speedReadings: oldSession.speedReadings, cameraZoneEvents: events, moneySaved: oldSession.moneySaved, trafficDelaySeconds: oldSession.trafficDelaySeconds, timeOfDayCategory: oldSession.timeOfDayCategory, durationSeconds: oldSession.durationSeconds, distanceMiles: oldSession.distanceMiles, mood: oldSession.mood, zenScore: oldSession.zenScore)
                 }
-                
+
                 let newRecord = DriveRecord(routeFingerprint: old.routeFingerprint, destinationName: old.destinationName, originLatitude: old.originLatitude, originLongitude: old.originLongitude, destinationLatitude: old.destinationLatitude, destinationLongitude: old.destinationLongitude, isBookmarked: old.isBookmarked ?? false, sessions: sessions)
                 context.insert(newRecord)
             }

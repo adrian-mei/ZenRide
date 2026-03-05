@@ -11,4 +11,5 @@ enum UserDefaultsKeys {
     static let rideJournal            = "RideJournalEntries"
     static let savedRoutes            = "SavedRoutes"
     static let recentSearches         = "RecentSearches_v1"
+    static let parkedCarLocation      = "ParkedCarLocation_v1"
 }

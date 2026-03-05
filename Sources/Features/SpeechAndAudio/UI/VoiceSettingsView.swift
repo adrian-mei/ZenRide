@@ -5,7 +5,7 @@ import AVFoundation
 
 struct VoiceSettingsView: View {
     @ObservedObject private var speechService = SpeechService.shared
-    @State private var previewingVoiceId: String? = nil
+    @State private var previewingVoiceId: String?
 
     private var englishVoices: [AVSpeechSynthesisVoice] {
         speechService.availableHumanVoices.filter { $0.language.hasPrefix("en") }
@@ -23,7 +23,7 @@ struct VoiceSettingsView: View {
         NavigationStack {
             ZStack {
                 Theme.Colors.acField.ignoresSafeArea()
-                
+
                 List {
                     // Info banner
                     Section {
@@ -137,7 +137,7 @@ private struct VoiceRow: View {
     let customQuality: String?
     let customRegion: String?
     let customGender: String?
-    
+
     let isSelected: Bool
     let isPreviewing: Bool
     let onSelect: () -> Void

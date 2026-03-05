@@ -1,4 +1,4 @@
-# ZenRide
+# ZenMap
 
 A privacy-focused iOS application designed to help you avoid speed cameras and potential fines while riding.
 
@@ -13,7 +13,7 @@ A privacy-focused iOS application designed to help you avoid speed cameras and p
 
 1. Open the project in Xcode:
    ```bash
-   open ZenRide.xcodeproj
+   open ZenMap.xcodeproj
    ```
 2. Select your development team in the **Signing & Capabilities** tab.
 3. Select your device and press **Run**.

@@ -21,7 +21,10 @@ struct VehicleGarageView: View {
         VehicleTemplate.all.filter { $0.unlockLevel == 1 }
     }
     private var lockedTemplates: [VehicleTemplate] {
-        VehicleTemplate.all.filter { $0.unlockLevel > 1 }
+        VehicleTemplate.all.filter { $0.unlockLevel > 1 && $0.unlockLevel < 40 }
+    }
+    private var legendaryTemplates: [VehicleTemplate] {
+        VehicleTemplate.all.filter { $0.unlockLevel >= 40 }
     }
 
     var body: some View {
@@ -94,6 +97,43 @@ struct VehicleGarageView: View {
                         }
                         .padding(.horizontal, 10)
                         .padding(.bottom, 16)
+
+                        // ── LEGENDARY section ───────────────────────────────
+                        if !legendaryTemplates.isEmpty {
+                            PickerSectionHeader(
+                                title: "LEGENDARY",
+                                badge: "master XP",
+                                icon: "sparkles",
+                                color: Theme.Colors.acGold
+                            )
+
+                            VStack(spacing: 6) {
+                                ForEach(legendaryTemplates) { template in
+                                    let isLocked = template.unlockLevel > playerStore.currentLevel
+                                    TemplateRow(
+                                        template: template,
+                                        isLocked: isLocked,
+                                        isSelected: vehicleStore.selectedTemplateId == template.id,
+                                        isHovered: hoveredId == template.id,
+                                        onTap: {
+                                            if !isLocked {
+                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
+                                                    hoveredId = template.id
+                                                }
+                                                UISelectionFeedbackGenerator().selectionChanged()
+                                            } else {
+                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
+                                                    hoveredId = template.id
+                                                }
+                                                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.bottom, 16)
+                        }
                     }
                 }
                 .frame(width: UIScreen.main.bounds.width * 0.4)
@@ -154,9 +194,9 @@ struct VehicleGarageView: View {
 
                     // Stats — bars animate to new values
                     VStack(spacing: 10) {
-                        StatRow(label: "Speed",    value: hoveredTemplate.speedStat,    color: Theme.Colors.acSky)
+                        StatRow(label: "Speed", value: hoveredTemplate.speedStat, color: Theme.Colors.acSky)
                         StatRow(label: "Handling", value: hoveredTemplate.handlingStat, color: Theme.Colors.acGold)
-                        StatRow(label: "Safety",   value: hoveredTemplate.safetyStat,   color: Theme.Colors.acCoral)
+                        StatRow(label: "Safety", value: hoveredTemplate.safetyStat, color: Theme.Colors.acCoral)
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 16)
