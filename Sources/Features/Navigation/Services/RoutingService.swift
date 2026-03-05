@@ -107,31 +107,28 @@ class RoutingService: ObservableObject {
     private var lastRerouteCheckTime: Date?
 
     func checkReroute(currentLocation: CLLocation) {
-        let now = Date()
-        if let last = lastRerouteCheckTime, now.timeIntervalSince(last) < 1.0 {
-            return // Throttle reroute checks to max 1 per second
-        }
-        lastRerouteCheckTime = now
-
-        let matchResult = RouteTracker.match(
-            location: currentLocation.coordinate,
+        let result = RerouteEngine.evaluate(
+            currentLocation: currentLocation.coordinate,
             activeRoute: activeRoute,
-            currentIndex: routeProgressIndex
+            routeProgressIndex: routeProgressIndex,
+            isCalculatingRoute: isCalculatingRoute,
+            showReroutePrompt: showReroutePrompt,
+            lastRerouteCheckTime: lastRerouteCheckTime
         )
-
-        switch matchResult {
-        case .onRoute(let newIndex):
-            if newIndex > routeProgressIndex {
-                routeProgressIndex = newIndex
-            }
-        case .offRoute:
-            if !isCalculatingRoute && !showReroutePrompt {
-                Log.info("Routing", "Off route — triggering reroute recalculation")
-                showReroutePrompt = true
-                Task {
-                    if let dest = lastDestination, let cams = lastCameras {
-                        await calculateSafeRoute(from: currentLocation.coordinate, to: dest, avoiding: cams)
-                    }
+        
+        lastRerouteCheckTime = result.newCheckTime
+        
+        switch result.action {
+        case .none:
+            break
+        case .advanceIndex(let newIndex):
+            routeProgressIndex = newIndex
+        case .promptReroute:
+            Log.info("Routing", "Off route — triggering reroute recalculation")
+            showReroutePrompt = true
+            Task {
+                if let dest = lastDestination, let cams = lastCameras {
+                    await calculateSafeRoute(from: currentLocation.coordinate, to: dest, avoiding: cams)
                 }
             }
         }
