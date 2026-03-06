@@ -51,6 +51,8 @@ public struct ACCardModifier: ViewModifier {
                     .stroke(Theme.Colors.acBorder.opacity(0.8), lineWidth: 2.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            // Secondary soft shadow for ambient occlusion/depth
+            .shadow(color: Color.black.opacity(0.05), radius: isPressed ? 2 : 10, x: 0, y: isPressed ? 2 : 5)
             // 3D Drop Shadow effect that "presses" down
             .shadow(color: Theme.Colors.acBorder.opacity(0.8), radius: 0, x: 0, y: isPressed ? 0 : 8)
             // Slight vertical shift to complete the physical press illusion

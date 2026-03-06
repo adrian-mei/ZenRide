@@ -97,8 +97,7 @@ struct LevelUpToast: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Theme.Colors.acCream)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .acGlass(cornerRadius: 16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.acGold, lineWidth: 2))
         .shadow(color: Theme.Colors.acGold.opacity(0.4), radius: 0, x: 0, y: 5)
         .padding(.horizontal, 16)

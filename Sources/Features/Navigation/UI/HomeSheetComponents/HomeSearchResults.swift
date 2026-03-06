@@ -63,6 +63,7 @@ struct HomeSearchResults: View {
 
                         // "+" pill — add to trip builder
                         Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             onAddToTripBuilder(item)
                         } label: {
                             Image(systemName: "plus.circle.fill")

@@ -43,13 +43,9 @@ struct QuestCelebrationOverlay: View {
                         onDismiss()
                     } label: {
                         Text(isFinal ? "Awesome!" : "Continue Journey")
-                            .font(Theme.Typography.button)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 30)
-                            .padding(.vertical, 12)
-                            .background(Theme.Colors.acWood)
-                            .clipShape(Capsule())
+                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(ACButtonStyle(variant: .primary))
                     .padding(.top, 10)
                 }
                 .padding(30)
@@ -90,12 +86,12 @@ struct ConfettiPiece: View {
     @State private var pos = CGPoint(x: CGFloat.random(in: 0...400), y: -50)
     @State private var opacity = 1.0
     @State private var rotation = Double.random(in: 0...360)
-
-    let emojis = ["🌸", "🍃", "✨", "⭐", "🍎"]
+    @State private var emoji = ["🌸", "🍃", "✨", "⭐", "🍎"].randomElement()!
+    @State private var size = CGFloat.random(in: 15...30)
 
     var body: some View {
-        Text(emojis.randomElement()!)
-            .font(.system(size: CGFloat.random(in: 15...30)))
+        Text(emoji)
+            .font(.system(size: size))
             .position(pos)
             .opacity(opacity)
             .rotationEffect(.degrees(rotation))

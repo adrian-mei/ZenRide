@@ -92,10 +92,11 @@ struct ExperienceDashboardCard: View {
     let summary: ExperienceSummary
     let action: () -> Void
 
-    @State private var isPressed = false
-
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
             VStack(alignment: .leading, spacing: 0) {
                 // Hero Image
                 ZStack(alignment: .topTrailing) {
@@ -146,7 +147,6 @@ struct ExperienceDashboardCard: View {
                         .font(Theme.Typography.caption)
                         .foregroundColor(Theme.Colors.acTextMuted)
                         .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -166,19 +166,26 @@ struct ExperienceDashboardCard: View {
                 .padding(14)
             }
             .frame(width: 252, height: 216)
+        }
+        .buttonStyle(ACCardButtonStyle())
+    }
+}
+
+// Custom button style for cards to get reliable press states
+struct ACCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
             .background(Theme.Colors.acCream)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(Theme.Colors.acBorder, lineWidth: 2)
             )
-            .shadow(color: Theme.Colors.acTextDark.opacity(0.08), radius: 8, x: 0, y: 4)
-            .scaleEffect(isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-            isPressed = pressing
-        }, perform: {})
+            .shadow(color: Theme.Colors.acTextDark.opacity(configuration.isPressed ? 0.04 : 0.08), 
+                    radius: configuration.isPressed ? 4 : 8, 
+                    x: 0, 
+                    y: configuration.isPressed ? 2 : 4)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }

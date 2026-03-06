@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MemoryPolaroidCard: View {
     let memory: Memory
+    @State private var rotationAngle: Double = 0.0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,7 +24,6 @@ struct MemoryPolaroidCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .padding(10)
             .background(Color.white)
-            .rotationEffect(.degrees(Double.random(in: -2...2)))
 
             Text(memory.thought)
                 .font(Theme.Typography.label)
@@ -38,5 +38,9 @@ struct MemoryPolaroidCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 2))
         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 4)
         .acCardStyle(padding: 0, interactive: true, hasTexture: false)
+        .rotationEffect(.degrees(rotationAngle))
+        .onAppear {
+            rotationAngle = Double.random(in: -3...3)
+        }
     }
 }

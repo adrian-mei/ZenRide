@@ -152,8 +152,6 @@ private let coordC = CLLocationCoordinate2D(latitude: 34.0522, longitude: -118.2
     }
 
     @MainActor @Test func persistenceRoundTrip() {
-        let suite = UUID().uuidString
-        let defaults = UserDefaults(suiteName: suite)!
         let store1 = SavedRoutesStore()
         store1.savePlace(name: "Park", coordinate: coordA)
         store1.recordVisit(destinationName: "Gym", coordinate: coordC, durationSeconds: 300, departureTime: Date())

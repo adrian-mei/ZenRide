@@ -29,23 +29,15 @@ struct ReroutePromptOverlay: View {
                 VStack(spacing: 12) {
                     Button(action: dismiss) {
                         Text("Stick to Filters")
-                            .font(Theme.Typography.button)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Theme.Colors.acLeaf)
-                            .foregroundColor(Theme.Colors.acCream)
-                            .clipShape(Capsule())
                     }
+                    .buttonStyle(ACButtonStyle(variant: .primary))
 
                     Button(action: removeFiltersAndRecalculate) {
                         Text("Remove Filters")
-                            .font(Theme.Typography.button)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Theme.Colors.acTextDark.opacity(0.1))
-                            .foregroundColor(Theme.Colors.acTextDark)
-                            .clipShape(Capsule())
                     }
+                    .buttonStyle(ACButtonStyle(variant: .secondary))
                 }
                 .padding(.top, 10)
             }

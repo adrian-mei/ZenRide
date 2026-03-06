@@ -58,9 +58,14 @@ public struct ACMapRoundButtonStyle: ButtonStyle {
                 .frame(width: 56, height: 56)
 
             // Inner face
-            Circle()
-                .fill(isActive ? Theme.Colors.acLeaf.opacity(0.15) : Theme.Colors.acCream)
-                .frame(width: 48, height: 48)
+            ZStack {
+                if isActive {
+                    Circle().fill(Theme.Colors.acLeaf.opacity(0.15))
+                } else {
+                    Circle().fill(.ultraThinMaterial).background(Circle().fill(Theme.Colors.acCream.opacity(0.8)))
+                }
+            }
+            .frame(width: 48, height: 48)
 
             // Icon content
             configuration.label

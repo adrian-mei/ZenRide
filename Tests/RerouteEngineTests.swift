@@ -22,7 +22,7 @@ struct RerouteEngineTests {
         
         switch result.action {
         case .none:
-            #expect(true)
+            #expect(Bool(true))
         default:
             Issue.record("Expected .none action due to throttling")
         }

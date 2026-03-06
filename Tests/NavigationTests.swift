@@ -385,8 +385,6 @@ struct RoutingServiceEdgeCaseTests {
     }
 
     @Test func cameraCounting() {
-        let service = RoutingService()
-
         let p1 = TomTomPoint(latitude: 37.0, longitude: -122.0)
         let p2 = TomTomPoint(latitude: 37.001, longitude: -122.0)
         let leg = TomTomLeg(points: [p1, p2])

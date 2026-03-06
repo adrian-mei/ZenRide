@@ -32,9 +32,6 @@ struct GoogleTTSClientTests {
     @Test func testMissingApiKeyFallback() async {
         let client = GoogleTTSClient.shared
 
-        // Temporarily store original
-        let originalKey = Secrets.googleTTSAPIKey
-
         var fallbackCalled = false
 
         // Since Secrets is an enum, we can't easily mock it without rewriting it to a dependency.

@@ -78,12 +78,7 @@ struct FloatingQuestBuilderOverlay: View {
                                 }
                             }
                         }
-                        .font(Theme.Typography.button)
-                        .foregroundColor(.white)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity)
-                        .background(Theme.Colors.acLeaf)
-                        .clipShape(Capsule())
+                        .buttonStyle(ACButtonStyle(variant: .primary))
                     }
                 }
                 .padding()

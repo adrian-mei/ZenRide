@@ -6,7 +6,10 @@ struct HomeSheetDiscoverActions: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Button(action: onWanderTap) {
+            Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                onWanderTap()
+            } label: {
                 VStack(spacing: 8) {
                     Image(systemName: "tent.fill")
                         .font(Theme.Typography.title2)
